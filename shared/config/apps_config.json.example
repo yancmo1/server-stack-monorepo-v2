@@ -1,0 +1,61 @@
+{
+  "applications": {
+    "example-web-app": {
+      "name": "Example Web App",
+      "port": 5000,
+      "path": "~/example-app",
+      "script": "app.py",
+      "venv": "venv",
+      "protocol": "http",
+      "description": "An example Flask application",
+      "icon": "🌐",
+      "category": "web",
+      "health_check": "/health",
+      "auto_start": true,
+      "restart_policy": "always"
+    },
+    "example-bot": {
+      "name": "Example Bot",
+      "port": null,
+      "path": "~/example-bot",
+      "script": "bot.py",
+      "venv": "venv",
+      "protocol": null,
+      "description": "An example Discord bot",
+      "icon": "🤖",
+      "category": "bot",
+      "health_check": null,
+      "auto_start": true,
+      "restart_policy": "always"
+    }
+  },
+  "system": {
+    "hostname": "raspberrypi.local",
+    "local_ip": "192.168.1.100",
+    "ssh_user": "pi",
+    "dashboard_port": 8080,
+    "refresh_interval": 30,
+    "log_retention_days": 7,
+    "backup_enabled": true,
+    "notifications": {
+      "enabled": false,
+      "email": null,
+      "discord_webhook": null
+    }
+  },
+  "monitoring": {
+    "cpu_alert_threshold": 80,
+    "memory_alert_threshold": 85,
+    "disk_alert_threshold": 90,
+    "health_check_interval": 60,
+    "restart_attempts": 3,
+    "restart_delay": 10
+  },
+  "security": {
+    "require_auth": false,
+    "allowed_ips": ["127.0.0.1", "192.168.0.0/16", "10.0.0.0/8"],
+    "ssl_enabled": false,
+    "ssl_cert_path": null,
+    "ssl_key_path": null
+  }
+}

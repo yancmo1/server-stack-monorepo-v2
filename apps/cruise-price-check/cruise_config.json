@@ -1,0 +1,42 @@
+{
+  "cruise_details": {
+    "ship_code": "JB",
+    "departure_port": "GAL",
+    "itinerary_code": "WE8",
+    "duration_days": 7,
+    "sailing_id": "17415",
+    "sail_date": "11082025",
+    "region_code": "CW",
+    "num_guests": 2,
+    "is_military": "N",
+    "is_over_55": "N",
+    "is_past_guest": "Y",
+    "country": "US",
+    "currency": "USD",
+    "locality": "1"
+  },
+  "target_price": {
+    "baseline_price": 714,
+    "alert_threshold": 25,
+    "rate_codes": ["PJS", "PUG", "PZQ"],
+    "meta_codes": ["IS", "OB"]
+  },
+  "vifp_tracking": {
+    "enabled": true,
+    "vifp_number": "9003242299",
+    "track_review_pages": true
+  },
+  "monitoring": {
+    "check_interval_hours": 6,
+    "max_retries": 3,
+    "timeout_seconds": 30
+  },
+  "alerts": {
+    "email_enabled": false,
+    "email_smtp_server": "smtp.gmail.com",
+    "email_smtp_port": 587,
+    "email_from": "your-email@gmail.com",
+    "email_to": "your-email@gmail.com",
+    "email_password": "your-app-password"
+  }
+}

@@ -1,0 +1,30 @@
+[Unit]
+Description=Server Application Dashboard
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/server-stack/dashboard
+Environment=FLASK_ENV=production
+Environment=PYTHONUNBUFFERED=1
+Environment=DASHBOARD_USER=admin
+Environment=DASHBOARD_PASS=fredrules
+ExecStart=/usr/bin/python3 dashboard.py
+Restart=always
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=5
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/server-stack/dashboard/logs
+ReadWritePaths=/opt/server-stack/dashboard/data
+
+[Install]
+WantedBy=multi-user.target

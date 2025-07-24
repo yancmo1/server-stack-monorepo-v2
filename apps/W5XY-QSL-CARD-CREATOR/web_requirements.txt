@@ -1,0 +1,29 @@
+# Web App Requirements (in addition to existing requirements.txt)
+Flask==3.0.0
+Werkzeug==3.0.1
+Jinja2==3.1.2
+itsdangerous==2.1.2
+click==8.1.7
+blinker==1.7.0
+requests>=2.31.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# PDF Processing
+PyPDF2>=3.0.0
+reportlab>=4.0.0
+pdf2image>=1.16.0
+
+# For PDF to image conversion (requires poppler-utils system package)
+# sudo apt-get install poppler-utils  # On Debian/Ubuntu/Raspberry Pi OS
+# brew install poppler               # On macOS
+
+# Gmail API Dependencies (optional)
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.0.0
+google-auth>=2.20.0
+
+# XML Processing (usually included with Python)
+lxml>=4.9.0

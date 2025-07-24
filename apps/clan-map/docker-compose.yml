@@ -1,0 +1,26 @@
+# version: '3.8'
+
+services:
+  clan-map:
+    build: .
+    ports:
+      - "5552:5552"
+    environment:
+      - FLASK_ENV=production
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - POSTGRES_DB=cocstack
+      - POSTGRES_USER=cocuser
+      - POSTGRES_PASSWORD=yourpassword
+      - POSTGRES_HOST=cocstack-postgres
+      - POSTGRES_PORT=5432
+    restart: unless-stopped
+    volumes:
+      - ./clan_data.json:/app/clan_data.json:ro
+      - ~/.ssh:/home/app/.ssh:ro
+      - ../ssl:/app/ssl:ro
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:5552/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

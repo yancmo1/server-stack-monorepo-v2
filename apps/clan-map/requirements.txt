@@ -1,0 +1,10 @@
+flask
+folium
+requests
+gunicorn
+googlemaps
+Pillow
+psycopg2-binary
+# Testing
+pytest>=7.0.0
+pytest-mock>=3.10.0

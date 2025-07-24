@@ -1,0 +1,61 @@
+{
+  "applications": {
+    "pi-dashboard": {
+      "name": "Pi Dashboard",
+      "description": "Main dashboard interface",
+      "icon": "🏠",
+      "port": 5050,
+      "script": "dashboard.py",
+      "path": "/app",
+      "container_name": "pi-dashboard",
+      "protocol": "https"
+    },
+    "cruise-price-check": {
+      "name": "Cruise Price Check",
+      "description": "Cruise price monitoring app",
+      "icon": "🚢",
+      "port": 5002,
+      "script": "app.py",
+      "path": "/app",
+      "container_name": "cruise-price-check",
+      "protocol": "https"
+    },
+    "clan-map": {
+      "name": "Clan Map",
+      "description": "Clan map visualization",
+      "icon": "🗺️",
+      "port": 5010,
+      "script": "app.py",
+      "path": "/app",
+      "container_name": "clan-map",
+      "protocol": "https"
+    },
+    "qsl-card-creator": {
+      "name": "QSL Card Creator",
+      "description": "QSL card web app",
+      "icon": "💳",
+      "port": 5001,
+      "script": "web_app.py",
+      "path": "/app",
+      "container_name": "qsl-card-creator",
+      "protocol": "https"
+    },
+    "tracker": {
+      "name": "5K Tracker",
+      "description": "Race tracker app",
+      "icon": "🏃",
+      "port": 5011,
+      "script": "app.py",
+      "path": "/app",
+      "container_name": "tracker",
+      "protocol": "https"
+    }
+  },
+  "system": {
+    "hostname": "localhost",
+    "dashboard_port": 5050
+  },
+  "security": {
+    "ssl_enabled": true
+  }
+}

@@ -1,0 +1,5 @@
+# Dev-only and sensitive files
+.docker-compose.dev.yml
+.development
+.sync_commands
+.env

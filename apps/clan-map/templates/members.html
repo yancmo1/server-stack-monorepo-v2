@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clan Members - Clan Map</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            padding-top: 30px;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+        }
+        .role-leader { color: #dc3545; font-weight: bold; }
+        .role-co-leader { color: #fd7e14; font-weight: bold; }
+        .role-elder { color: #6f42c1; font-weight: bold; }
+        .role-member { color: #0d6efd; }
+        .status-located { background-color: #d4edda; }
+        .status-unknown { background-color: #f8d7da; }
+        .navbar {
+            background: rgba(255,255,255,0.1) !important;
+            backdrop-filter: blur(10px);
+        }
+        .nav-link-main {
+            background: linear-gradient(45deg, #667eea, #764ba2) !important;
+            color: white !important;
+            border-radius: 20px;
+            padding: 8px 16px !important;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .nav-link-main:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea) !important;
+            color: white !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .table th {
+            border-top: none;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header text-white" style="background: linear-gradient(45deg, #ff6b6b, #feca57);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h2 class="mb-0">👥 Clan Members</h2>
+                        <p class="mb-0">Track our clan's global presence</p>
+                    </div>
+                    <img src="/static/images/clash_shield.png" alt="Clash Shield" width="50" height="50">
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5>Total Members</h5>
+                            <h3 class="text-primary">{{ total_members }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5>Located</h5>
+                            <h3 class="text-success">{{ pinned_members|length }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5>Unknown Location</h5>
+                            <h3 class="text-danger">{{ unpinned_members|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Location</th>
+                                <th>Favorite Troop</th>
+                                <th>Status</th>
+                                <th>Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in pinned_members + unpinned_members %}
+                            <tr class="{% if player.latitude %}status-located{% else %}status-unknown{% endif %}">
+                                <td>
+                                    <strong>{{ player.name }}</strong>
+                                    {% if player.tag %}
+                                        <small class="text-muted d-block">{{ player.tag }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="role-{{ player.role.lower().replace(' ', '-').replace('-', '') if player.role else 'member' }}">
+                                        {{ get_role_emoji(player.role) }} {{ player.role or 'Member' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if player.latitude and player.longitude %}
+                                        📍 {{ player.location }}
+                                    {% else %}
+                                        <span class="text-muted">{{ player.location or 'Unknown' }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if player.favorite_troop %}
+                                        {{ player.favorite_troop }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if player.latitude and player.longitude %}
+                                        <span class="badge bg-success">Located</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group-vertical btn-group-sm" role="group">
+                                        {% if player.latitude and player.longitude %}
+                                            <a href="/admin/reset/{{ player.name }}" class="btn btn-outline-warning btn-sm" 
+                                               onclick="return confirm('Reset location for {{ player.name }}?')">🔄</a>
+                                        {% endif %}
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-info btn-sm dropdown-toggle" type="button" 
+                                                    data-bs-toggle="dropdown">⚙️</button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Leader">⭐ Leader</a></li>
+                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Co-Leader">👑 Co-Leader</a></li>
+                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Elder">🛡️ Elder</a></li>
+                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Member">👤 Member</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if players|rejectattr('latitude')|list|length > 0 %}
+                <div class="alert alert-info mt-3">
+                    <h5>🎯 Help Us Complete the Map!</h5>
+                    <p class="mb-2">We're still missing locations for some clan members. If you see your name with "Unknown" status, please submit your location!</p>
+                    <a href="/submit" class="btn btn-primary">📍 Submit Your Location</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

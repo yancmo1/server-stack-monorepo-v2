@@ -1,0 +1,512 @@
+from datetime import datetime
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+import config
+import database_optimized as database
+from config import is_leader_or_admin
+# import bonus_weights  # Import the new weighted algorithm (DISABLED: file missing)
+from logging_config import get_logger
+from utils import has_any_role_id, is_admin, is_admin_leader_co_leader, is_admin_leader_co_elder_member, is_newbie, format_last_bonus, days_ago
+
+GUILD_ID = discord.Object(id=config.GUILD_ID)
+logger = get_logger("bonuses")
+
+class BonusesCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        # ...existing code...
+        # Move all command/event logic here
+
+    class BonusSelect(discord.ui.View):
+        def __init__(self, recommended_players, newbie_players, max_select, interaction_user_id):
+            super().__init__(timeout=120)
+            self.interaction_user_id = interaction_user_id
+            self.selected = []
+            self.confirmed = False
+            self.cancelled = False
+            self.undo_requested = False
+            self.last_awarded = []
+            
+            # Build options like the old bot
+            options = []
+            
+            # Add recommended players
+            for p in recommended_players:
+                label = f"{p['name']} (Next in Line)"
+                
+                # Build description with bonus and CWL performance data
+                desc_parts = [f"Bonuses: {p.get('bonus_count', 0)}", f"Last: {format_last_bonus(p.get('last_bonus_date'))}"]
+                
+                # Add individual CWL performance data if available
+                cwl_stars = int(p.get('cwl_stars', 0) or 0)
+                missed_attacks = int(p.get('missed_attacks', 0) or 0)
+                if cwl_stars > 0:
+                    desc_parts.append(f"{cwl_stars} Stars")
+                if missed_attacks > 0:
+                    desc_parts.append(f"**{missed_attacks} Missed**")
+                
+                desc = " | ".join(desc_parts)
+                options.append(discord.SelectOption(label=label, description=desc, value=p['name']))
+            
+            # Add separator and new members if any
+            if newbie_players:
+                options.append(discord.SelectOption(label="───────── Optional New Members ─────────", description="New members to consider", value="separator"))
+                for p in newbie_players:
+                    days = member_days(p.get('join_date', ''))
+                    label = f"{p['name']} (New Member for {days} days)"
+                    
+                    # Build description with bonus and CWL performance data
+                    desc_parts = [f"Bonuses: {p.get('bonus_count', 0)}", f"Last: {format_last_bonus(p.get('last_bonus_date'))}"]
+                    
+                    # Add individual CWL performance data if available
+                    cwl_stars = int(p.get('cwl_stars', 0) or 0)
+                    missed_attacks = int(p.get('missed_attacks', 0) or 0)
+                    if cwl_stars > 0:
+                        desc_parts.append(f"{cwl_stars} Stars")
+                    if missed_attacks > 0:
+                        desc_parts.append(f"**{missed_attacks} Missed**")
+                    
+                    desc = " | ".join(desc_parts)
+                    options.append(discord.SelectOption(label=label, description=desc, value=p['name']))
+            
+            # Limit to Discord's 25 option max
+            options = options[:25]
+            
+            self.select = discord.ui.Select(
+                placeholder=f"Select up to {max_select} players for bonuses",
+                min_values=1,
+                max_values=min(max_select, len([opt for opt in options if opt.value != "separator"])),
+                options=options
+            )
+            self.select.callback = self.select_callback
+            self.add_item(self.select)
+            
+            # Add control buttons
+            self.confirm_button = discord.ui.Button(label="Confirm", style=discord.ButtonStyle.green)
+            self.confirm_button.callback = self.confirm
+            self.add_item(self.confirm_button)
+            self.cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.red)
+            self.cancel_button.callback = self.cancel
+            self.add_item(self.cancel_button)
+            self.undo_button = discord.ui.Button(label="Undo Last", style=discord.ButtonStyle.secondary, disabled=True)
+            self.undo_button.callback = self.undo
+            self.add_item(self.undo_button)
+        async def select_callback(self, interaction: discord.Interaction):
+            if interaction.user.id != self.interaction_user_id:
+                await interaction.response.send_message("You can't select for this interaction.", ephemeral=True)
+                return
+            # Filter out separator values
+            selected_values = [val for val in self.select.values if val != "separator"]
+            self.selected = selected_values
+            if selected_values:
+                await interaction.response.send_message(f"Selected: {', '.join(selected_values)}", ephemeral=True)
+            else:
+                await interaction.response.send_message("Please select actual players (not separators).", ephemeral=True)
+        async def confirm(self, interaction: discord.Interaction):
+            if interaction.user.id != self.interaction_user_id:
+                await interaction.response.send_message("You can't confirm this interaction.", ephemeral=True)
+                return
+            if not self.selected:
+                await interaction.response.send_message("Please select at least one player before confirming.", ephemeral=True)
+                return
+            self.confirmed = True
+            self.last_awarded = list(self.selected)
+            self.undo_button.disabled = False
+            await interaction.response.defer(ephemeral=True)
+            self.stop()
+        async def cancel(self, interaction: discord.Interaction):
+            if interaction.user.id != self.interaction_user_id:
+                await interaction.response.send_message("You can't cancel this interaction.", ephemeral=True)
+                return
+            self.cancelled = True
+            await interaction.response.edit_message(content="Bonus awarding cancelled.", view=None)
+            self.stop()
+        async def undo(self, interaction: discord.Interaction):
+            if interaction.user.id != self.interaction_user_id:
+                await interaction.response.send_message("You can't undo this interaction.", ephemeral=True)
+                return
+            self.undo_requested = True
+            await interaction.response.edit_message(content="Undo requested.", view=None)
+            self.stop()
+
+    @app_commands.command(
+        name="give_cwl_bonuses",
+        description="Give CWL Bonuses — Admin, Leader, Co-Leader"
+    )
+    @app_commands.check(is_admin_leader_co_leader)
+    @app_commands.guilds(GUILD_ID)
+    @app_commands.describe(bonus_count="Number of bonuses to give (5-9)")
+    async def give_cwl_bonuses(self, interaction: discord.Interaction, bonus_count: int = 5):
+        logger.info("[COMMAND] /give_cwl_bonuses invoked")
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            if bonus_count < 5 or bonus_count > 9:
+                await interaction.followup.send("Bonus count must be between 5 and 9.", ephemeral=True)
+                return
+                
+            players = database.get_player_data()
+            # Exclude 'New' for next-in-line
+            next_in_line = [p for p in players if p.get("bonus_eligibility", 0) and not is_newbie(p.get("join_date", ""))]
+            new_members = [p for p in players if p.get("bonus_eligibility", 0) and is_newbie(p.get("join_date", ""))]
+
+            def sort_key(p):
+                bonus_count_val = int(p.get("bonus_count", 0) or 0)
+                last_bonus = p.get("last_bonus_date")
+                if last_bonus:
+                    try:
+                        last_bonus = datetime.strptime(last_bonus, "%Y-%m-%d")
+                    except Exception:
+                        last_bonus = datetime.min
+                else:
+                    last_bonus = datetime.min
+                return (bonus_count_val, last_bonus)
+
+            # Sort next-in-line by bonus eligibility
+            next_in_line.sort(key=sort_key)
+            
+            # Sort new members by join date (oldest first)
+            def newbie_sort_key(p):
+                join_date_str = p.get("join_date", "")
+                if join_date_str and join_date_str != "None":
+                    try:
+                        return datetime.strptime(join_date_str, "%Y-%m-%d")
+                    except Exception:
+                        return datetime.min
+                return datetime.min
+            
+            new_members.sort(key=newbie_sort_key)
+            
+            # Create bonus selection view
+            recommended = next_in_line[:bonus_count]
+            newbies = new_members[:3]  # Show up to 3 new members as options
+            
+            view = BonusesCog.BonusSelect(recommended, newbies, bonus_count, interaction.user.id)
+            await interaction.followup.send("Select players to award bonuses:", view=view, ephemeral=True)
+            await view.wait()
+            
+            if view.confirmed:
+                # Award bonuses in DB
+                awarded_players = []
+                for name in view.selected:
+                    success, message = database.award_player_bonus(name, str(interaction.user.id))
+                    if success:
+                        awarded_players.append(name)
+                
+                if awarded_players:
+                    await interaction.followup.send(f"✅ Bonuses awarded to: {', '.join(awarded_players)}", ephemeral=True)
+                else:
+                    await interaction.followup.send("❌ Failed to award bonuses. Please check the logs.", ephemeral=True)
+            elif view.cancelled:
+                await interaction.followup.send("❌ Bonus awarding cancelled.", ephemeral=True)
+            elif view.undo_requested:
+                # Implement undo logic if needed
+                await interaction.followup.send("↩️ Undo requested - feature coming soon.", ephemeral=True)
+                
+        except Exception as e:
+            logger.error(f"Error in give_cwl_bonuses: {e}")
+            await interaction.followup.send(f"❌ Error awarding bonuses: {e}", ephemeral=True)
+
+    @app_commands.command(
+        name="bonus_history_all",
+        description="Show bonus history for all players — Admin, Leader, Co-Leader, Elder, Member"
+    )
+    @app_commands.check(is_admin_leader_co_elder_member)
+    @app_commands.guilds(GUILD_ID)
+    async def bonus_history_all(self, interaction: discord.Interaction):
+        """Show bonus history for all players"""
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            # Get player data with bonus history
+            players = database.get_player_data()
+            
+            # Filter players who have received bonuses
+            bonus_players = [p for p in players if p.get("bonus_count", 0) > 0]
+            
+            if not bonus_players:
+                await interaction.followup.send("❌ No players found with bonus history.", ephemeral=True)
+                return
+            
+            # Sort by last bonus date (most recent first)
+            def sort_key(p):
+                last_bonus = p.get("last_bonus_date")
+                if last_bonus:
+                    try:
+                        last_bonus = datetime.strptime(last_bonus, "%Y-%m-%d")
+                    except Exception:
+                        last_bonus = datetime.min
+                else:
+                    last_bonus = datetime.min
+                return -last_bonus.timestamp() if last_bonus != datetime.min else float('-inf')
+            bonus_players.sort(key=sort_key)
+            
+            # Create embed
+            embed = discord.Embed(
+                title="🏆 Bonus History - All Players",
+                description=f"Players with bonus history (Total: {len(bonus_players)})",
+                color=discord.Color.gold()
+            )
+            
+            # Discord embed field limit is 25, so we may need to limit
+            max_fields = 22  # Leave room for summary field
+            if len(bonus_players) > max_fields:
+                bonus_players = bonus_players[:max_fields]
+                embed.set_footer(text=f"Showing first {max_fields} players with bonus history")
+            
+            def format_last_bonus(date_str):
+                """Format the last bonus date for display"""
+                if not date_str:
+                    return "Never"
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    return date_obj.strftime("%b %d, %Y")
+                except Exception:
+                    return date_str
+            
+            for player in bonus_players:
+                name = player.get("name", "Unknown")
+                bonus_count = player.get("bonus_count", 0)
+                last_bonus = format_last_bonus(player.get("last_bonus_date"))
+                
+                # Add field for each player
+                embed.add_field(
+                    name=f"{name}",
+                    value=f"**Bonuses:** {bonus_count}\n**Last:** {last_bonus}",
+                    inline=True
+                )
+            
+            # Add summary information
+            total_bonuses = sum(p.get("bonus_count", 0) for p in bonus_players)
+            embed.add_field(
+                name="📊 Summary",
+                value=f"**Total Players:** {len(bonus_players)}\n**Total Bonuses Awarded:** {total_bonuses}",
+                inline=False
+            )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in bonus_history_all: {e}", exc_info=True)
+            await interaction.followup.send(f"Error retrieving bonus history: {e}", ephemeral=True)
+
+    @app_commands.command(
+        name="next_bonuses",
+        description="Show next players in line for bonuses — Admin, Leader, Co-Leader, Elder, Member"
+    )
+    @app_commands.check(is_admin_leader_co_elder_member)
+    @app_commands.guilds(GUILD_ID)
+    async def next_bonuses(self, interaction: discord.Interaction):
+        """Show next players in line for bonuses"""
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            players = database.get_player_data()
+            # Exclude newbies for rotation
+            eligible = [
+                p
+                for p in players
+                if p.get("bonus_eligibility", 0) and not is_newbie(p.get("join_date", ""))
+            ]
+
+            # Sort eligible by bonus_count, then last_bonus_date
+            def sort_key(p):
+                bonus_count = int(p.get("bonus_count", 0) or 0)
+                last_bonus = p.get("last_bonus_date")
+                if last_bonus:
+                    try:
+                        last_bonus = datetime.strptime(last_bonus, "%Y-%m-%d")
+                    except Exception:
+                        last_bonus = datetime.min
+                else:
+                    last_bonus = datetime.min
+                return (bonus_count, last_bonus)
+
+            eligible.sort(key=sort_key)
+            next_five = eligible[:5]
+            pending_extra = eligible[5:9]
+            
+            embed = discord.Embed(
+                title="Next in Line for Bonuses", color=discord.Color.blue()
+            )
+            
+            if next_five:
+                embed.add_field(
+                    name="ON DECK",
+                    value="\n".join(f"• {p['name']}" for p in next_five),
+                    inline=False,
+                )
+            if pending_extra:
+                embed.add_field(
+                    name="Pending Extra Bonuses *",
+                    value="\n".join(f"• {p['name']}" for p in pending_extra)
+                    + "\n\n* Subject to bonus rewards and leaders decision.",
+                    inline=False,
+                )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in next_bonuses: {e}", exc_info=True)
+            await interaction.followup.send(f"Error retrieving next bonuses: {e}", ephemeral=True)
+
+def member_days(join_date_str):
+    """Calculate number of days since player joined"""
+    try:
+        join_date = datetime.strptime(join_date_str, "%Y-%m-%d")
+        return (datetime.utcnow() - join_date).days
+    except Exception:
+        return "?"
+
+    @app_commands.command(
+        name="bonus_history_all",
+        description="Show bonus history for all players — Admin, Leader, Co-Leader, Elder, Member"
+    )
+    @app_commands.check(is_admin_leader_co_elder_member)
+    @app_commands.guilds(GUILD_ID)
+    async def bonus_history_all(self, interaction: discord.Interaction):
+        """Show bonus history for all players"""
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            # Get player data with bonus history
+            players = database.get_player_data()
+            
+            # Filter players who have received bonuses
+            bonus_players = [p for p in players if p.get("bonus_count", 0) > 0]
+            
+            if not bonus_players:
+                await interaction.followup.send("❌ No players found with bonus history.", ephemeral=True)
+                return
+            
+            # Sort by bonus count (desc), then by last bonus date (asc - oldest first for fairness)
+            def sort_key(p):
+                bonus_count = int(p.get("bonus_count", 0) or 0)
+                last_bonus = p.get("last_bonus_date")
+                if last_bonus:
+                    try:
+                        last_bonus = datetime.strptime(last_bonus, "%Y-%m-%d")
+                    except Exception:
+                        last_bonus = datetime.min
+                else:
+                    last_bonus = datetime.min
+                return (-bonus_count, last_bonus)  # Negative bonus_count for desc order
+            
+            bonus_players.sort(key=sort_key)
+            
+            # Create embed
+            embed = discord.Embed(
+                title="🏆 Bonus History - All Players",
+                description=f"Players with bonus history (Total: {len(bonus_players)})",
+                color=discord.Color.gold()
+            )
+            
+            # Discord embed field limit is 25, so we may need to limit
+            max_fields = 22  # Leave room for summary field
+            if len(bonus_players) > max_fields:
+                bonus_players = bonus_players[:max_fields]
+                embed.set_footer(text=f"Showing first {max_fields} players with bonus history")
+            
+            def format_last_bonus(date_str):
+                """Format the last bonus date for display"""
+                if not date_str:
+                    return "Never"
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    return date_obj.strftime("%b %d, %Y")
+                except Exception:
+                    return date_str
+            
+            for player in bonus_players:
+                name = player.get("name", "Unknown")
+                bonus_count = player.get("bonus_count", 0)
+                last_bonus = format_last_bonus(player.get("last_bonus_date"))
+                
+                # Add field for each player
+                embed.add_field(
+                    name=f"{name}",
+                    value=f"**Bonuses:** {bonus_count}\n**Last:** {last_bonus}",
+                    inline=True
+                )
+            
+            # Add summary information
+            total_bonuses = sum(p.get("bonus_count", 0) for p in bonus_players)
+            embed.add_field(
+                name="📊 Summary",
+                value=f"**Total Players:** {len(bonus_players)}\n**Total Bonuses Awarded:** {total_bonuses}",
+                inline=False
+            )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in bonus_history_all: {e}", exc_info=True)
+            await interaction.followup.send(f"Error retrieving bonus history: {e}", ephemeral=True)
+
+    @app_commands.command(
+        name="next_bonuses",
+        description="Show next players in line for bonuses — Admin, Leader, Co-Leader, Elder, Member"
+    )
+    @app_commands.check(is_admin_leader_co_elder_member)
+    @app_commands.guilds(GUILD_ID)
+    async def next_bonuses(self, interaction: discord.Interaction):
+        """Show next players in line for bonuses"""
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            players = database.get_player_data()
+            # Exclude newbies for rotation
+            eligible = [
+                p
+                for p in players
+                if p.get("bonus_eligibility", 0) and not is_newbie(p.get("join_date", ""))
+            ]
+
+            # Sort eligible by bonus_count, then last_bonus_date
+            def sort_key(p):
+                bonus_count = int(p.get("bonus_count", 0) or 0)
+                last_bonus = p.get("last_bonus_date")
+                if last_bonus:
+                    try:
+                        last_bonus = datetime.strptime(last_bonus, "%Y-%m-%d")
+                    except Exception:
+                        last_bonus = datetime.min
+                else:
+                    last_bonus = datetime.min
+                return (bonus_count, last_bonus)
+
+            eligible.sort(key=sort_key)
+            next_five = eligible[:5]
+            pending_extra = eligible[5:9]
+            
+            embed = discord.Embed(
+                title="Next in Line for Bonuses", color=discord.Color.blue()
+            )
+            
+            if next_five:
+                embed.add_field(
+                    name="ON DECK",
+                    value="\n".join(f"• {p['name']}" for p in next_five),
+                    inline=False,
+                )
+            if pending_extra:
+                embed.add_field(
+                    name="Pending Extra Bonuses *",
+                    value="\n".join(f"• {p['name']}" for p in pending_extra)
+                    + "\n\n* Subject to bonus rewards and leaders decision.",
+                    inline=False,
+                )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in next_bonuses: {e}", exc_info=True)
+            await interaction.followup.send(f"Error retrieving next bonuses: {e}", ephemeral=True)
+
+# ...existing code...
+
+async def setup(bot):
+    await bot.add_cog(BonusesCog(bot))

@@ -1,0 +1,49 @@
+# Pi Dashboard Settings
+# Configuration file for dashboard behavior and appearance
+
+# Dashboard Settings
+dashboard:
+  title: "Pi Application Dashboard"
+  subtitle: "Raspberry Pi Control Center"
+  theme: "modern"
+  auto_refresh: true
+  refresh_interval: 30  # seconds
+  show_system_info: true
+  show_resource_graphs: true
+
+# Application Display
+applications:
+  sort_by: "status"  # status, name, port, category
+  group_by: "category"  # none, category, status
+  show_icons: true
+  show_descriptions: true
+  compact_view: false
+
+# System Monitoring
+monitoring:
+  enable_alerts: false
+  cpu_threshold: 80
+  memory_threshold: 85  
+  disk_threshold: 90
+  load_threshold: 2.0
+  temperature_threshold: 75  # Celsius
+
+# Security
+security:
+  enable_shutdown_controls: true
+  require_confirmation: true
+  log_admin_actions: true
+  session_timeout: 3600  # seconds
+
+# Notifications (future feature)
+notifications:
+  email_enabled: false
+  discord_enabled: false
+  pushover_enabled: false
+
+# Backup (future feature)  
+backup:
+  enabled: false
+  schedule: "daily"
+  retention_days: 30
+  include_logs: false

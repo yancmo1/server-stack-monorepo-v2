@@ -1,0 +1,45 @@
+name: Clan Map Local CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  local-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test application import
+      run: |
+        python -c "import app; import map_generator; print('✅ All imports successful')"
+
+  docker-compose-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Test Docker Compose setup
+      run: |
+        # Test that docker-compose.yml is valid
+        docker-compose config
+        echo "✅ Docker Compose configuration valid"
+    
+    - name: Build with Docker Compose
+      run: |
+        docker-compose build
+        echo "✅ Docker Compose build successful"

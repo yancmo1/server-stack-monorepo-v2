@@ -1,0 +1,42 @@
+# Logs directory
+logs/
+*.log
+
+# Backup files
+backups/
+*.backup
+*.tar.gz
+
+# Temporary files
+tmp/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+dashboard_venv/
+venv/
+env/
+
+# Configuration with secrets (create templates instead)
+config/apps_config.json
+config/.env*
+coc-discord-bot/config/.env.production
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Runtime files
+*.pid
+*.sock
+
+# Symlinked chatmode file
+4.3.chatmode.md
+archive/

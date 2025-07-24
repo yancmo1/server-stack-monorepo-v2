@@ -1,0 +1,28 @@
+[Unit]
+Description=Pi Application Dashboard
+Documentation=https://github.com/yourusername/pi-application-dashboard
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/py-apps/pi-dashboard
+Environment=PATH=/home/pi/py-apps/pi-dashboard/.venv/bin
+Environment=PYTHONPATH=/home/pi/py-apps/pi-dashboard
+ExecStart=/home/pi/py-apps/pi-dashboard/.venv/bin/python dashboard.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/pi/py-apps/pi-dashboard
+
+[Install]
+WantedBy=multi-user.target
