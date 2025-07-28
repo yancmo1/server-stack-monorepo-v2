@@ -139,8 +139,6 @@ services:
       - ../shared/config:/app/config:ro
       - ../shared/ssl:/app/ssl:ro
   # no depends_on
-    depends_on:
-      - coc-discord-bot
     healthcheck:
       test: ["CMD", "python", "config.py", "--healthcheck"]
       interval: 30s
