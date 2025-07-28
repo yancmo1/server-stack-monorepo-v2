@@ -1,9 +1,14 @@
 import os
+from dotenv import load_dotenv
 import json
 from flask import Flask, render_template, request
 from datetime import datetime
 
 app = Flask(__name__, template_folder="/app/shared_templates")
+
+
+# Load .env from central config
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config", "apps_config.json")
 

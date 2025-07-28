@@ -12,7 +12,7 @@ from psycopg2.extras import RealDictCursor
 
 # Load .env from central config
 from dotenv import load_dotenv
-load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/config/.env')
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('CLANMAP_SECRET_KEY', 'changeme-please-set-CLANMAP_SECRET_KEY')

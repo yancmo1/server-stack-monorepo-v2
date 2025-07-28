@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy dashboard app code
 COPY apps/dashboard/ .
 # Copy shared templates
-COPY shared/templates /app/shared_templates
+COPY ../shared/templates /app/shared_templates
 
 EXPOSE 5550
 

@@ -12,7 +12,7 @@ services:
       - ./race_tracker.db:/app/race_tracker.db
       - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
     env_file:
-      - ../../config/.env
+      - ../../shared/config/.env
     environment:
       FLASK_ENV: production
     networks:

@@ -6,7 +6,7 @@ A Flask web interface for the QSL Card Creator desktop application
 
 # Load .env from central config
 from dotenv import load_dotenv
-load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/config/.env')
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
 
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash
 import os

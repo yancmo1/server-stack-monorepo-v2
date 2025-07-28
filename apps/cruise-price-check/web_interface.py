@@ -5,6 +5,7 @@ Provides a web UI to manage monitoring, view history, and configure alerts
 """
 
 from flask import Flask, request, jsonify, render_template_string
+from dotenv import load_dotenv
 from flask_cors import CORS
 from prometheus_flask_exporter import PrometheusMetrics
 import json
@@ -18,6 +19,8 @@ import sqlite3
 # Import our improved tracker
 from improved_price_tracker import CruisePriceTracker
 
+CENTRAL_ENV_PATH = '/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env'
+load_dotenv(CENTRAL_ENV_PATH)
 app = Flask(__name__)
 CORS(app)
 

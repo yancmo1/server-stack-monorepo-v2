@@ -6,7 +6,7 @@ Multi-user race time tracking with photo uploads
 
 # Load .env from central config
 from dotenv import load_dotenv
-load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/config/.env')
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy

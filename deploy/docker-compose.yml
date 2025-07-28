@@ -7,6 +7,8 @@ services:
     ports:
       - "5550:5550"
     restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
     environment:
       - DASHBOARD_USER=admin
       - DASHBOARD_PASS=fredrules
@@ -30,11 +32,15 @@ services:
       start_period: 40s
 
   cruise-price-check:
-    build: ./cruise-price-check
+    build:
+      context: ../apps/cruise-price-check
+      dockerfile: Dockerfile
     container_name: cruise-price-check
     ports:
       - "5551:5551"
     restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
@@ -43,7 +49,7 @@ services:
       - CHROME_PATH=/usr/bin/google-chrome
     volumes:
       - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
-      - ./cruise-price-check/cruise_config.json:/app/cruise_config.json:ro
+      - ../apps/cruise-price-check/cruise_config.json:/app/cruise_config.json:ro
       - cruise_data:/app/data
       - cruise_logs:/app/logs
     healthcheck:
@@ -54,11 +60,15 @@ services:
       start_period: 40s
 
   clan-map:
-    build: ./clan-map
+    build:
+      context: ../apps/clan-map
+      dockerfile: Dockerfile
     container_name: clan-map
     ports:
       - "5552:5552"
     restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
@@ -80,11 +90,15 @@ services:
       start_period: 40s
 
   qsl-card-creator:
-    build: ./W5XY-QSL-CARD-CREATOR
+    build:
+      context: ../apps/W5XY-QSL-CARD-CREATOR
+      dockerfile: Dockerfile
     container_name: qsl-card-creator
     ports:
       - "5553:5553"
     restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
@@ -106,11 +120,15 @@ services:
       start_period: 40s
 
   tracker:
-    build: ./5k-tracker
+    build:
+      context: ../apps/5k-tracker
+      dockerfile: Dockerfile
     container_name: tracker
     ports:
       - "5554:5554"
     restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
