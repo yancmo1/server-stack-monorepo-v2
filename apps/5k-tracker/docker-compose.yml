@@ -10,9 +10,11 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./race_tracker.db:/app/race_tracker.db
+      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
+    env_file:
+      - ../../config/.env
     environment:
-      - FLASK_ENV=production
-      - SECRET_KEY=your-production-secret-key-change-this
+      FLASK_ENV: production
     networks:
       - race-tracker-network
 

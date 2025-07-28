@@ -4,7 +4,7 @@
       "name": "Pi Dashboard",
       "description": "Main dashboard interface",
       "icon": "🏠",
-      "port": 5050,
+      "port": 5550,
       "script": "dashboard.py",
       "path": "/app",
       "container_name": "pi-dashboard",
@@ -14,7 +14,7 @@
       "name": "Cruise Price Check",
       "description": "Cruise price monitoring app",
       "icon": "🚢",
-      "port": 5002,
+      "port": 5551,
       "script": "app.py",
       "path": "/app",
       "container_name": "cruise-price-check",
@@ -24,7 +24,7 @@
       "name": "Clan Map",
       "description": "Clan map visualization",
       "icon": "🗺️",
-      "port": 5010,
+      "port": 5552,
       "script": "app.py",
       "path": "/app",
       "container_name": "clan-map",
@@ -34,7 +34,7 @@
       "name": "QSL Card Creator",
       "description": "QSL card web app",
       "icon": "💳",
-      "port": 5001,
+      "port": 5553,
       "script": "web_app.py",
       "path": "/app",
       "container_name": "qsl-card-creator",
@@ -52,8 +52,8 @@
     }
   },
   "system": {
-    "hostname": "localhost",
-    "dashboard_port": 5050
+  "hostname": "localhost",
+  "dashboard_port": 5550
   },
   "security": {
     "ssl_enabled": true

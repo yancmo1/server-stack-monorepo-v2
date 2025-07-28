@@ -10,13 +10,18 @@ import googlemaps
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+# Load .env from central config
+from dotenv import load_dotenv
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/config/.env')
+
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # Change this to a random secret key
+app.secret_key = os.environ.get('CLANMAP_SECRET_KEY', 'changeme-please-set-CLANMAP_SECRET_KEY')
 
 # Database configuration - Postgres connection using environment variables
 POSTGRES_DB = os.getenv("POSTGRES_DB", "cocstack")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "cocuser")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "yourpassword")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
 
@@ -627,6 +632,14 @@ if __name__ == "__main__":
     import os
     ssl_cert = '/app/ssl/dev.crt'
     ssl_key = '/app/ssl/dev.key'
+    # Use shared SSL directory if available
+    shared_ssl_cert = '/app/ssl/dev.crt'
+    shared_ssl_key = '/app/ssl/dev.key'
+    if os.path.exists('/app/ssl/fullchain.pem') and os.path.exists('/app/ssl/privkey.pem'):
+        shared_ssl_cert = '/app/ssl/fullchain.pem'
+        shared_ssl_key = '/app/ssl/privkey.pem'
+        ssl_cert = shared_ssl_cert
+        ssl_key = shared_ssl_key
     if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
         print(f"[INFO] Starting Clan Map with SSL (HTTPS) on port 5552")
         app.run(debug=False, host="0.0.0.0", port=5552, ssl_context=(ssl_cert, ssl_key))

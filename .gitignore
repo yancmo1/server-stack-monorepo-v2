@@ -1,3 +1,5 @@
+# Ignore Gmail credentials
+apps/W5XY-QSL-CARD-CREATOR/gmail_credentials.json
 # Logs directory
 logs/
 *.log

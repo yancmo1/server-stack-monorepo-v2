@@ -7,7 +7,7 @@
   "recent_templates": ["W5XY QSL Card Python TEMPLATE.pdf"],
   "recent_databases": ["Log4OM db.SQLite"],
   "hamqth_username": "w5xy",
-  "hamqth_password": "xnSV1oqiB6^9Ii",
+  "hamqth_password": "${HAMQTH_PASSWORD}",
   "gmail_username": "",
   "onedrive_database_path": "/Users/yancyshepherd/Library/CloudStorage/OneDrive-GCGLLC/Yancy/Home/Family/Yancy/Ham/Log4OM/Log4OM db.SQLite",
   "windows_database_path": "C:/Users/yancm/OneDrive - GCG LLC/Yancy/Home/Family/Yancy/Ham/Log4OM/Log4OM db.SQLite",

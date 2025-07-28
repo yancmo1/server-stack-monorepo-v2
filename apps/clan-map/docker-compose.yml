@@ -5,19 +5,15 @@ services:
     build: .
     ports:
       - "5552:5552"
+    env_file:
+      - ../../config/.env
     environment:
-      - FLASK_ENV=production
-      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
-      - POSTGRES_DB=cocstack
-      - POSTGRES_USER=cocuser
-      - POSTGRES_PASSWORD=yourpassword
-      - POSTGRES_HOST=cocstack-postgres
-      - POSTGRES_PORT=5432
+      FLASK_ENV: production
     restart: unless-stopped
     volumes:
       - ./clan_data.json:/app/clan_data.json:ro
       - ~/.ssh:/home/app/.ssh:ro
-      - ../ssl:/app/ssl:ro
+      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
     healthcheck:
       test: ["CMD", "curl", "-k", "-f", "https://localhost:5552/"]
       interval: 30s

@@ -27,3 +27,6 @@ google-auth>=2.20.0
 
 # XML Processing (usually included with Python)
 lxml>=4.9.0
+
+# Environment Variables
+python-dotenv>=1.0.0

@@ -4,6 +4,10 @@ QSL Card Creator - Web Application
 A Flask web interface for the QSL Card Creator desktop application
 """
 
+# Load .env from central config
+from dotenv import load_dotenv
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/config/.env')
+
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash
 import os
 import sys
@@ -893,7 +897,7 @@ def load_hamqth_credentials():
         return False
 
 app = Flask(__name__)
-app.secret_key = 'qsl_card_creator_web_secret_key_2025'
+app.secret_key = os.environ.get('QSL_SECRET_KEY', 'changeme-please-set-QSL_SECRET_KEY')
 
 # Global settings
 app_settings = AppSettings() if 'AppSettings' in globals() else None

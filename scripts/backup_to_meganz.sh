@@ -14,8 +14,10 @@ LOG_FILE="$HOME/backup_meganz.log"
 tar --exclude='*/__pycache__' --exclude='.git' --exclude='node_modules' --exclude='*.pyc' -czf "$BACKUP_TMP" -C "$BACKUP_SRC" . | tee -a "$LOG_FILE"
 
 # Upload to MEGA UBUNTU-MAC folder using MEGAcmd batch mode
+
+# Load MEGA credentials from environment
 EMAIL="yancmo@gmail.com"
-PASSWORD="88vbH4699V82S8"
+PASSWORD="${MEGA_PASSWORD:?MEGA_PASSWORD not set in environment}"
 echo -e "login $EMAIL $PASSWORD\nput $BACKUP_TMP $MEGA_FOLDER\nexit" | /usr/bin/mega-cmd | tee -a "$LOG_FILE"
 
 # Remove local temp backup

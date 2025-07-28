@@ -1,6 +1,8 @@
 services:
   dashboard:
-    build: ./dashboard
+    build:
+      context: ../
+      dockerfile: apps/dashboard/Dockerfile
     container_name: dashboard
     ports:
       - "5550:5550"
@@ -11,7 +13,7 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./ssl:/app/ssl:ro
+      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -40,7 +42,7 @@ services:
       - CHROME_BIN=/usr/bin/google-chrome
       - CHROME_PATH=/usr/bin/google-chrome
     volumes:
-      - ./ssl:/app/ssl:ro
+      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
       - ./cruise-price-check/cruise_config.json:/app/cruise_config.json:ro
       - cruise_data:/app/data
       - cruise_logs:/app/logs
@@ -61,7 +63,7 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./ssl:/app/ssl:ro
+      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:

@@ -4,6 +4,10 @@
 Multi-user race time tracking with photo uploads
 """
 
+# Load .env from central config
+from dotenv import load_dotenv
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/config/.env')
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -15,7 +19,7 @@ from datetime import datetime, timedelta
 import sqlite3
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
+app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///race_tracker.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -343,7 +347,7 @@ def create_default_users():
                 first_name='Admin',
                 last_name='User'
             )
-            admin.set_password('admin123')
+            admin.set_password(os.environ.get('ADMIN_DEFAULT_PASSWORD', 'changeme-admin'))
             db.session.add(admin)
             
             # Create sample user
@@ -353,7 +357,7 @@ def create_default_users():
                 first_name='Test',
                 last_name='Runner'
             )
-            user.set_password('runner123')
+            user.set_password(os.environ.get('USER_DEFAULT_PASSWORD', 'changeme-user'))
             db.session.add(user)
             
             db.session.commit()
@@ -363,5 +367,5 @@ if __name__ == '__main__':
     init_db()
     create_default_users()
     
-    # Run on port 5554 for deployment
-    app.run(host='0.0.0.0', port=5554, debug=True)
+    # Run on port 5011 to match Docker Compose
+    app.run(host='0.0.0.0', port=5011, debug=True)
