@@ -138,11 +138,9 @@ services:
     volumes:
       - ../shared/config:/app/config:ro
       - ../shared/ssl:/app/ssl:ro
+  # no depends_on
     depends_on:
-      - tracker
-      - clan-map
-      - qsl-card-creator
-      - cruise-price-check
+      - coc-discord-bot
     healthcheck:
       test: ["CMD", "python", "config.py", "--healthcheck"]
       interval: 30s
