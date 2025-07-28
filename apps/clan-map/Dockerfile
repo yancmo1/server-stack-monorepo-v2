@@ -21,5 +21,5 @@ USER app
 
 EXPOSE 5552
 
-# Use gunicorn with SSL for production
-CMD ["gunicorn", "--bind", "0.0.0.0:5552", "--workers", "2", "--timeout", "30", "--certfile", "/app/ssl/dev.crt", "--keyfile", "/app/ssl/dev.key", "app:app"]
+# Use gunicorn in HTTP mode for Docker + Nginx
+CMD ["gunicorn", "--bind", "0.0.0.0:5552", "--workers", "2", "--timeout", "30", "app:app"]
