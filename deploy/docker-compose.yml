@@ -1,3 +1,28 @@
+  coc-discord-bot:
+    build:
+      context: ../apps/coc-discord-bot
+      dockerfile: Dockerfile
+    container_name: coc-discord-bot
+    restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+    volumes:
+      - ../apps/coc-discord-bot/config:/app/config:ro
+      - ../apps/coc-discord-bot/ssl:/app/ssl:ro
+    depends_on:
+      - tracker
+      - clan-map
+      - qsl-card-creator
+      - cruise-price-check
+    healthcheck:
+      test: ["CMD", "python", "config.py", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 services:
   dashboard:
     build:
@@ -8,7 +33,7 @@ services:
       - "5550:5550"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - ~/YANCY/shared/config/.env
     environment:
       - DASHBOARD_USER=admin
       - DASHBOARD_PASS=fredrules
@@ -25,7 +50,12 @@ services:
           memory: 128M
           cpus: '0.25'
     healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost:5550/health"]
+      test:
+        - CMD
+        - curl
+        - -k
+        - -f
+        - https://localhost:5550/health
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,7 +83,11 @@ services:
       - cruise_data:/app/data
       - cruise_logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5551/health"]
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:5551/health
       interval: 30s
       timeout: 10s
       retries: 3
@@ -83,7 +117,12 @@ services:
           memory: 128M
           cpus: '0.25'
     healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost:5552/health"]
+      test:
+        - CMD
+        - curl
+        - -k
+        - -f
+        - https://localhost:5552/health
       interval: 30s
       timeout: 10s
       retries: 3
@@ -113,7 +152,12 @@ services:
           memory: 256M
           cpus: '0.3'
     healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost:5553/status"]
+      test:
+        - CMD
+        - curl
+        - -k
+        - -f
+        - https://localhost:5553/status
       interval: 30s
       timeout: 10s
       retries: 3
@@ -142,8 +186,71 @@ services:
         reservations:
           memory: 128M
           cpus: '0.25'
+
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5554/health"]
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:5554/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+  coc-discord-bot:
+    build:
+      context: ../apps/coc-discord-bot
+      dockerfile: Dockerfile
+    container_name: coc-discord-bot
+    restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+    volumes:
+      - ../apps/coc-discord-bot/config:/app/config:ro
+      - ../apps/coc-discord-bot/ssl:/app/ssl:ro
+    depends_on:
+      - tracker
+      - clan-map
+      - qsl-card-creator
+      - cruise-price-check
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - config.py
+        - --healthcheck
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  coc-discord-bot:
+    build:
+      context: ../apps/coc-discord-bot
+      dockerfile: Dockerfile
+    container_name: coc-discord-bot
+    restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+    volumes:
+      - ../apps/coc-discord-bot/config:/app/config:ro
+      - ../apps/coc-discord-bot/ssl:/app/ssl:ro
+    depends_on:
+      - tracker
+      - clan-map
+      - qsl-card-creator
+      - cruise-price-check
+    healthcheck:
+      test: ["CMD", "python", "config.py", "--healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 3
