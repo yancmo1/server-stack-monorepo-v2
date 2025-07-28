@@ -2638,28 +2638,6 @@ if __name__ == '__main__':
     print("\n🚀 Starting web server...")
     
     # Require SSL certificates for production-ready HTTPS-only deployment
-    ssl_cert = '/app/ssl/dev.crt'
-    ssl_key = '/app/ssl/dev.key'
-    
-    # Always prefer the shared Docker SSL certs for dev
-    docker_ssl_cert = '/app/ssl/dev.crt'
-    docker_ssl_key = '/app/ssl/dev.key'
-    if os.path.exists(docker_ssl_cert) and os.path.exists(docker_ssl_key):
-        print("🔒 Using Docker shared SSL certificates for HTTPS server")
-        print(f"📋 Using certificates: {docker_ssl_cert}, {docker_ssl_key}")
-        app.run(host='0.0.0.0', port=5553, debug=False, ssl_context=(docker_ssl_cert, docker_ssl_key))
-        sys.exit(0)
-
-    if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
-        print("🔒 Starting QSL Card Creator with HTTPS")
-        print(f"📋 SSL certificates: {ssl_cert}, {ssl_key}")
-        print("🌍 HTTPS Access: https://localhost:5001")
-        print("\nPress Ctrl+C to stop the server")
-        
-        # Run with SSL only
-        app.run(host='0.0.0.0', port=5001, debug=False, ssl_context=(ssl_cert, ssl_key))
-    else:
-        print("❌ CRITICAL: SSL certificates not found!")
-        print(f"📋 Expected files: {ssl_cert}, {ssl_key}")
-        print("🔒 This application requires HTTPS and cannot start without SSL certificates.")
-        sys.exit(1)
+    # Always run in HTTP mode for Docker/Nginx
+    print("🌍 Starting QSL Card Creator in HTTP mode for Docker/Nginx")
+    app.run(host='0.0.0.0', port=5553, debug=False)

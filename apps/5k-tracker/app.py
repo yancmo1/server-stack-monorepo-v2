@@ -368,4 +368,4 @@ if __name__ == '__main__':
     create_default_users()
     
     # Run on port 5011 to match Docker Compose
-    app.run(host='0.0.0.0', port=5011, debug=True)
+    app.run(host='0.0.0.0', port=5554, debug=True)
