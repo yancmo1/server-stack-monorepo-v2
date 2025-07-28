@@ -8,14 +8,14 @@ services:
       - "5550:5550"
     restart: unless-stopped
     env_file:
-      - ~/YANCY/shared/config/.env
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
     environment:
       - DASHBOARD_USER=admin
       - DASHBOARD_PASS=fredrules
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
 
   clan-map:
     build:
@@ -26,12 +26,12 @@ services:
       - "5552:5552"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -61,12 +61,12 @@ services:
       - "5553:5553"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./ssl:/app/ssl:ro
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -96,12 +96,12 @@ services:
       - "5554:5554"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./ssl:/app/ssl:ro
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -131,13 +131,13 @@ services:
     container_name: coc-discord-bot
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ../shared/config:/app/config:ro
-      - ../shared/ssl:/app/ssl:ro
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config:/app/config:ro
+      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
   # no depends_on
     healthcheck:
       test: ["CMD", "python", "config.py", "--healthcheck"]
