@@ -22,40 +22,16 @@ rm -f .production
 echo "🔍 Environment: Development"
 echo "🔍 Current directory: $(pwd)"
 
-# Check if .env file exists
-if [ ! -f .env ]; then
-    echo "⚠️ .env file not found. Creating from template..."
-    cat > .env.template << 'EOF'
-DISCORD_BOT_TOKEN=your_dev_token_here
-SUPERCELL_API_TOKEN=your_dev_api_token_here
-CLAN_TAG=#PCRV2R2P
-DISCORD_GUILD_ID=403910977302822913
-ADMIN_DISCORD_ID=987654321098765432
-POSTGRES_DB=devdb
-POSTGRES_USER=devuser
-POSTGRES_PASSWORD=devpassword
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-EOF
-    cp .env.template .env
-    echo "🔧 Please edit .env file with your development credentials"
+
+
+# Load environment variables from ~/config/.env for Docker Compose
+if [ -f "$HOME/config/.env" ]; then
+    set -a
+    source "$HOME/config/.env"
+    set +a
+    echo "[INFO] Loaded environment variables from $HOME/config/.env (global config)"
 else
-    # Create template file even if .env exists (for reference)
-    if [ ! -f .env.template ]; then
-        cat > .env.template << 'EOF'
-DISCORD_BOT_TOKEN=your_dev_token_here
-SUPERCELL_API_TOKEN=your_dev_api_token_here
-CLAN_TAG=#PCRV2R2P
-DISCORD_GUILD_ID=403910977302822913
-ADMIN_DISCORD_ID=987654321098765432
-POSTGRES_DB=devdb
-POSTGRES_USER=devuser
-POSTGRES_PASSWORD=devpassword
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-EOF
-        echo "📝 .env.template created for reference"
-    fi
+    echo "[WARNING] $HOME/config/.env file not found."
 fi
 
 if [ "$TEST_MODE" = "false" ]; then

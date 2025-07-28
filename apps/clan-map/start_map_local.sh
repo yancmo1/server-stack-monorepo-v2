@@ -9,12 +9,12 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# Load .env from this folder (symlinked to repo root)
-if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
-    echo "[INFO] Loaded environment variables from .env (local development only)"
+# Load .env from ~/config/.env
+if [ -f "$HOME/config/.env" ]; then
+    export $(grep -v '^#' "$HOME/config/.env" | xargs)
+    echo "[INFO] Loaded environment variables from $HOME/config/.env (global config)"
 else
-    echo "[WARNING] .env file not found."
+    echo "[WARNING] $HOME/config/.env file not found."
 fi
 
 LOGFILE="map_local.log"

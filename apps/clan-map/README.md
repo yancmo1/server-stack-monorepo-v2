@@ -48,7 +48,7 @@ clan-map/
    ```
 3. Start the app locally (Docker Compose or manual):
    ```bash
-   docker compose up --build -d
+   set -a; source ~/config/.env; set +a; docker compose up --build -d
    # or
    python app.py
    ```
@@ -82,7 +82,7 @@ For more details, see the official [GitHub Actions secrets documentation](https:
 
 2. **Start the app and Postgres using Docker Compose:**
    ```bash
-   docker compose up --build -d
+   set -a; source ~/config/.env; set +a; docker compose up --build -d
    ```
    This will start both the Flask app and a local Postgres database.
 

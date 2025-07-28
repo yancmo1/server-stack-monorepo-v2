@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Race - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Race</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="race_name" class="form-label">Race Name *</label>
+                                    <input type="text" class="form-control" id="race_name" name="race_name" 
+                                           value="{{ race.race_name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="race_type" class="form-label">Race Type *</label>
+                                    <select class="form-select" id="race_type" name="race_type" required>
+                                        <option value="5K" {{ 'selected' if race.race_type == '5K' }}>5K</option>
+                                        <option value="10K" {{ 'selected' if race.race_type == '10K' }}>10K</option>
+                                        <option value="Half Marathon" {{ 'selected' if race.race_type == 'Half Marathon' }}>Half Marathon</option>
+                                        <option value="Marathon" {{ 'selected' if race.race_type == 'Marathon' }}>Marathon</option>
+                                        <option value="Other" {{ 'selected' if race.race_type == 'Other' }}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="race_date" class="form-label">Race Date *</label>
+                                    <input type="date" class="form-control" id="race_date" name="race_date" 
+                                           value="{{ race.race_date.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="finish_time" class="form-label">Finish Time *</label>
+                                    <input type="text" class="form-control" id="finish_time" name="finish_time" 
+                                           value="{{ race.finish_time }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="location" class="form-label">Location</label>
+                                    <input type="text" class="form-control" id="location" name="location" 
+                                           value="{{ race.location or '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="weather" class="form-label">Weather Conditions</label>
+                                    <input type="text" class="form-control" id="weather" name="weather" 
+                                           value="{{ race.weather or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Race Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ race.notes or '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('races') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Update Race
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Existing Photos -->
+            {% if race.photos %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-images"></i> Race Photos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for photo in race.photos %}
+                                <div class="col-md-3 mb-3">
+                                    <div class="card">
+                                        <img src="{{ url_for('uploaded_file', filename=photo.filename) }}" 
+                                             class="card-img-top" alt="{{ photo.caption or 'Race photo' }}"
+                                             style="height: 200px; object-fit: cover;">
+                                        <div class="card-body p-2">
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <span class="badge bg-secondary">{{ photo.photo_type|title }}</span><br>
+                                                    {{ photo.caption or photo.original_filename }}
+                                                </small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            To add more photos or modify existing ones, you'll need to delete and re-add the race.
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

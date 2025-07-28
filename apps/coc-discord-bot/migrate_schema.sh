@@ -10,11 +10,13 @@ if [ -z "$container" ]; then
   exit 1
 fi
 
-# Read DB credentials from .env
-export $(grep -E '^POSTGRES_' .env | xargs)
+
+# Read DB credentials from ~/config/.env
+export $(grep -E '^POSTGRES_' "$HOME/config/.env" | xargs)
+
 
 if [ -z "$POSTGRES_DB" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ]; then
-  echo "Missing DB credentials in .env!"
+  echo "Missing DB credentials in $HOME/config/.env!"
   exit 1
 fi
 

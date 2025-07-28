@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Add Race - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus"></i> Add New Race</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="race_name" class="form-label">Race Name *</label>
+                                    <input type="text" class="form-control" id="race_name" name="race_name" required 
+                                           placeholder="e.g., Boston Marathon, Turkey Trot 5K">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="race_type" class="form-label">Race Type *</label>
+                                    <select class="form-select" id="race_type" name="race_type" required>
+                                        <option value="">Select Type</option>
+                                        <option value="5K">5K</option>
+                                        <option value="10K">10K</option>
+                                        <option value="Half Marathon">Half Marathon</option>
+                                        <option value="Marathon">Marathon</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="race_date" class="form-label">Race Date *</label>
+                                    <input type="date" class="form-control" id="race_date" name="race_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="finish_time" class="form-label">Finish Time *</label>
+                                    <input type="text" class="form-control" id="finish_time" name="finish_time" required 
+                                           placeholder="HH:MM:SS or MM:SS" pattern="^(\d{1,2}:)?\d{1,2}:\d{2}$">
+                                    <div class="form-text">Format: HH:MM:SS (e.g., 1:30:45) or MM:SS (e.g., 25:30)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="location" class="form-label">Location</label>
+                                    <input type="text" class="form-control" id="location" name="location" 
+                                           placeholder="City, State or Venue">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="weather" class="form-label">Weather Conditions</label>
+                                    <input type="text" class="form-control" id="weather" name="weather" 
+                                           placeholder="e.g., Sunny, 65°F, Light wind">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Race Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="How did the race go? Any highlights or challenges?"></textarea>
+                        </div>
+
+                        <hr>
+                        
+                        <h5><i class="fas fa-camera text-success"></i> Photo Upload</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="photos" class="form-label">Race Photos</label>
+                                    <input type="file" class="form-control" id="photos" name="photos" multiple 
+                                           accept="image/*">
+                                    <div class="form-text">Upload photos of your finish, medal, bib, etc. (Max 16MB each)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="photo_type" class="form-label">Photo Type</label>
+                                    <select class="form-select" id="photo_type" name="photo_type">
+                                        <option value="other">Other</option>
+                                        <option value="finish">Finish Line</option>
+                                        <option value="medal">Medal</option>
+                                        <option value="bib">Race Bib</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="photo_caption" class="form-label">Photo Caption</label>
+                            <input type="text" class="form-control" id="photo_caption" name="photo_caption" 
+                                   placeholder="Optional caption for your photos">
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Race
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set max date to today
+document.getElementById('race_date').max = new Date().toISOString().split('T')[0];
+
+// Auto-format time input
+document.getElementById('finish_time').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/[^\d:]/g, '');
+    if (value.length === 4 && !value.includes(':')) {
+        value = value.slice(0, 2) + ':' + value.slice(2);
+    }
+    e.target.value = value;
+});
+</script>
+{% endblock %}

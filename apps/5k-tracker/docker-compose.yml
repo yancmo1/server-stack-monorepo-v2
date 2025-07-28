@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  race-tracker:
+    build: .
+    container_name: race-tracker
+    restart: unless-stopped
+    ports:
+      - "5011:5011"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./race_tracker.db:/app/race_tracker.db
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=your-production-secret-key-change-this
+    networks:
+      - race-tracker-network
+
+networks:
+  race-tracker-network:
+    driver: bridge

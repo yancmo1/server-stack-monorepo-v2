@@ -40,3 +40,9 @@ Thumbs.db
 # Symlinked chatmode file
 4.3.chatmode.md
 archive/
+
+*.env
+*.pickle
+*.json
+apps/W5XY-QSL-CARD-CREATOR/gmail_credentials.json
+apps/W5XY-QSL-CARD-CREATOR/gmail_token.pickle

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Welcome back, {{ current_user.first_name }}! 🏃‍♀️</h2>
+        <a href="{{ url_for('add_race') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Race
+        </a>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_races }}</h4>
+                            <p class="mb-0">Total Races</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-running fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ personal_records|length }}</h4>
+                            <p class="mb-0">Personal Records</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-trophy fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ recent_races|length }}</h4>
+                            <p class="mb-0">Recent Races</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ (recent_races|map(attribute='photos')|map('length')|sum) or 0 }}</h4>
+                            <p class="mb-0">Photos Uploaded</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-camera fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Personal Records -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-trophy text-warning"></i> Personal Records</h5>
+                </div>
+                <div class="card-body">
+                    {% if personal_records %}
+                        <div class="list-group list-group-flush">
+                            {% for race_type, race in personal_records.items() %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ race_type }}</strong><br>
+                                        <small class="text-muted">{{ race.race_name }} - {{ race.race_date.strftime('%m/%d/%Y') }}</small>
+                                    </div>
+                                    <span class="badge bg-success rounded-pill">{{ race.finish_time }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No personal records yet. <a href="{{ url_for('add_race') }}">Add your first race!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Races -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock text-primary"></i> Recent Races</h5>
+                    <a href="{{ url_for('races') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_races %}
+                        <div class="list-group list-group-flush">
+                            {% for race in recent_races %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ race.race_name }}</h6>
+                                            <p class="mb-1">
+                                                <span class="badge bg-secondary me-2">{{ race.race_type }}</span>
+                                                <strong>{{ race.finish_time }}</strong>
+                                            </p>
+                                            <small class="text-muted">{{ race.race_date.strftime('%B %d, %Y') }}</small>
+                                        </div>
+                                        {% if race.photos %}
+                                            <i class="fas fa-camera text-success" title="Has photos"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No races recorded yet. <a href="{{ url_for('add_race') }}">Add your first race!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bolt text-warning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('add_race') }}" class="btn btn-outline-primary btn-block w-100 mb-2">
+                                <i class="fas fa-plus"></i> Add Race
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('races') }}" class="btn btn-outline-secondary btn-block w-100 mb-2">
+                                <i class="fas fa-list"></i> View All Races
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('statistics') }}" class="btn btn-outline-info btn-block w-100 mb-2">
+                                <i class="fas fa-chart-line"></i> Statistics
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-block w-100 mb-2">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

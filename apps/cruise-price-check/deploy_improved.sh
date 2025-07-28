@@ -4,6 +4,15 @@
 echo "🚢 Deploying Improved Carnival Cruise Price Tracker"
 echo "================================================="
 
+# Load environment variables from ~/config/.env for Docker Compose
+if [ -f "$HOME/config/.env" ]; then
+    set -a
+    source "$HOME/config/.env"
+    set +a
+    echo "[INFO] Loaded environment variables from $HOME/config/.env (global config)"
+else
+    echo "[WARNING] $HOME/config/.env file not found."
+fi
 # Check if we're in the right directory
 if [ ! -f "docker-compose.improved.yml" ]; then
     echo "❌ Error: Please run this script from the cruise-price-check directory"
