@@ -406,8 +406,8 @@
                                 <button class="btn btn-success" onclick="controlApp('{{ app_id }}', 'start')">Start</button>
                             {% endif %}
                             
-                            {% if app_data.config.port %}
-                                <a href="http://{{ request.host.split(':')[0] }}:{{ app_data.config.port }}" 
+                            {% if app_data.config.public_path %}
+                                <a href="{{ app_data.config.public_path }}" 
                                    class="btn btn-primary" target="_blank">Open App</a>
                             {% endif %}
                             

@@ -8,7 +8,8 @@
       "script": "dashboard.py",
       "path": "/app",
       "container_name": "pi-dashboard",
-      "protocol": "https"
+      "protocol": "https",
+      "public_path": "/dashboard/"
     },
     "cruise-price-check": {
       "name": "Cruise Price Check",
@@ -18,7 +19,8 @@
       "script": "app.py",
       "path": "/app",
       "container_name": "cruise-price-check",
-      "protocol": "https"
+      "protocol": "https",
+      "public_path": "/cruise/"
     },
     "clan-map": {
       "name": "Clan Map",
@@ -28,7 +30,8 @@
       "script": "app.py",
       "path": "/app",
       "container_name": "clan-map",
-      "protocol": "https"
+      "protocol": "https",
+      "public_path": "/clan-map/"
     },
     "qsl-card-creator": {
       "name": "QSL Card Creator",
@@ -38,7 +41,8 @@
       "script": "web_app.py",
       "path": "/app",
       "container_name": "qsl-card-creator",
-      "protocol": "https"
+      "protocol": "https",
+      "public_path": "/qsl/"
     },
     "tracker": {
       "name": "5K Tracker",
@@ -48,7 +52,8 @@
       "script": "app.py",
       "path": "/app",
       "container_name": "tracker",
-      "protocol": "https"
+      "protocol": "https",
+      "public_path": "/tracker/"
     }
   },
   "system": {
