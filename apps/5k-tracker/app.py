@@ -1,22 +1,16 @@
-#!/usr/bin/env python3
-"""
-5K/Marathon Race Tracker Web Application
-Multi-user race time tracking with photo uploads
-"""
 
-# Load .env from central config
-from dotenv import load_dotenv
-load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
-
+import os
+import uuid
+from datetime import datetime, timedelta
+import requests
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import os
-import uuid
-from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
+load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
@@ -24,6 +18,97 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', '
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Weather API endpoint
+@app.route('/api/weather', methods=['GET'])
+@login_required
+def api_weather():
+    """API endpoint: ?place=PLACE&datetime=YYYY-MM-DDTHH:MM (ISO8601)"""
+    place = request.args.get('place')
+    dt_str = request.args.get('datetime')
+    if not place or not dt_str:
+        return jsonify({'error': 'Missing place or datetime'}), 400
+    try:
+        dt = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        return jsonify({'error': f'Invalid datetime: {e}'}), 400
+    lat, lon = geocode_place(place)
+    if lat is None or lon is None:
+        return jsonify({'error': f'Could not geocode place: {place}'}), 404
+    weather = fetch_weather_forecast(lat, lon, dt)
+    if not weather:
+        return jsonify({'error': 'No weather data found'}), 404
+    return jsonify({'place': place, 'lat': lat, 'lon': lon, 'datetime': dt_str, 'weather': weather})
+
+# Weather API endpoint (must be after app = Flask(__name__))
+
+import requests
+
+# --- Weather Utilities ---
+def geocode_place(place_name):
+    """Use Open-Meteo's free geocoding API to get lat/lon for a place name"""
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={place_name}"
+    resp = requests.get(url)
+    if resp.status_code == 200:
+        data = resp.json()
+        if data.get('results'):
+            result = data['results'][0]
+            return result['latitude'], result['longitude']
+    return None, None
+
+def fetch_weather_forecast(lat, lon, dt):
+    """Fetch weather forecast for given lat/lon and datetime (ISO8601) using Open-Meteo"""
+    # dt: datetime object
+    date_str = dt.strftime('%Y-%m-%d')
+    hour_str = dt.strftime('%H:00')
+    url = (
+        f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+        f"&hourly=temperature_2m,precipitation,weathercode,wind_speed_10m,wind_direction_10m"
+        f"&start={date_str}T{hour_str}&end={date_str}T{hour_str}"
+        f"&timezone=auto"
+    )
+    resp = requests.get(url)
+    if resp.status_code == 200:
+        data = resp.json()
+        # Return the first (and only) hour's data if available
+        if 'hourly' in data and 'time' in data['hourly'] and data['hourly']['time']:
+            idx = 0
+            return {
+                'time': data['hourly']['time'][idx],
+                'temperature': data['hourly']['temperature_2m'][idx],
+                'precipitation': data['hourly']['precipitation'][idx],
+                'weathercode': data['hourly']['weathercode'][idx],
+                'wind_speed': data['hourly']['wind_speed_10m'][idx],
+                'wind_direction': data['hourly']['wind_direction_10m'][idx],
+            }
+    return None
+
+# Weather API endpoint (must be after app = Flask(__name__))
+from flask_login import login_required
+@app.route('/api/weather', methods=['GET'])
+@login_required
+def api_weather():
+    """API endpoint: ?place=PLACE&datetime=YYYY-MM-DDTHH:MM (ISO8601)"""
+    place = request.args.get('place')
+    dt_str = request.args.get('datetime')
+    if not place or not dt_str:
+        return jsonify({'error': 'Missing place or datetime'}), 400
+    try:
+        dt = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        return jsonify({'error': f'Invalid datetime: {e}'}), 400
+    lat, lon = geocode_place(place)
+    if lat is None or lon is None:
+        return jsonify({'error': f'Could not geocode place: {place}'}), 404
+    weather = fetch_weather_forecast(lat, lon, dt)
+    if not weather:
+        return jsonify({'error': 'No weather data found'}), 404
+    return jsonify({'place': place, 'lat': lat, 'lon': lon, 'datetime': dt_str, 'weather': weather})
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -97,6 +182,27 @@ class Race(db.Model):
         return f'<Race {self.race_name} - {self.finish_time}>'
 
 class RacePhoto(db.Model):
+
+# Weather API endpoint (must be after app = Flask(__name__))
+@app.route('/api/weather', methods=['GET'])
+@login_required
+def api_weather():
+    """API endpoint: ?place=PLACE&datetime=YYYY-MM-DDTHH:MM (ISO8601)"""
+    place = request.args.get('place')
+    dt_str = request.args.get('datetime')
+    if not place or not dt_str:
+        return jsonify({'error': 'Missing place or datetime'}), 400
+    try:
+        dt = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        return jsonify({'error': f'Invalid datetime: {e}'}), 400
+    lat, lon = geocode_place(place)
+    if lat is None or lon is None:
+        return jsonify({'error': f'Could not geocode place: {place}'}), 404
+    weather = fetch_weather_forecast(lat, lon, dt)
+    if not weather:
+        return jsonify({'error': 'No weather data found'}), 404
+    return jsonify({'place': place, 'lat': lat, 'lon': lon, 'datetime': dt_str, 'weather': weather})
     id = db.Column(db.Integer, primary_key=True)
     race_id = db.Column(db.Integer, db.ForeignKey('race.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
