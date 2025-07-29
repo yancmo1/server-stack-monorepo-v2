@@ -138,6 +138,8 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
+      - ../apps/5k-tracker/templates:/app/templates:ro
+      - ../apps/5k-tracker/static:/app/static:ro
       - ../shared/ssl:/app/ssl:ro
     entrypoint: []
     command: ["python", "app.py"]

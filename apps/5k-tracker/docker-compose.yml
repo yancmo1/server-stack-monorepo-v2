@@ -6,7 +6,7 @@ services:
     container_name: race-tracker
     restart: unless-stopped
     ports:
-      - "5011:5011"
+      - "5554:5554"
     volumes:
       - ./uploads:/app/uploads
       - ./race_tracker.db:/app/race_tracker.db
