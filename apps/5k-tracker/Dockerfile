@@ -24,11 +24,12 @@ RUN mkdir -p uploads/photos
 RUN useradd -m -u 1000 racetracker && chown -R racetracker:racetracker /app
 USER racetracker
 
-EXPOSE 5011
+EXPOSE 5554
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5554/ || exit 1
 
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5011", "--workers", "2", "--timeout", "60", "app:app"]
+
+# Force correct Gunicorn command as ENTRYPOINT
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:5554", "--workers", "2", "--timeout", "60", "app:app"]

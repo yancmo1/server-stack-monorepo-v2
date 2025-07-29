@@ -102,6 +102,8 @@ services:
       - FLASK_ENV=production
     volumes:
       - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
+    entrypoint: ["gunicorn"]
+    command: ["--bind", "0.0.0.0:5554", "--workers", "2", "--timeout", "60", "app:app"]
     deploy:
       resources:
         limits:
