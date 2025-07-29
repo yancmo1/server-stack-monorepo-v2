@@ -16,8 +16,12 @@ from datetime import datetime
 import os
 import sqlite3
 
+
 # Import our improved tracker
 from improved_price_tracker import CruisePriceTracker
+
+# Use environment variable for DB path
+CRUISE_DB_PATH = os.environ.get('CRUISE_DB_PATH', '/app/data/cruise_prices.db')
 
 CENTRAL_ENV_PATH = '/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env'
 load_dotenv(CENTRAL_ENV_PATH)
@@ -315,7 +319,7 @@ def api_status():
     # Get last check from database
     last_check = None
     try:
-        with sqlite3.connect('/app/data/cruise_prices.db') as conn:
+        with sqlite3.connect(CRUISE_DB_PATH) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT timestamp FROM price_history ORDER BY timestamp DESC LIMIT 1")
             row = cursor.fetchone()

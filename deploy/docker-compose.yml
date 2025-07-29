@@ -1,4 +1,40 @@
 services:
+  cruise-price-check:
+    build:
+      context: ../apps/cruise-price-check
+      dockerfile: Dockerfile
+    container_name: cruise-price-check
+    ports:
+      - "5551:5551"
+    restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+      - CRUISE_DB_PATH=/app/data/cruise_prices.db
+    volumes:
+      - ../shared/ssl:/app/ssl:ro
+      - ../shared/config:/app/config:ro
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.7'
+        reservations:
+          memory: 256M
+          cpus: '0.3'
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -k
+        - -f
+        - http://localhost:5551/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   dashboard:
     build:
       context: ../
@@ -8,14 +44,14 @@ services:
       - "5550:5550"
     restart: unless-stopped
     env_file:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
+      - ../shared/config/.env
     environment:
       - DASHBOARD_USER=admin
       - DASHBOARD_PASS=fredrules
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
+      - ../shared/ssl:/app/ssl:ro
 
   clan-map:
     build:
@@ -26,12 +62,12 @@ services:
       - "5552:5552"
     restart: unless-stopped
     env_file:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
+      - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -61,12 +97,13 @@ services:
       - "5553:5553"
     restart: unless-stopped
     env_file:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
+      - QSL_DATABASE_PATH=/app/Log4OM\ db.SQLite
     volumes:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
+      - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -96,14 +133,14 @@ services:
       - "5554:5554"
     restart: unless-stopped
     env_file:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
-    entrypoint: ["gunicorn"]
-    command: ["--bind", "0.0.0.0:5554", "--workers", "2", "--timeout", "60", "app:app"]
+      - ../shared/ssl:/app/ssl:ro
+    entrypoint: []
+    command: ["python", "app.py"]
     deploy:
       resources:
         limits:
@@ -112,8 +149,6 @@ services:
         reservations:
           memory: 128M
           cpus: '0.25'
-
-
     healthcheck:
       test:
         - CMD
@@ -130,16 +165,14 @@ services:
     build:
       context: ../apps/coc-discord-bot
       dockerfile: Dockerfile
-    container_name: coc-discord-bot
-    restart: unless-stopped
     env_file:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/config:/app/config:ro
-      - /home/yancmo/apps/server-stack-monorepo-v2/shared/ssl:/app/ssl:ro
+      - ../shared/config:/app/config:ro
+      - ../shared/ssl:/app/ssl:ro
   # no depends_on
     healthcheck:
       test: ["CMD", "python", "config.py", "--healthcheck"]

@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  tracker:
+    build:
+      context: ../apps/5k-tracker
+      dockerfile: Dockerfile
+    container_name: tracker-dev
+    environment:
+      - FLASK_ENV=development
+      - TRACKER_DATABASE_URI=postgresql://tracker:trackerpass@db:5432/trackerdb
+      - TRACKER_SECRET_KEY=dev-secret-key
+    ports:
+      - "5554:5554"
+    volumes:
+      - ../apps/5k-tracker:/app
+    depends_on:
+      - db
+    command: ["gunicorn", "--bind", "0.0.0.0:5554", "--reload", "--workers", "2", "--timeout", "60", "app:app"]
+
+  db:
+    image: postgres:15
+    container_name: tracker-db-dev
+    environment:
+      POSTGRES_DB: trackerdb
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: trackerpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - tracker-db-data:/var/lib/postgresql/data
+
+  # Optional: Nginx for local proxy testing
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - tracker
+
+volumes:
+  tracker-db-data:

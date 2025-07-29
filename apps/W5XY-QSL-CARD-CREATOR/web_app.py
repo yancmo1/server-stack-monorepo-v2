@@ -201,16 +201,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def get_database_path():
     """Get the appropriate database path based on environment"""
+    # Allow override via environment variable
+    env_db_path = os.environ.get('QSL_DATABASE_PATH')
+    if env_db_path:
+        return env_db_path
     # Check for Syncthing database first (preferred for sync)
     syncthing_path = os.path.expanduser("~/SyncthingFolders/Log4OM-Database/Log4OM db.SQLite")
     if os.path.exists(syncthing_path):
         return syncthing_path
-    
     # Fall back to local database
     local_path = "Log4OM db.SQLite"
     if os.path.exists(local_path):
         return local_path
-    
     # Return Syncthing path as default (for new installs)
     return syncthing_path
 
