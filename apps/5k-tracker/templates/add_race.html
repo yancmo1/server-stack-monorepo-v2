@@ -153,11 +153,11 @@ addPhotoBtn.addEventListener('click', function() {
 
 // Weather auto-fill logic
 function getWeather(place, date, time) {
-    const status = document.getElementById('weather-status');
+    const statusElement = document.getElementById('weather-status');
     if (!place || !date) {
-        status.textContent = 'Enter location and date to fetch weather.';
-        status.classList.remove('text-success');
-        status.classList.add('text-danger');
+        statusElement.textContent = 'Enter location and date to fetch weather.';
+        statusElement.classList.remove('text-success');
+        statusElement.classList.add('text-danger');
         return;
     }
     
@@ -166,9 +166,9 @@ function getWeather(place, date, time) {
         time = '08:00';
     }
     
-    status.textContent = 'Fetching weather...';
-    status.classList.remove('text-danger', 'text-success');
-    status.classList.add('text-primary');
+    statusElement.textContent = 'Fetching weather...';
+    statusElement.classList.remove('text-danger', 'text-success');
+    statusElement.classList.add('text-primary');
     
     const datetime = date + 'T' + time;
     
@@ -191,9 +191,9 @@ function getWeather(place, date, time) {
             
             if (!ok) {
                 const errorMsg = data && data.error ? data.error : `Weather service error (${status})`;
-                status.textContent = errorMsg;
-                status.classList.remove('text-success', 'text-primary');
-                status.classList.add('text-danger');
+                statusElement.textContent = errorMsg;
+                statusElement.classList.remove('text-success', 'text-primary');
+                statusElement.classList.add('text-danger');
                 return;
             }
             
@@ -210,20 +210,20 @@ function getWeather(place, date, time) {
                 summary += `, wind ${windSpeed} mph`;
                 
                 document.getElementById('weather').value = summary;
-                status.textContent = `Weather auto-filled for ${data.location.name}, ${data.location.state}`;
-                status.classList.remove('text-danger', 'text-primary');
-                status.classList.add('text-success');
+                statusElement.textContent = `Weather auto-filled for ${data.location.name}, ${data.location.state}`;
+                statusElement.classList.remove('text-danger', 'text-primary');
+                statusElement.classList.add('text-success');
             } else {
-                status.textContent = 'No weather data available for this date/location.';
-                status.classList.remove('text-success', 'text-primary');
-                status.classList.add('text-danger');
+                statusElement.textContent = 'No weather data available for this date/location.';
+                statusElement.classList.remove('text-success', 'text-primary');
+                statusElement.classList.add('text-danger');
             }
         })
         .catch(error => {
             console.error('Weather fetch error:', error); // Debug log
-            status.textContent = 'Could not fetch weather. Check network connection.';
-            status.classList.remove('text-success', 'text-primary');
-            status.classList.add('text-danger');
+            statusElement.textContent = 'Could not fetch weather. Check network connection.';
+            statusElement.classList.remove('text-success', 'text-primary');
+            statusElement.classList.add('text-danger');
         });
 }
 
