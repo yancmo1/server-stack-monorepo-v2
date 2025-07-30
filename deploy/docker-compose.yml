@@ -19,14 +19,14 @@ services:
       - "5551:5551"
     restart: unless-stopped
     env_file:
-      - ./shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
       - CRUISE_DB_PATH=/app/data/cruise_prices.db
     volumes:
-      - ./shared/ssl:/app/ssl:ro
-      - ./shared/config:/app/config:ro
+      - ../shared/ssl:/app/ssl:ro
+      - ../shared/config:/app/config:ro
     deploy:
       resources:
         limits:
@@ -56,14 +56,14 @@ services:
       - "5550:5550"
     restart: unless-stopped
     env_file:
-      - ./shared/config/.env
+      - ../shared/config/.env
     environment:
       - DASHBOARD_USER=admin
       - DASHBOARD_PASS=fredrules
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./shared/ssl:/app/ssl:ro
+      - ../shared/ssl:/app/ssl:ro
 
   clan-map:
     build:
@@ -74,12 +74,12 @@ services:
       - "5552:5552"
     restart: unless-stopped
     env_file:
-      - ./shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./shared/ssl:/app/ssl:ro
+      - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -109,13 +109,13 @@ services:
       - "5553:5553"
     restart: unless-stopped
     env_file:
-      - ./shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
       - QSL_DATABASE_PATH=/app/Log4OM\ db.SQLite
     volumes:
-      - ./shared/ssl:/app/ssl:ro
+      - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -145,13 +145,13 @@ services:
       - "5554:5554"
     restart: unless-stopped
     env_file:
-      - ./shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
       - ./apps/5k-tracker:/app
-      - ./shared/ssl:/app/ssl:ro
+      - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -176,13 +176,13 @@ services:
       context: ./apps/coc-discord-bot
       dockerfile: Dockerfile
     env_file:
-      - ./shared/config/.env
+      - ../shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./shared/config:/app/config:ro
-      - ./shared/ssl:/app/ssl:ro
+      - ../shared/config:/app/config:ro
+      - ../shared/ssl:/app/ssl:ro
     healthcheck:
       test: ["CMD", "python", "config.py", "--healthcheck"]
       interval: 30s
