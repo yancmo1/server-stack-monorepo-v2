@@ -583,3 +583,51 @@ def import_results():
             if imported:
                 flash(f"Imported {imported} races!", 'success')
     return render_template('import_results.html', imported=imported if imported else None, errors=errors)
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    if request.method == 'POST':
+        # Update profile info
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip()
+        changed = False
+        if first_name and first_name != current_user.first_name:
+            current_user.first_name = first_name
+            changed = True
+        if last_name and last_name != current_user.last_name:
+            current_user.last_name = last_name
+            changed = True
+        if email and email != current_user.email:
+            # Check for email conflict
+            if User.query.filter_by(email=email).first() and email != current_user.email:
+                flash('Email already in use by another account.', 'danger')
+                return render_template('profile.html')
+            current_user.email = email
+            changed = True
+        # Handle password change
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        if current_password or new_password or confirm_password:
+            if not current_user.check_password(current_password):
+                flash('Current password is incorrect.', 'danger')
+                return render_template('profile.html')
+            if not new_password or not confirm_password:
+                flash('Please enter and confirm your new password.', 'danger')
+                return render_template('profile.html')
+            if new_password != confirm_password:
+                flash('New passwords do not match.', 'danger')
+                return render_template('profile.html')
+            if len(new_password) < 6:
+                flash('New password must be at least 6 characters.', 'danger')
+                return render_template('profile.html')
+            current_user.set_password(new_password)
+            changed = True
+            flash('Password updated successfully!', 'success')
+        if changed:
+            db.session.commit()
+            flash('Profile updated successfully!', 'success')
+        return render_template('profile.html')
+    return render_template('profile.html')
