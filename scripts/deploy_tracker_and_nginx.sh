@@ -18,7 +18,7 @@ git push origin main
 # 2. SSH to server and deploy
 ssh yancmo@ubuntumac << 'ENDSSH'
   set -e
-  cd /home/yancmo/apps/server-stack-monorepo-v2  # <-- CHANGE THIS to your actual project path
+  cd /home/yancmo/apps/server-stack-monorepo-v2 
   git pull origin main
   sudo cp deploy/nginx/yancmo.xyz.conf /etc/nginx/sites-available/yancmo.xyz.conf
   sudo ln -sf /etc/nginx/sites-available/yancmo.xyz.conf /etc/nginx/sites-enabled/yancmo.xyz.conf

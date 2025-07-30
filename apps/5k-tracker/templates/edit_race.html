@@ -51,9 +51,9 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="finish_time" class="form-label">Finish Time *</label>
-                                    <input type="text" class="form-control" id="finish_time" name="finish_time" 
-                                           value="{{ race.finish_time }}" required>
+                                    <label for="finish_time" class="form-label">Finish Time (Elapsed Gun Time) *</label>
+                                    <input type="text" class="form-control" id="finish_time" name="finish_time" value="{{ race.finish_time }}" placeholder="e.g. 48:19:00" required pattern="^([0-9]{1,2}:)?[0-5]?[0-9]:[0-5][0-9]$" title="Format: HH:MM:SS or MM:SS">
+                                    <div class="form-text">Enter elapsed time (e.g. 48:19:00 for 48 hours, 19 minutes, 0 seconds).</div>
                                 </div>
                             </div>
                         </div>
@@ -68,15 +68,14 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="weather" class="form-label">Weather Conditions</label>
+                                    <label for="weather" class="form-label">Weather (Temp, Humidity, Wind in °F)</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="weather" name="weather" 
-                                               value="{{ race.weather or '' }}">
+                                        <input type="text" class="form-control" id="weather" name="weather" value="{{ race.weather or '' }}" placeholder="Auto-fill or enter manually (e.g. 72°F, humidity 60%, wind 5 mph)">
                                         <button class="btn btn-outline-secondary" type="button" id="fetch-weather-btn" title="Auto-fill from weather API">
                                             <i class="fas fa-cloud-sun"></i>
                                         </button>
                                     </div>
-                                    <div id="weather-status" class="form-text text-muted"></div>
+                                    <div id="weather-status" class="form-text text-muted">Weather will show temperature, humidity, and wind in °F.</div>
                                 </div>
                             </div>
                         </div>
@@ -122,7 +121,7 @@ function getWeather(place, date, time) {
             }
             if (data && data.weather) {
                 const w = data.weather;
-                let summary = `${w.temperature}°C, wind ${w.wind_speed}m/s`;
+                let summary = `${w.temperature}\u00b0F, humidity ${w.humidity}%, wind ${w.wind_speed} mph`;
                 document.getElementById('weather').value = summary;
                 status.textContent = 'Weather auto-filled.';
             } else {

@@ -38,20 +38,21 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="finish_time" class="form-label">Finish Time</label>
-                            <input type="text" class="form-control form-control-lg" id="finish_time" name="finish_time" placeholder="e.g. 23:45" required>
+                            <label for="finish_time" class="form-label">Finish Time (Elapsed Gun Time)</label>
+                            <input type="text" class="form-control form-control-lg" id="finish_time" name="finish_time" placeholder="e.g. 48:19:00" required pattern="^([0-9]{1,2}:)?[0-5]?[0-9]:[0-5][0-9]$" title="Format: HH:MM:SS or MM:SS">
+                            <div class="form-text">Enter elapsed time (e.g. 48:19:00 for 48 hours, 19 minutes, 0 seconds).</div>
                         </div>
                         <div class="mb-3">
                             <label for="location" class="form-label">Location</label>
                             <input type="text" class="form-control form-control-lg" id="location" name="location" placeholder="e.g. Tulsa, OK" required>
                         </div>
                         <div class="mb-3">
-                            <label for="weather" class="form-label">Weather</label>
+                            <label for="weather" class="form-label">Weather (Temp, Humidity, Wind in °F)</label>
                             <div class="input-group">
-                                <input type="text" class="form-control form-control-lg" id="weather" name="weather" placeholder="Auto-fill or enter manually">
+                                <input type="text" class="form-control form-control-lg" id="weather" name="weather" placeholder="Auto-fill or enter manually (e.g. 72°F, humidity 60%, wind 5 mph)">
                                 <button type="button" class="btn btn-outline-secondary" id="fetch-weather-btn">Get Weather</button>
                             </div>
-                            <div id="weather-status" class="form-text text-primary"></div>
+                            <div id="weather-status" class="form-text text-primary">Weather will show temperature, humidity, and wind in °F.</div>
                         </div>
                         <div class="mb-3">
                             <label for="notes" class="form-label">Notes</label>
@@ -100,11 +101,16 @@ function createPhotoRow(idx) {
                     <option value="medal">Medal</option>
                     <option value="bib">Race Bib</option>
                 </select>
-                <input type="text" class="form-control form-control-lg" id="photo_caption${idx}" name="photo_caption${idx}" placeholder="Optional caption">
+                <input type="text" class="form-control form-control-lg mb-2" id="photo_caption${idx}" name="photo_caption${idx}" placeholder="Optional caption">
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <button type="button" class="btn btn-success btn-sm save-photo-btn" title="Save Photo">
+                        <i class="fas fa-save"></i> Save Photo
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm remove-photo-btn ms-2" title="Remove Photo">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
-            <button type="button" class="btn btn-danger btn-lg ms-md-3 remove-photo-btn" title="Remove Photo" style="position:absolute;top:10px;right:10px;z-index:2;">
-                <i class="fas fa-trash"></i>
-            </button>
         </div>
     `;
     // Preview logic
@@ -129,6 +135,10 @@ function createPhotoRow(idx) {
         row.remove();
         photoCount--;
         addPhotoBtn.disabled = false;
+    });
+    // Save logic (for UI feedback only)
+    row.querySelector('.save-photo-btn').addEventListener('click', function() {
+        alert('Photo info saved for this row.');
     });
     return row;
 }
@@ -164,7 +174,7 @@ function getWeather(place, date, time) {
                 let tempUnit = w.unit === 'F' ? '°F' : '°C';
                 let wind = w.wind_speed + ' mph';
                 let humidity = (w.humidity !== undefined && w.humidity !== null) ? `, humidity ${w.humidity}%` : '';
-                let summary = `${w.temperature}${tempUnit}, wind ${wind}${humidity}`;
+                let summary = `${w.temperature}${tempUnit}, humidity ${w.humidity}% , wind ${wind}`;
                 document.getElementById('weather').value = summary;
                 status.textContent = 'Weather auto-filled.';
                 status.classList.remove('text-danger');
