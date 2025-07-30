@@ -236,16 +236,18 @@ def add_race():
         for i in range(1, 6):
             file = request.files.get(f'photo{i}')
             if file and file.filename != '' and allowed_file(file.filename):
-                filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
-                photo = RacePhoto(
-                    race_id=race.id,
-                    filename=filename,
-                    original_filename=file.filename,
-                    photo_type=request.form.get(f'photo_type{i}', 'other'),
-                    caption=request.form.get(f'photo_caption{i}', '')
-                )
-                db.session.add(photo)
+                # Ensure filename is not None and has an extension
+                if file.filename and '.' in file.filename:
+                    filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
+                    photo = RacePhoto(
+                        race_id=race.id,
+                        filename=filename,
+                        original_filename=file.filename,
+                        photo_type=request.form.get(f'photo_type{i}', 'other'),
+                        caption=request.form.get(f'photo_caption{i}', '')
+                    )
+                    db.session.add(photo)
         db.session.commit()
         flash('Race added successfully!')
         return redirect(url_for('races'))
@@ -263,6 +265,24 @@ def edit_race(race_id):
         race.location = request.form.get('location', '')
         race.weather = request.form.get('weather', '')
         race.notes = request.form.get('notes', '')
+        
+        # Handle new photo uploads (up to 10 photos)
+        for i in range(1, 11):
+            file = request.files.get(f'photo{i}')
+            if file and file.filename != '' and allowed_file(file.filename):
+                # Ensure filename is not None and has an extension
+                if file.filename and '.' in file.filename:
+                    filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
+                    photo = RacePhoto(
+                        race_id=race.id,
+                        filename=filename,
+                        original_filename=file.filename,
+                        photo_type=request.form.get(f'photo_type{i}', 'other'),
+                        caption=request.form.get(f'photo_caption{i}', '')
+                    )
+                    db.session.add(photo)
+        
         db.session.commit()
         flash('Race updated successfully!')
         return redirect(url_for('races'))
