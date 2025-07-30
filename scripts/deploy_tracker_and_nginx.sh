@@ -10,6 +10,10 @@ echo "=== STARTING DEPLOYMENT ==="
 echo "--- STAGING FILES FOR COMMIT ---"
 git add -f deploy/nginx/yancmo.xyz.conf || echo "nginx config not found, skipping"
 git add -f deploy/docker-compose.yml
+# Force add the docker-compose file specifically with status check
+echo "Explicitly staging docker-compose.yml..."
+git add deploy/docker-compose.yml
+git status deploy/docker-compose.yml
 # Add app and script files
 git add -f apps/5k-tracker/app.py
 git add -f apps/5k-tracker/list_users.py
