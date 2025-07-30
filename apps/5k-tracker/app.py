@@ -1,3 +1,28 @@
+def add_test_races():
+    """Add generic test races for the 'runner' user."""
+    with app.app_context():
+        runner = User.query.filter_by(username='runner').first()
+        if not runner:
+            print("Runner user not found. Run create_default_users() first.")
+            return
+        from random import randint, choice
+        race_types = ['5K', '10K', 'Half Marathon', 'Marathon']
+        locations = ['Tulsa, OK', 'Dallas, TX', 'Oklahoma City, OK', 'Austin, TX']
+        for i in range(1, 6):
+            race = Race(
+                user_id=runner.id,
+                race_name=f"Test Race {i}",
+                race_type=choice(race_types),
+                race_date=datetime(2024, randint(1,12), randint(1,28)).date(),
+                race_time=f"0{randint(6,9)}:00",
+                finish_time=f"{randint(20,59)}:{randint(10,59)}",
+                location=choice(locations),
+                weather="Sunny, 70°F, wind 5 mph",
+                notes=f"This is a test race entry number {i}."
+            )
+            db.session.add(race)
+        db.session.commit()
+        print("Test races added for runner.")
 # --- Imports ---
 import os
 import uuid
@@ -24,10 +49,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 @app.route('/logout')
-@login_required
 def logout():
-    logout_user()
-    flash('You have been logged out.')
     return redirect(url_for('login'))
 
 
@@ -164,7 +186,6 @@ def login():
 
 
 @app.route('/add_race', methods=['GET', 'POST'])
-@login_required
 def add_race():
     if request.method == 'POST':
         race = Race(
@@ -180,28 +201,26 @@ def add_race():
         )
         db.session.add(race)
         db.session.commit()
-        # Handle photo uploads
-        if 'photos' in request.files:
-            files = request.files.getlist('photos')
-            for file in files:
-                if file and file.filename != '' and allowed_file(file.filename):
-                    filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
-                    photo = RacePhoto(
-                        race_id=race.id,
-                        filename=filename,
-                        original_filename=file.filename,
-                        photo_type=request.form.get('photo_type', 'other'),
-                        caption=request.form.get('photo_caption', '')
-                    )
-                    db.session.add(photo)
+        # Handle up to 5 photo uploads, each with its own type and caption
+        for i in range(1, 6):
+            file = request.files.get(f'photo{i}')
+            if file and file.filename != '' and allowed_file(file.filename):
+                filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
+                photo = RacePhoto(
+                    race_id=race.id,
+                    filename=filename,
+                    original_filename=file.filename,
+                    photo_type=request.form.get(f'photo_type{i}', 'other'),
+                    caption=request.form.get(f'photo_caption{i}', '')
+                )
+                db.session.add(photo)
         db.session.commit()
         flash('Race added successfully!')
         return redirect(url_for('races'))
     return render_template('add_race.html')
 
 @app.route('/edit_race/<int:race_id>', methods=['GET', 'POST'])
-@login_required
 def edit_race(race_id):
     race = Race.query.filter_by(id=race_id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
@@ -219,7 +238,6 @@ def edit_race(race_id):
     return render_template('edit_race.html', race=race)
 
 @app.route('/delete_race/<int:race_id>', methods=['POST'])
-@login_required
 def delete_race(race_id):
     race = Race.query.filter_by(id=race_id, user_id=current_user.id).first_or_404()
     # Delete associated photos from filesystem
@@ -236,10 +254,11 @@ def delete_race(race_id):
 def uploaded_file(filename):
     return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], 'photos'), filename)
 
+
 @app.route('/statistics')
 @login_required
 def statistics():
-    # Get all races for the user
+    # Only show stats for the logged-in user
     races = Race.query.filter_by(user_id=current_user.id).all()
     # Group by race type
     race_types = {}
@@ -270,7 +289,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/api/weather')
-@login_required
 def get_weather():
     """Get weather data for a location and datetime"""
     place = request.args.get('place')
@@ -282,86 +300,105 @@ def get_weather():
     try:
         # Parse the datetime
         dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
-        
-        # Geocode the location first
-        def geocode(query):
-            url = f"https://geocoding-api.open-meteo.com/v1/search?name={query}&count=1&language=en&format=json"
+
+        # Helper: get state from input (e.g., "McAlester, OK" -> "OK")
+        def extract_state(place):
+            if ',' in place:
+                parts = place.split(',')
+                if len(parts) > 1:
+                    return parts[1].strip()
+            return None
+
+        # Geocode the location, US only, try city,state, then city
+        def geocode(query, state=None):
+            url = f"https://geocoding-api.open-meteo.com/v1/search?name={query}&count=10&language=en&country=US&format=json"
             resp = requests.get(url, timeout=10)
             if not resp.ok:
                 return None
             data = resp.json()
             if not data.get('results'):
                 return None
+            # If state provided, filter for state match (admin1)
+            if state:
+                for loc in data['results']:
+                    if 'admin1' in loc and (loc['admin1'].lower().startswith(state.lower()) or state.lower() in loc['admin1'].lower()):
+                        return loc
+            # Otherwise, return first result
             return data['results'][0]
 
-        location = geocode(place)
-        # Fallback: if not found, try just the first word (city name)
+        state = extract_state(place)
+        location = geocode(place, state)
+        # Fallback: try just city name if not found
         if not location and ',' in place:
             city = place.split(',')[0].strip()
-            location = geocode(city)
+            location = geocode(city, state)
         if not location and ' ' in place:
             city = place.split(' ')[0].strip()
-            location = geocode(city)
+            location = geocode(city, state)
         if not location:
             return jsonify({'error': 'Could not find location. Try just the city name, e.g. "McAlester".'}), 400
         lat, lon = location['latitude'], location['longitude']
-        
-        # Get weather data
-        # Format date for API (YYYY-MM-DD)
+
+        # Get weather data in Fahrenheit
         date_str = dt.strftime('%Y-%m-%d')
-        
         weather_url = f"https://api.open-meteo.com/v1/forecast"
         params = {
             'latitude': lat,
             'longitude': lon,
             'start_date': date_str,
             'end_date': date_str,
-            'hourly': 'temperature_2m,wind_speed_10m,weather_code',
-            'timezone': 'auto'
+            'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
+            'timezone': 'auto',
+            'temperature_unit': 'fahrenheit'
         }
-        
+
         weather_response = requests.get(weather_url, params=params, timeout=10)
-        
+
         if not weather_response.ok:
             return jsonify({'error': 'Failed to fetch weather data'}), 400
-            
+
         weather_data = weather_response.json()
-        
+
         if not weather_data.get('hourly'):
             return jsonify({'error': 'No weather data available for this date'}), 400
-        
+
         # Find the closest hour to the requested time
         hourly = weather_data['hourly']
         target_hour = dt.hour
-        
+
         # Get the data for the closest hour
         if target_hour < len(hourly['temperature_2m']):
             temperature = hourly['temperature_2m'][target_hour]
             wind_speed = hourly['wind_speed_10m'][target_hour]
             weather_code = hourly['weather_code'][target_hour]
+            humidity = hourly['relative_humidity_2m'][target_hour] if 'relative_humidity_2m' in hourly else None
         else:
             # Use the last available hour if target hour is not available
             temperature = hourly['temperature_2m'][-1] if hourly['temperature_2m'] else None
             wind_speed = hourly['wind_speed_10m'][-1] if hourly['wind_speed_10m'] else None
             weather_code = hourly['weather_code'][-1] if hourly['weather_code'] else None
-        
+            humidity = hourly['relative_humidity_2m'][-1] if 'relative_humidity_2m' in hourly and hourly['relative_humidity_2m'] else None
+
         if temperature is None:
             return jsonify({'error': 'No weather data available for this time'}), 400
-        
+
         return jsonify({
             'weather': {
                 'temperature': round(temperature, 1),
                 'wind_speed': round(wind_speed, 1) if wind_speed else 0,
-                'weather_code': weather_code
+                'humidity': round(humidity, 1) if humidity is not None else None,
+                'weather_code': weather_code,
+                'unit': 'F'
             },
             'location': {
                 'name': location['name'],
                 'country': location.get('country', ''),
+                'state': location.get('admin1', ''),
                 'latitude': lat,
                 'longitude': lon
             }
         })
-        
+
     except ValueError as e:
         return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
     except requests.RequestException as e:
@@ -404,7 +441,6 @@ def create_default_users():
 
 
 @app.route('/dashboard')
-@login_required
 def dashboard():
     # Get user's recent races
     recent_races = Race.query.filter_by(user_id=current_user.id).order_by(Race.race_date.desc()).limit(5).all()
@@ -428,7 +464,6 @@ def dashboard():
                          total_races=total_races)
 
 @app.route('/races')
-@login_required
 def races():
     page = request.args.get('page', 1, type=int)
     race_type = request.args.get('type', '')
@@ -448,8 +483,13 @@ def races():
 
 
 if __name__ == '__main__':
-    init_db()
-    create_default_users()
-    
-    # Run on port 5011 to match Docker Compose
-    app.run(host='0.0.0.0', port=5554, debug=True)
+    import sys
+    if 'add_test_races' in sys.argv:
+        init_db()
+        create_default_users()
+        add_test_races()
+    else:
+        init_db()
+        create_default_users()
+        # Run on port 5554 to match Docker Compose
+        app.run(host='0.0.0.0', port=5554, debug=True)
