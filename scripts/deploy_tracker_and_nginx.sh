@@ -61,6 +61,10 @@ ssh yancmo@ubuntumac << 'ENDSSH'
   echo "--- Pulling latest changes ---"
   git pull --no-rebase origin main || { echo "Git pull failed!"; exit 1; }
   
+  echo "--- Checking docker-compose.yml paths on server ---"
+  echo "Current build contexts in server's docker-compose.yml:"
+  grep "context:" deploy/docker-compose.yml
+  
   echo "--- Fixing file permissions ---"
   chmod +x apps/5k-tracker/init_and_run.sh || echo "init_and_run.sh not found"
   chmod +x apps/5k-tracker/wait-for-it.sh || echo "wait-for-it.sh not found"
