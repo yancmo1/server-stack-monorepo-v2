@@ -11,7 +11,7 @@
                     <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Race</h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST">
+                                        <form method="POST" enctype="multipart/form-data" autocomplete="off">
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="mb-3">
@@ -197,14 +197,203 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                             {% endfor %}
                         </div>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> 
-                            To add more photos or modify existing ones, you'll need to delete and re-add the race.
-                        </div>
+                                                </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Add New Photos</label>
+                        <div id="photo-list"></div>
+                        <button type="button" class="btn btn-outline-primary w-100 mt-2" id="add-photo-btn">
+                            <i class="fas fa-camera"></i> Add Photo
+                        </button>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Update Race
+                        </button>
+                        <a href="{{ url_for('races') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-left"></i> Back to Races
+                        </a>
+                    </div>
                     </div>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+// Dynamic photo upload logic for edit race page
+let photoCount = 0;
+const maxPhotos = 10;
+const photoList = document.getElementById('photo-list');
+const addPhotoBtn = document.getElementById('add-photo-btn');
+
+function createPhotoRow(idx) {
+    const row = document.createElement('div');
+    row.className = 'card mb-3 shadow-sm';
+    row.style.position = 'relative';
+    row.innerHTML = `
+        <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+            <div class="flex-shrink-0 text-center" style="width:120px;">
+                <img id="photo_preview${idx}" src="" alt="Preview" style="display:none;max-width:100%;max-height:100px;border-radius:8px;" />
+            </div>
+            <div class="flex-grow-1 w-100">
+                <input type="file" class="form-control form-control-lg mb-2" id="photo${idx}" name="photo${idx}" accept="image/*">
+                <select class="form-select form-select-lg mb-2" id="photo_type${idx}" name="photo_type${idx}">
+                    <option value="other">Other</option>
+                    <option value="finish">Finish Line</option>
+                    <option value="medal">Medal</option>
+                    <option value="bib">Race Bib</option>
+                </select>
+                <input type="text" class="form-control form-control-lg mb-2" id="photo_caption${idx}" name="photo_caption${idx}" placeholder="Optional caption">
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <button type="button" class="btn btn-success btn-sm save-photo-btn" title="Save Photo">
+                        <i class="fas fa-save"></i> Save Photo
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm remove-photo-btn ms-2" title="Remove Photo">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    // Preview logic
+    const fileInput = row.querySelector(`#photo${idx}`);
+    const previewImg = row.querySelector(`#photo_preview${idx}`);
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                previewImg.src = ev.target.result;
+                previewImg.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewImg.src = '';
+            previewImg.style.display = 'none';
+        }
+    });
+    // Remove logic
+    row.querySelector('.remove-photo-btn').addEventListener('click', function() {
+        row.remove();
+        photoCount--;
+        addPhotoBtn.disabled = false;
+    });
+    // Save logic (for UI feedback only)
+    row.querySelector('.save-photo-btn').addEventListener('click', function() {
+        alert('Photo info saved for this row.');
+    });
+    return row;
+}
+
+addPhotoBtn.addEventListener('click', function() {
+    if (photoCount >= maxPhotos) return;
+    photoCount++;
+    const row = createPhotoRow(photoCount);
+    photoList.appendChild(row);
+    if (photoCount >= maxPhotos) addPhotoBtn.disabled = true;
+});
+
+// Weather auto-fill logic
+function getWeather(place, date, time) {
+    const statusElement = document.getElementById('weather-status');
+    if (!place || !date) {
+        statusElement.textContent = 'Enter location and date to fetch weather.';
+        statusElement.classList.remove('text-success');
+        statusElement.classList.add('text-danger');
+        return;
+    }
+    
+    // If no time provided, default to 8:00 AM
+    if (!time) {
+        time = '08:00';
+    }
+    
+    statusElement.textContent = 'Fetching weather...';
+    statusElement.classList.remove('text-danger', 'text-success');
+    statusElement.classList.add('text-primary');
+    
+    const datetime = date + 'T' + time;
+    
+    // Use relative URL that works with the Flask app routing
+    const weatherUrl = 'api/weather';
+    const fullUrl = `${weatherUrl}?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`;
+    
+    console.log('Fetching weather from:', fullUrl); // Debug log
+    
+    fetch(fullUrl)
+        .then(response => {
+            return response.json().then(data => ({
+                ok: response.ok,
+                status: response.status,
+                data: data
+            }));
+        })
+        .then(({ok, status, data}) => {
+            console.log('Weather response:', {ok, status, data}); // Debug log
+            
+            if (!ok) {
+                const errorMsg = data && data.error ? data.error : `Weather service error (${status})`;
+                statusElement.textContent = errorMsg;
+                statusElement.classList.remove('text-success', 'text-primary');
+                statusElement.classList.add('text-danger');
+                return;
+            }
+            
+            if (data && data.weather) {
+                const w = data.weather;
+                const tempUnit = w.unit === 'F' ? '°F' : '°C';
+                const windSpeed = w.wind_speed ? Math.round(w.wind_speed * 10) / 10 : 0;
+                const humidity = (w.humidity !== undefined && w.humidity !== null) ? Math.round(w.humidity) : null;
+                
+                let summary = `${w.temperature}${tempUnit}`;
+                if (humidity !== null) {
+                    summary += `, humidity ${humidity}%`;
+                }
+                summary += `, wind ${windSpeed} mph`;
+                
+                document.getElementById('weather').value = summary;
+                statusElement.textContent = `Weather auto-filled for ${data.location.name}, ${data.location.state}`;
+                statusElement.classList.remove('text-danger', 'text-primary');
+                statusElement.classList.add('text-success');
+            } else {
+                statusElement.textContent = 'No weather data available for this date/location.';
+                statusElement.classList.remove('text-success', 'text-primary');
+                statusElement.classList.add('text-danger');
+            }
+        })
+        .catch(error => {
+            console.error('Weather fetch error:', error); // Debug log
+            statusElement.textContent = 'Could not fetch weather. Check network connection.';
+            statusElement.classList.remove('text-success', 'text-primary');
+            statusElement.classList.add('text-danger');
+        });
+}
+
+const locationInput = document.getElementById('location');
+const dateInput = document.getElementById('race_date');
+const timeInput = document.getElementById('race_time');
+const fetchBtn = document.getElementById('fetch-weather-btn');
+
+if (fetchBtn) {
+    fetchBtn.addEventListener('click', function() {
+        getWeather(locationInput.value, dateInput.value, timeInput.value);
+    });
+}
+
+if (locationInput && dateInput && timeInput) {
+    [locationInput, dateInput, timeInput].forEach(input => {
+        input.addEventListener('change', function() {
+            // Auto-fetch weather when location and date are filled (time is optional)
+            if (locationInput.value && dateInput.value) {
+                getWeather(locationInput.value, dateInput.value, timeInput.value);
+            }
+        });
+    });
+}
+</script>
 {% endblock %}
