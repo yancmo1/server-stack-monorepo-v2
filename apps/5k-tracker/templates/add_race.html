@@ -154,40 +154,75 @@ addPhotoBtn.addEventListener('click', function() {
 // Weather auto-fill logic
 function getWeather(place, date, time) {
     const status = document.getElementById('weather-status');
-    if (!place || !date || !time) {
-        status.textContent = 'Enter location, date, and time to fetch weather.';
+    if (!place || !date) {
+        status.textContent = 'Enter location and date to fetch weather.';
+        status.classList.remove('text-success');
+        status.classList.add('text-danger');
         return;
     }
+    
+    // If no time provided, default to 8:00 AM
+    if (!time) {
+        time = '08:00';
+    }
+    
     status.textContent = 'Fetching weather...';
+    status.classList.remove('text-danger', 'text-success');
+    status.classList.add('text-primary');
+    
     const datetime = date + 'T' + time;
-    fetch(`/api/weather?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`)
-        .then(r => r.json().then(data => ({ok: r.ok, data})))
-        .then(({ok, data}) => {
+    
+    // Use absolute URL to ensure it works with nginx proxy and application root
+    const weatherUrl = '/tracker/api/weather';
+    const fullUrl = `${weatherUrl}?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`;
+    
+    console.log('Fetching weather from:', fullUrl); // Debug log
+    
+    fetch(fullUrl)
+        .then(response => {
+            return response.json().then(data => ({
+                ok: response.ok,
+                status: response.status,
+                data: data
+            }));
+        })
+        .then(({ok, status, data}) => {
+            console.log('Weather response:', {ok, status, data}); // Debug log
+            
             if (!ok) {
-                status.textContent = data && data.error ? data.error : 'No weather data found.';
-                status.classList.remove('text-success');
+                const errorMsg = data && data.error ? data.error : `Weather service error (${status})`;
+                status.textContent = errorMsg;
+                status.classList.remove('text-success', 'text-primary');
                 status.classList.add('text-danger');
                 return;
             }
+            
             if (data && data.weather) {
                 const w = data.weather;
-                let tempUnit = w.unit === 'F' ? '°F' : '°C';
-                let wind = w.wind_speed + ' mph';
-                let humidity = (w.humidity !== undefined && w.humidity !== null) ? `, humidity ${w.humidity}%` : '';
-                let summary = `${w.temperature}${tempUnit}, humidity ${w.humidity}% , wind ${wind}`;
+                const tempUnit = w.unit === 'F' ? '°F' : '°C';
+                const windSpeed = w.wind_speed ? Math.round(w.wind_speed * 10) / 10 : 0;
+                const humidity = (w.humidity !== undefined && w.humidity !== null) ? Math.round(w.humidity) : null;
+                
+                let summary = `${w.temperature}${tempUnit}`;
+                if (humidity !== null) {
+                    summary += `, humidity ${humidity}%`;
+                }
+                summary += `, wind ${windSpeed} mph`;
+                
                 document.getElementById('weather').value = summary;
-                status.textContent = 'Weather auto-filled.';
-                status.classList.remove('text-danger');
+                status.textContent = `Weather auto-filled for ${data.location.name}, ${data.location.state}`;
+                status.classList.remove('text-danger', 'text-primary');
                 status.classList.add('text-success');
             } else {
-                status.textContent = 'No weather data found.';
-                status.classList.remove('text-success');
+                status.textContent = 'No weather data available for this date/location.';
+                status.classList.remove('text-success', 'text-primary');
                 status.classList.add('text-danger');
             }
         })
-        .catch(() => {
-            status.textContent = 'Could not fetch weather.';
-            status.classList.remove('text-success');
+        .catch(error => {
+            console.error('Weather fetch error:', error); // Debug log
+            status.textContent = 'Could not fetch weather. Check network connection.';
+            status.classList.remove('text-success', 'text-primary');
             status.classList.add('text-danger');
         });
 }
@@ -205,7 +240,8 @@ if (fetchBtn) {
 
 [locationInput, dateInput, timeInput].forEach(input => {
     input.addEventListener('change', function() {
-        if (locationInput.value && dateInput.value && timeInput.value) {
+        // Auto-fetch weather when location and date are filled (time is optional)
+        if (locationInput.value && dateInput.value) {
             getWeather(locationInput.value, dateInput.value, timeInput.value);
         }
     });
