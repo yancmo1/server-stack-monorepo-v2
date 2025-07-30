@@ -150,7 +150,7 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ../apps/5k-tracker:/app
+      - ./apps/5k-tracker:/app
       - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
