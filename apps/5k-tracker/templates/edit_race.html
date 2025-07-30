@@ -11,7 +11,7 @@
                     <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Race</h4>
                 </div>
                 <div class="card-body">
-                                        <form method="POST" enctype="multipart/form-data" autocomplete="off">
+                    <form method="POST" enctype="multipart/form-data" autocomplete="off">
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="mb-3">
@@ -79,151 +79,65 @@
                                 </div>
                             </div>
                         </div>
-{% block scripts %}
-{{ super() }}
-<script>
-function normalizeTime(timeStr) {
-    // Accepts '07:00', '7:00', '7:00 AM', '7:00PM', '19:00', etc. Returns 'HH:MM' 24-hour format.
-    if (!timeStr) return '';
-    let d = new Date('1970-01-01T' + timeStr);
-    if (!isNaN(d.getTime())) {
-        return d.toTimeString().slice(0,5);
-    }
-    // Try parsing 12-hour manually
-    let match = timeStr.match(/^(\d{1,2}):(\d{2})\s*([APap][Mm])$/);
-    if (match) {
-        let hour = parseInt(match[1], 10);
-        let min = match[2];
-        let ampm = match[3].toLowerCase();
-        if (ampm === 'pm' && hour < 12) hour += 12;
-        if (ampm === 'am' && hour === 12) hour = 0;
-        return (hour < 10 ? '0' : '') + hour + ':' + min;
-    }
-    return timeStr; // fallback
-}
-
-function getWeather(place, date, time) {
-    if (!place || !date || !time) return;
-    const status = document.getElementById('weather-status');
-    status.textContent = 'Fetching weather...';
-    const normTime = normalizeTime(time);
-    const datetime = date + 'T' + normTime;
-    fetch(`/api/weather?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`)
-        .then(r => r.json().then(data => ({ok: r.ok, data})))
-        .then(({ok, data}) => {
-            if (!ok) {
-                if (data && data.error && data.error.includes('geocode')) {
-                    status.textContent = 'Could not find location. Please be more specific.';
-                } else {
-                    status.textContent = data && data.error ? data.error : 'No weather data found.';
-                }
-                return;
-            }
-            if (data && data.weather) {
-                const w = data.weather;
-                let summary = `${w.temperature}\u00b0F, humidity ${w.humidity}%, wind ${w.wind_speed} mph`;
-                document.getElementById('weather').value = summary;
-                status.textContent = 'Weather auto-filled.';
-            } else {
-                status.textContent = 'No weather data found.';
-            }
-        })
-        .catch(() => { status.textContent = 'Could not fetch weather.'; });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const locationInput = document.getElementById('location');
-    const dateInput = document.getElementById('race_date');
-    const timeInput = document.getElementById('race_time');
-    const fetchBtn = document.getElementById('fetch-weather-btn');
-    if (fetchBtn) {
-        fetchBtn.addEventListener('click', function() {
-            getWeather(locationInput.value, dateInput.value, timeInput.value);
-        });
-    }
-    locationInput.addEventListener('blur', function() {
-        if (dateInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-    });
-    dateInput.addEventListener('change', function() {
-        if (locationInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-    });
-    timeInput.addEventListener('change', function() {
-        if (locationInput.value && dateInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-    });
-});
-</script>
-{% endblock %}
 
                         <div class="mb-3">
                             <label for="notes" class="form-label">Race Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="3">{{ race.notes or '' }}</textarea>
                         </div>
 
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('races') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-warning">
+                        <!-- Existing Photos -->
+                        {% if race.photos %}
+                        <div class="mb-4">
+                            <label class="form-label">Existing Photos</label>
+                            <div class="row">
+                                {% for photo in race.photos %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card">
+                                            <img src="{{ url_for('uploaded_file', filename=photo.filename) }}" 
+                                                 class="card-img-top" alt="{{ photo.caption or 'Race photo' }}"
+                                                 style="height: 200px; object-fit: cover;">
+                                            <div class="card-body p-2">
+                                                <p class="card-text">
+                                                    <small class="text-muted">
+                                                        <span class="badge bg-secondary">{{ photo.photo_type|title }}</span><br>
+                                                        {{ photo.caption or photo.original_filename }}
+                                                    </small>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Add New Photos -->
+                        <div class="mb-4">
+                            <label class="form-label">Add New Photos</label>
+                            <div id="photo-list"></div>
+                            <button type="button" class="btn btn-outline-primary w-100 mt-2" id="add-photo-btn">
+                                <i class="fas fa-camera"></i> Add Photo
+                            </button>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="fas fa-save"></i> Update Race
                             </button>
+                            <a href="{{ url_for('races') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-arrow-left"></i> Back to Races
+                            </a>
                         </div>
                     </form>
                 </div>
             </div>
-
-            <!-- Existing Photos -->
-            {% if race.photos %}
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-images"></i> Race Photos</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            {% for photo in race.photos %}
-                                <div class="col-md-3 mb-3">
-                                    <div class="card">
-                                        <img src="{{ url_for('uploaded_file', filename=photo.filename) }}" 
-                                             class="card-img-top" alt="{{ photo.caption or 'Race photo' }}"
-                                             style="height: 200px; object-fit: cover;">
-                                        <div class="card-body p-2">
-                                            <p class="card-text">
-                                                <small class="text-muted">
-                                                    <span class="badge bg-secondary">{{ photo.photo_type|title }}</span><br>
-                                                    {{ photo.caption or photo.original_filename }}
-                                                </small>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                                                </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label">Add New Photos</label>
-                        <div id="photo-list"></div>
-                        <button type="button" class="btn btn-outline-primary w-100 mt-2" id="add-photo-btn">
-                            <i class="fas fa-camera"></i> Add Photo
-                        </button>
-                    </div>
-
-                    <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-save"></i> Update Race
-                        </button>
-                        <a href="{{ url_for('races') }}" class="btn btn-outline-secondary btn-lg">
-                            <i class="fas fa-arrow-left"></i> Back to Races
-                        </a>
-                    </div>
-                    </div>
-                </div>
-            {% endif %}
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+{{ super() }}
 <script>
 // Dynamic photo upload logic for edit race page
 let photoCount = 0;
@@ -299,101 +213,74 @@ addPhotoBtn.addEventListener('click', function() {
 });
 
 // Weather auto-fill logic
+function normalizeTime(timeStr) {
+    // Accepts '07:00', '7:00', '7:00 AM', '7:00PM', '19:00', etc. Returns 'HH:MM' 24-hour format.
+    if (!timeStr) return '';
+    let d = new Date('1970-01-01T' + timeStr);
+    if (!isNaN(d.getTime())) {
+        return d.toTimeString().slice(0,5);
+    }
+    // Try parsing 12-hour manually
+    let match = timeStr.match(/^(\d{1,2}):(\d{2})\s*([APap][Mm])$/);
+    if (match) {
+        let hour = parseInt(match[1], 10);
+        let min = match[2];
+        let ampm = match[3].toLowerCase();
+        if (ampm === 'pm' && hour < 12) hour += 12;
+        if (ampm === 'am' && hour === 12) hour = 0;
+        return (hour < 10 ? '0' : '') + hour + ':' + min;
+    }
+    return timeStr; // fallback
+}
+
 function getWeather(place, date, time) {
-    const statusElement = document.getElementById('weather-status');
-    if (!place || !date) {
-        statusElement.textContent = 'Enter location and date to fetch weather.';
-        statusElement.classList.remove('text-success');
-        statusElement.classList.add('text-danger');
-        return;
-    }
-    
-    // If no time provided, default to 8:00 AM
-    if (!time) {
-        time = '08:00';
-    }
-    
-    statusElement.textContent = 'Fetching weather...';
-    statusElement.classList.remove('text-danger', 'text-success');
-    statusElement.classList.add('text-primary');
-    
-    const datetime = date + 'T' + time;
-    
-    // Use relative URL that works with the Flask app routing
-    const weatherUrl = 'api/weather';
-    const fullUrl = `${weatherUrl}?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`;
-    
-    console.log('Fetching weather from:', fullUrl); // Debug log
-    
-    fetch(fullUrl)
-        .then(response => {
-            return response.json().then(data => ({
-                ok: response.ok,
-                status: response.status,
-                data: data
-            }));
-        })
-        .then(({ok, status, data}) => {
-            console.log('Weather response:', {ok, status, data}); // Debug log
-            
+    if (!place || !date || !time) return;
+    const status = document.getElementById('weather-status');
+    status.textContent = 'Fetching weather...';
+    const normTime = normalizeTime(time);
+    const datetime = date + 'T' + normTime;
+    fetch(`/api/weather?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`)
+        .then(r => r.json().then(data => ({ok: r.ok, data})))
+        .then(({ok, data}) => {
             if (!ok) {
-                const errorMsg = data && data.error ? data.error : `Weather service error (${status})`;
-                statusElement.textContent = errorMsg;
-                statusElement.classList.remove('text-success', 'text-primary');
-                statusElement.classList.add('text-danger');
+                if (data && data.error && data.error.includes('geocode')) {
+                    status.textContent = 'Could not find location. Please be more specific.';
+                } else {
+                    status.textContent = data && data.error ? data.error : 'No weather data found.';
+                }
                 return;
             }
-            
             if (data && data.weather) {
                 const w = data.weather;
-                const tempUnit = w.unit === 'F' ? '°F' : '°C';
-                const windSpeed = w.wind_speed ? Math.round(w.wind_speed * 10) / 10 : 0;
-                const humidity = (w.humidity !== undefined && w.humidity !== null) ? Math.round(w.humidity) : null;
-                
-                let summary = `${w.temperature}${tempUnit}`;
-                if (humidity !== null) {
-                    summary += `, humidity ${humidity}%`;
-                }
-                summary += `, wind ${windSpeed} mph`;
-                
+                let summary = `${w.temperature}\u00b0F, humidity ${w.humidity}%, wind ${w.wind_speed} mph`;
                 document.getElementById('weather').value = summary;
-                statusElement.textContent = `Weather auto-filled for ${data.location.name}, ${data.location.state}`;
-                statusElement.classList.remove('text-danger', 'text-primary');
-                statusElement.classList.add('text-success');
+                status.textContent = 'Weather auto-filled.';
             } else {
-                statusElement.textContent = 'No weather data available for this date/location.';
-                statusElement.classList.remove('text-success', 'text-primary');
-                statusElement.classList.add('text-danger');
+                status.textContent = 'No weather data found.';
             }
         })
-        .catch(error => {
-            console.error('Weather fetch error:', error); // Debug log
-            statusElement.textContent = 'Could not fetch weather. Check network connection.';
-            statusElement.classList.remove('text-success', 'text-primary');
-            statusElement.classList.add('text-danger');
+        .catch(() => { status.textContent = 'Could not fetch weather.'; });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const locationInput = document.getElementById('location');
+    const dateInput = document.getElementById('race_date');
+    const timeInput = document.getElementById('race_time');
+    const fetchBtn = document.getElementById('fetch-weather-btn');
+    if (fetchBtn) {
+        fetchBtn.addEventListener('click', function() {
+            getWeather(locationInput.value, dateInput.value, timeInput.value);
         });
-}
-
-const locationInput = document.getElementById('location');
-const dateInput = document.getElementById('race_date');
-const timeInput = document.getElementById('race_time');
-const fetchBtn = document.getElementById('fetch-weather-btn');
-
-if (fetchBtn) {
-    fetchBtn.addEventListener('click', function() {
-        getWeather(locationInput.value, dateInput.value, timeInput.value);
+    }
+    locationInput.addEventListener('blur', function() {
+        if (dateInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
     });
-}
-
-if (locationInput && dateInput && timeInput) {
-    [locationInput, dateInput, timeInput].forEach(input => {
-        input.addEventListener('change', function() {
-            // Auto-fetch weather when location and date are filled (time is optional)
-            if (locationInput.value && dateInput.value) {
-                getWeather(locationInput.value, dateInput.value, timeInput.value);
-            }
-        });
+    dateInput.addEventListener('change', function() {
+        if (locationInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
     });
-}
+    timeInput.addEventListener('change', function() {
+        if (locationInput.value && dateInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
+    });
+});
 </script>
 {% endblock %}
