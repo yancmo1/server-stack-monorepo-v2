@@ -34,6 +34,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+import re
 
 # --- Load environment variables ---
 load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
@@ -300,6 +301,8 @@ def get_weather():
     try:
         # Parse the datetime
         dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+        today = datetime.utcnow().date()
+        days_ago = (today - dt.date()).days
 
         # Helper: get state from input (e.g., "McAlester, OK" -> "OK")
         def extract_state(place):
@@ -339,49 +342,53 @@ def get_weather():
             return jsonify({'error': 'Could not find location. Try just the city name, e.g. "McAlester".'}), 400
         lat, lon = location['latitude'], location['longitude']
 
-        # Get weather data in Fahrenheit
         date_str = dt.strftime('%Y-%m-%d')
-        weather_url = f"https://api.open-meteo.com/v1/forecast"
-        params = {
-            'latitude': lat,
-            'longitude': lon,
-            'start_date': date_str,
-            'end_date': date_str,
-            'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
-            'timezone': 'auto',
-            'temperature_unit': 'fahrenheit'
-        }
-
-        weather_response = requests.get(weather_url, params=params, timeout=10)
-
-        if not weather_response.ok:
-            return jsonify({'error': 'Failed to fetch weather data'}), 400
-
-        weather_data = weather_response.json()
-
-        if not weather_data.get('hourly'):
-            return jsonify({'error': 'No weather data available for this date'}), 400
-
-        # Find the closest hour to the requested time
-        hourly = weather_data['hourly']
         target_hour = dt.hour
 
-        # Get the data for the closest hour
+        # Use historical API for dates more than 5 days ago
+        if days_ago > 5:
+            weather_url = "https://archive-api.open-meteo.com/v1/archive"
+            params = {
+                'latitude': lat,
+                'longitude': lon,
+                'start_date': date_str,
+                'end_date': date_str,
+                'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
+                'timezone': 'auto',
+                'temperature_unit': 'fahrenheit'
+            }
+        else:
+            weather_url = "https://api.open-meteo.com/v1/forecast"
+            params = {
+                'latitude': lat,
+                'longitude': lon,
+                'start_date': date_str,
+                'end_date': date_str,
+                'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
+                'timezone': 'auto',
+                'temperature_unit': 'fahrenheit'
+            }
+
+        weather_response = requests.get(weather_url, params=params, timeout=10)
+        if not weather_response.ok:
+            return jsonify({'error': 'Failed to fetch weather data'}), 400
+        weather_data = weather_response.json()
+        if not weather_data.get('hourly'):
+            return jsonify({'error': 'No weather data available for this date'}), 400
+        hourly = weather_data['hourly']
+        # Find the closest hour to the requested time
         if target_hour < len(hourly['temperature_2m']):
             temperature = hourly['temperature_2m'][target_hour]
             wind_speed = hourly['wind_speed_10m'][target_hour]
             weather_code = hourly['weather_code'][target_hour]
             humidity = hourly['relative_humidity_2m'][target_hour] if 'relative_humidity_2m' in hourly else None
         else:
-            # Use the last available hour if target hour is not available
             temperature = hourly['temperature_2m'][-1] if hourly['temperature_2m'] else None
             wind_speed = hourly['wind_speed_10m'][-1] if hourly['wind_speed_10m'] else None
             weather_code = hourly['weather_code'][-1] if hourly['weather_code'] else None
             humidity = hourly['relative_humidity_2m'][-1] if 'relative_humidity_2m' in hourly and hourly['relative_humidity_2m'] else None
-
         if temperature is None:
             return jsonify({'error': 'No weather data available for this time'}), 400
-
         return jsonify({
             'weather': {
                 'temperature': round(temperature, 1),
@@ -398,7 +405,6 @@ def get_weather():
                 'longitude': lon
             }
         })
-
     except ValueError as e:
         return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
     except requests.RequestException as e:
@@ -478,12 +484,86 @@ def races():
     
     return render_template('races.html', races=races, selected_type=race_type)
 
+def parse_race_row(row, columns):
+    # Map columns to Race fields
+    data = {k: v.strip() for k, v in zip(columns, row)}
+    # Try to extract city/state
+    city = data.get('City', '')
+    state = ''
+    if ' ' in city:
+        parts = city.split()
+        if len(parts) > 1:
+            state = parts[-1]
+            city = ' '.join(parts[:-1])
+    # Parse finish time (or gun time)
+    finish_time = data.get('Finish Time') or data.get('Gun Time')
+    # Try to parse date if present (not in your sample, but future-proof)
+    race_date = datetime.utcnow().date()
+    # Build Race dict
+    return {
+        'race_name': 'Imported Race',
+        'race_type': '5K',
+        'race_date': race_date,
+        'race_time': '',
+        'finish_time': finish_time,
+        'location': f"{city}, {state}".strip(', '),
+        'weather': '',
+        'notes': '',
+        'bib': data.get('Bib Number', ''),
+        'age': data.get('Age', ''),
+        'gender_place': data.get('Gender Place', ''),
+        'ag_place': data.get('AG Place', ''),
+        'pace': data.get('Pace', ''),
+        'place': data.get('Place', ''),
+        'name': data.get('Name', ''),
+    }
+
+@app.route('/import_results', methods=['GET', 'POST'])
+@login_required
+def import_results():
+    imported = 0
+    errors = []
+    if request.method == 'POST':
+        text = request.form.get('results_text', '')
+        lines = [l for l in text.splitlines() if l.strip()]
+        if not lines or len(lines) < 2:
+            errors.append('No data found.')
+        else:
+            # Try to auto-detect delimiter and header
+            header = re.split(r'\s{2,}|\t|,', lines[0].strip())
+            for row in lines[1:]:
+                fields = re.split(r'\s{2,}|\t|,', row.strip())
+                if len(fields) < 4:
+                    errors.append(f'Row skipped (too few columns): {row}')
+                    continue
+                try:
+                    race_data = parse_race_row(fields, header)
+                    race = Race(
+                        user_id=current_user.id,
+                        race_name=race_data['race_name'],
+                        race_type=race_data['race_type'],
+                        race_date=race_data['race_date'],
+                        race_time=race_data['race_time'],
+                        finish_time=race_data['finish_time'],
+                        location=race_data['location'],
+                        weather=race_data['weather'],
+                        notes=race_data['notes']
+                    )
+                    db.session.add(race)
+                    imported += 1
+                except Exception as e:
+                    errors.append(f'Row error: {row} ({e})')
+            db.session.commit()
+            if imported:
+                flash(f"Imported {imported} races!", 'success')
+    return render_template('import_results.html', imported=imported if imported else None, errors=errors)
         
 
 
 
 if __name__ == '__main__':
     import sys
+    env = os.environ.get('FLASK_ENV') or os.environ.get('TRACKER_ENV', 'production')
     if 'add_test_races' in sys.argv:
         init_db()
         create_default_users()
@@ -491,5 +571,7 @@ if __name__ == '__main__':
     else:
         init_db()
         create_default_users()
+        if env == 'development':
+            add_test_races()
         # Run on port 5554 to match Docker Compose
         app.run(host='0.0.0.0', port=5554, debug=True)
