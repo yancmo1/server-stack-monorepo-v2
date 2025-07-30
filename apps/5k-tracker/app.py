@@ -217,6 +217,7 @@ def login():
 
 
 @app.route('/add_race', methods=['GET', 'POST'])
+@login_required
 def add_race():
     if request.method == 'POST':
         race = Race(
@@ -254,6 +255,7 @@ def add_race():
     return render_template('add_race.html')
 
 @app.route('/edit_race/<int:race_id>', methods=['GET', 'POST'])
+@login_required
 def edit_race(race_id):
     race = Race.query.filter_by(id=race_id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
@@ -289,6 +291,7 @@ def edit_race(race_id):
     return render_template('edit_race.html', race=race)
 
 @app.route('/delete_race/<int:race_id>', methods=['POST'])
+@login_required
 def delete_race(race_id):
     race = Race.query.filter_by(id=race_id, user_id=current_user.id).first_or_404()
     # Delete associated photos from filesystem
@@ -497,6 +500,7 @@ def create_default_users():
 
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     # Get user's recent races
     recent_races = Race.query.filter_by(user_id=current_user.id).order_by(Race.race_date.desc()).limit(5).all()
@@ -520,6 +524,7 @@ def dashboard():
                          total_races=total_races)
 
 @app.route('/races')
+@login_required
 def races():
     page = request.args.get('page', 1, type=int)
     race_type = request.args.get('type', '')
