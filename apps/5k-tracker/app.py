@@ -40,7 +40,9 @@ import re
 load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
 
 # --- Flask app and login manager setup ---
+os.environ['SCRIPT_NAME'] = '/tracker'
 app = Flask(__name__)
+app.config['APPLICATION_ROOT'] = '/tracker'
 app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', 'sqlite:///race_tracker.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
