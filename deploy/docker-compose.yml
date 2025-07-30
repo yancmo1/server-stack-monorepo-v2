@@ -231,4 +231,4 @@ networks:
   default:
     driver: bridge
     driver_opts:
-      com.docker.network.driver.mtu: 1500
+      com.docker.network.driver.mtu: 1500# Last updated: Wed Jul 30 17:13:15 CDT 2025

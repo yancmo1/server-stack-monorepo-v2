@@ -6,14 +6,29 @@ set -e
 
 echo "=== STARTING DEPLOYMENT ==="
 
+echo "=== STARTING DEPLOYMENT ==="
+
 # 1. Force-add nginx config and other files
 echo "--- STAGING FILES FOR COMMIT ---"
-git add -f deploy/nginx/yancmo.xyz.conf || echo "nginx config not found, skipping"
+
+# Force stage docker-compose.yml with extreme prejudice
+echo "Checking current docker-compose.yml content..."
+grep "context:" deploy/docker-compose.yml | head -5
+
+echo "Force staging docker-compose.yml..."
 git add -f deploy/docker-compose.yml
-# Force add the docker-compose file specifically with status check
-echo "Explicitly staging docker-compose.yml..."
+git reset deploy/docker-compose.yml
 git add deploy/docker-compose.yml
-git status deploy/docker-compose.yml
+
+echo "Checking if docker-compose.yml has changes..."
+git diff --cached deploy/docker-compose.yml || echo "No cached changes"
+git diff deploy/docker-compose.yml || echo "No working tree changes"
+
+# Create a forced change to ensure commit
+echo "# Last updated: $(date)" >> deploy/docker-compose.yml
+git add deploy/docker-compose.yml
+
+git add -f deploy/nginx/yancmo.xyz.conf || echo "nginx config not found, skipping"
 # Add app and script files
 git add -f apps/5k-tracker/app.py
 git add -f apps/5k-tracker/list_users.py
