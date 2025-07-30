@@ -35,14 +35,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import re
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-# --- Load environment variables ---
-load_dotenv('/Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/config/.env')
-
-# --- Flask app and login manager setup ---
-os.environ['SCRIPT_NAME'] = '/tracker'
 app = Flask(__name__)
 app.config['APPLICATION_ROOT'] = '/tracker'
+app.config['PREFERRED_URL_SCHEME'] = 'https'
 app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', 'sqlite:///race_tracker.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -54,15 +51,22 @@ class PrefixMiddleware:
     def __init__(self, app):
         self.app = app
     def __call__(self, environ, start_response):
-        script_name = environ.get('HTTP_X_SCRIPT_NAME', None)
+        import sys
+        script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+        path_info = environ.get('PATH_INFO', '')
+        # Always set SCRIPT_NAME if HTTP_X_SCRIPT_NAME is present
         if script_name:
             environ['SCRIPT_NAME'] = script_name
-            path_info = environ.get('PATH_INFO', '')
-            if path_info.startswith(script_name):
-                environ['PATH_INFO'] = path_info[len(script_name):]
+        print(f"[PrefixMiddleware] script_name: {script_name}, path_info: {path_info}", file=sys.stderr)
+        if script_name and path_info.startswith(script_name):
+            environ['PATH_INFO'] = path_info[len(script_name):]
+            print(f"[PrefixMiddleware] PATH_INFO rewritten to: {environ['PATH_INFO']}", file=sys.stderr)
+        else:
+            print("[PrefixMiddleware] No rewrite performed.", file=sys.stderr)
         return self.app(environ, start_response)
 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app)
+# PrefixMiddleware must be the outermost wrapper
+app.wsgi_app = PrefixMiddleware(ProxyFix(app.wsgi_app, x_proto=1, x_host=1))
 
 # Now initialize extensions, blueprints, etc.
 login_manager = LoginManager()
@@ -579,4 +583,3 @@ def import_results():
             if imported:
                 flash(f"Imported {imported} races!", 'success')
     return render_template('import_results.html', imported=imported if imported else None, errors=errors)
-        
