@@ -80,13 +80,14 @@ ssh yancmo@ubuntumac << 'ENDSSH'
   fi
   
   echo "--- Stopping existing containers ---"
-  docker compose -f deploy/docker-compose.yml down || echo "No containers to stop"
+  cd deploy
+  docker compose down || echo "No containers to stop"
   
   echo "--- Starting all services ---"
-  docker compose -f deploy/docker-compose.yml up --build -d
+  docker compose up --build -d
   
   echo "--- Checking container status ---"
-  docker compose -f deploy/docker-compose.yml ps
+  docker compose ps
   
   echo "=== SERVER DEPLOYMENT COMPLETE ==="
 ENDSSH
