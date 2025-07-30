@@ -137,11 +137,11 @@
                                     {% set improvement = ((previous_time - latest_time) / previous_time * 100) if previous_time > 0 else 0 %}
                                     
                                     {% if improvement > 0 %}
-                                        <div class="progress-bar bg-success" style="width: {{ (improvement * 2)|round|min(100) }}%">
+                                        <div class="progress-bar bg-success" style="width: {{ [(improvement * 2)|round, 100]|min }}%">
                                             Improved by {{ "%.1f"|format(improvement) }}%
                                         </div>
                                     {% elif improvement < 0 %}
-                                        <div class="progress-bar bg-warning" style="width: {{ (improvement * -2)|round|min(100) }}%">
+                                        <div class="progress-bar bg-warning" style="width: {{ [(improvement * -2)|round, 100]|min }}%">
                                             {{ "%.1f"|format(improvement * -1) }}% slower
                                         </div>
                                     {% else %}

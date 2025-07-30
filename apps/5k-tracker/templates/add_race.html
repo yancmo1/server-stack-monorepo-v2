@@ -5,10 +5,67 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10">
+        <div class="col-12 col-md-10 col-lg-8">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                            <button type="submit" class="btn btn-primary">
+                    <h4 class="mb-0"><i class="fas fa-plus"></i> Add Race</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" autocomplete="off">
+                        <div class="mb-3">
+                            <label for="race_name" class="form-label">Race Name</label>
+                            <input type="text" class="form-control form-control-lg" id="race_name" name="race_name" placeholder="e.g. Tulsa 5K" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="race_type" class="form-label">Race Type</label>
+                            <select class="form-select form-select-lg" id="race_type" name="race_type" required>
+                                <option value="">Select type...</option>
+                                <option value="5K">5K</option>
+                                <option value="10K">10K</option>
+                                <option value="Half Marathon">Half Marathon</option>
+                                <option value="Marathon">Marathon</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label for="race_date" class="form-label">Date</label>
+                                <input type="date" class="form-control form-control-lg" id="race_date" name="race_date" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="race_time" class="form-label">Start Time</label>
+                                <input type="time" class="form-control form-control-lg" id="race_time" name="race_time">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="finish_time" class="form-label">Finish Time</label>
+                            <input type="text" class="form-control form-control-lg" id="finish_time" name="finish_time" placeholder="e.g. 23:45" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control form-control-lg" id="location" name="location" placeholder="e.g. Tulsa, OK" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="weather" class="form-label">Weather</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg" id="weather" name="weather" placeholder="Auto-fill or enter manually">
+                                <button type="button" class="btn btn-outline-secondary" id="fetch-weather-btn">Get Weather</button>
+                            </div>
+                            <div id="weather-status" class="form-text text-primary"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control form-control-lg" id="notes" name="notes" rows="2" placeholder="Any notes about the race..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Photos</label>
+                            <div id="photo-list"></div>
+                            <button type="button" class="btn btn-outline-primary w-100 mt-2" id="add-photo-btn">
+                                <i class="fas fa-camera"></i> Add Photo
+                            </button>
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="fas fa-save"></i> Save Race
                             </button>
                         </div>
@@ -86,20 +143,20 @@ addPhotoBtn.addEventListener('click', function() {
 
 // Weather auto-fill logic
 function getWeather(place, date, time) {
-    if (!place || !date || !time) return;
     const status = document.getElementById('weather-status');
+    if (!place || !date || !time) {
+        status.textContent = 'Enter location, date, and time to fetch weather.';
+        return;
+    }
     status.textContent = 'Fetching weather...';
-    // Use selected time for weather lookup
     const datetime = date + 'T' + time;
     fetch(`/api/weather?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`)
         .then(r => r.json().then(data => ({ok: r.ok, data})))
         .then(({ok, data}) => {
             if (!ok) {
-                if (data && data.error && data.error.includes('geocode')) {
-                    status.textContent = 'Could not find location. Please be more specific.';
-                } else {
-                    status.textContent = data && data.error ? data.error : 'No weather data found.';
-                }
+                status.textContent = data && data.error ? data.error : 'No weather data found.';
+                status.classList.remove('text-success');
+                status.classList.add('text-danger');
                 return;
             }
             if (data && data.weather) {
@@ -110,11 +167,19 @@ function getWeather(place, date, time) {
                 let summary = `${w.temperature}${tempUnit}, wind ${wind}${humidity}`;
                 document.getElementById('weather').value = summary;
                 status.textContent = 'Weather auto-filled.';
+                status.classList.remove('text-danger');
+                status.classList.add('text-success');
             } else {
                 status.textContent = 'No weather data found.';
+                status.classList.remove('text-success');
+                status.classList.add('text-danger');
             }
         })
-        .catch(() => { status.textContent = 'Could not fetch weather.'; });
+        .catch(() => {
+            status.textContent = 'Could not fetch weather.';
+            status.classList.remove('text-success');
+            status.classList.add('text-danger');
+        });
 }
 
 const locationInput = document.getElementById('location');
@@ -128,75 +193,12 @@ if (fetchBtn) {
     });
 }
 
-locationInput.addEventListener('blur', function() {
-    if (dateInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-});
-
-    });
-    if (locationInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-});
-
-
-    if (locationInput.value && dateInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-});
-</script>
-{% endblock %}
-    // Weather auto-fill logic
-    function getWeather(place, date, time) {
-        if (!place || !date || !time) return;
-        const status = document.getElementById('weather-status');
-        status.textContent = 'Fetching weather...';
-        // Use selected time for weather lookup
-        const datetime = date + 'T' + time;
-        fetch(`/api/weather?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`)
-            .then(r => r.json().then(data => ({ok: r.ok, data})))
-            .then(({ok, data}) => {
-                if (!ok) {
-                    if (data && data.error && data.error.includes('geocode')) {
-                        status.textContent = 'Could not find location. Please be more specific.';
-                    } else {
-                        status.textContent = data && data.error ? data.error : 'No weather data found.';
-                    }
-                    return;
-                }
-                if (data && data.weather) {
-                    const w = data.weather;
-                    let tempUnit = w.unit === 'F' ? '°F' : '°C';
-                    let wind = w.wind_speed + ' mph';
-                    let humidity = (w.humidity !== undefined && w.humidity !== null) ? `, humidity ${w.humidity}%` : '';
-                    let summary = `${w.temperature}${tempUnit}, wind ${wind}${humidity}`;
-                    document.getElementById('weather').value = summary;
-                    status.textContent = 'Weather auto-filled.';
-                } else {
-                    status.textContent = 'No weather data found.';
-                }
-            })
-            .catch(() => { status.textContent = 'Could not fetch weather.'; });
-    }
-
-    const locationInput = document.getElementById('location');
-    const dateInput = document.getElementById('race_date');
-    const timeInput = document.getElementById('race_time');
-    const fetchBtn = document.getElementById('fetch-weather-btn');
-    
-    if (fetchBtn) {
-        fetchBtn.addEventListener('click', function() {
+[locationInput, dateInput, timeInput].forEach(input => {
+    input.addEventListener('change', function() {
+        if (locationInput.value && dateInput.value && timeInput.value) {
             getWeather(locationInput.value, dateInput.value, timeInput.value);
-        });
-    }
-    
-    locationInput.addEventListener('blur', function() {
-        if (dateInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
+        }
     });
-    
-    dateInput.addEventListener('change', function() {
-        if (locationInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-    });
-    
-    timeInput.addEventListener('change', function() {
-        if (locationInput.value && dateInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
-    });
-
-
+});
 </script>
 {% endblock %}

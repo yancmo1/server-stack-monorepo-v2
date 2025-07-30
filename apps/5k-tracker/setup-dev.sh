@@ -28,13 +28,14 @@ pip install -r requirements.txt
 echo "📁 Creating uploads directory..."
 mkdir -p uploads/photos
 
-# Initialize database
-echo "🗄️  Initializing database..."
+# Initialize database and seed test data for dev
+export FLASK_ENV=development
 python -c "
-from app import app, init_db, create_default_users
+from app import app, init_db, create_default_users, add_test_races
 init_db()
 create_default_users()
-print('Database initialized with default users!')
+add_test_races()
+print('Database initialized with default users and test races!')
 "
 
 echo ""
