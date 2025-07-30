@@ -566,21 +566,6 @@ def import_results():
 
 
 
-if __name__ == '__main__':
-    import sys
-    env = os.environ.get('FLASK_ENV') or os.environ.get('TRACKER_ENV', 'production')
-    if 'add_test_races' in sys.argv:
-        init_db()
-        create_default_users()
-        add_test_races()
-    else:
-        init_db()
-        create_default_users()
-        if env == 'development':
-            add_test_races()
-        # Run on port 5554 to match Docker Compose
-        app.run(host='0.0.0.0', port=5554, debug=True)
-
 class PrefixMiddleware:
     def __init__(self, app):
         self.app = app
