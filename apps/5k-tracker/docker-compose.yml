@@ -17,6 +17,23 @@ services:
       FLASK_ENV: production
     networks:
       - race-tracker-network
+  db:
+    image: postgres:15
+    container_name: race-tracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: racetracker
+      POSTGRES_USER: racetracker
+      POSTGRES_PASSWORD: racetracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - race-tracker-network
+
+volumes:
+  pgdata:
 
 networks:
   race-tracker-network:

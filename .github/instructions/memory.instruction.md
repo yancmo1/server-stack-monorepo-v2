@@ -9,3 +9,5 @@ applyTo: '**'
 - The user wants to do as little as possible. The agent should handle the bulk of the work, keep the user updated, and be as independent as possible without breaking things.
 - Server address: ssh yancmo@ubuntumac
 - User has given permission to connect to this server as needed.
+- Always start containers and test files, then stop and fix and start again and test again before calling the fixes complete.
+- When struggling to get things working, always check the logs for errors first, base fixes on those errors, and continue checking logs until all problems are fixed.

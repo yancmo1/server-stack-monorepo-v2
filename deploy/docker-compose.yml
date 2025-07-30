@@ -1,4 +1,15 @@
 services:
+  db:
+    image: postgres:15
+    container_name: tracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: racetracker
+      POSTGRES_USER: racetracker
+      POSTGRES_PASSWORD: racetracker
+    volumes:
+      - tracker_pgdata:/var/lib/postgresql/data
+
   cruise-price-check:
     build:
       context: ../apps/cruise-price-check
@@ -35,6 +46,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
   dashboard:
     build:
       context: ../
@@ -141,8 +153,6 @@ services:
       - ../apps/5k-tracker/templates:/app/templates:ro
       - ../apps/5k-tracker/static:/app/static:ro
       - ../shared/ssl:/app/ssl:ro
-    entrypoint: []
-    command: ["python", "app.py"]
     deploy:
       resources:
         limits:
@@ -162,7 +172,6 @@ services:
       retries: 3
       start_period: 40s
 
-
   coc-discord-bot:
     build:
       context: ../apps/coc-discord-bot
@@ -175,7 +184,6 @@ services:
     volumes:
       - ../shared/config:/app/config:ro
       - ../shared/ssl:/app/ssl:ro
-  # no depends_on
     healthcheck:
       test: ["CMD", "python", "config.py", "--healthcheck"]
       interval: 30s
@@ -183,8 +191,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # Monitoring Services (optional - only if you want local monitoring)
-  # Since you have Prometheus/Grafana on server, these are for local dev
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
@@ -200,7 +206,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     restart: unless-stopped
-    profiles: ["monitoring"]  # Only start with --profile monitoring
+    profiles: ["monitoring"]
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -215,11 +221,12 @@ services:
       - /dev/disk/:/dev/disk:ro
     privileged: true
     restart: unless-stopped
-    profiles: ["monitoring"]  # Only start with --profile monitoring
+    profiles: ["monitoring"]
 
 volumes:
   cruise_data:
   cruise_logs:
+  tracker_pgdata:
 
 networks:
   default:

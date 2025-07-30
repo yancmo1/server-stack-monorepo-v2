@@ -4,9 +4,12 @@
 
 set -e
 
-# 1. Commit and push all changes
-git add apps/5k-tracker/app.py deploy/nginx/yancmo.xyz.conf scripts/deploy_nginx_tracker.sh
+# 1. Force-add nginx config and other files
+# This ensures the nginx config is always staged, even if previously ignored or unchanged
 # Add any other files you want to include
+git add -f deploy/nginx/yancmo.xyz.conf
+# Add app and script files as well
+git add apps/5k-tracker/app.py scripts/deploy_nginx_tracker.sh
 if ! git diff --cached --quiet; then
   git commit -m "$(git diff --cached --name-only | xargs | sed 's/ /, /g')"
 fi
