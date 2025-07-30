@@ -150,7 +150,7 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ../apps/5k-tracker:/app
+      - tracker_uploads:/app/uploads
       - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
@@ -226,6 +226,7 @@ volumes:
   cruise_data:
   cruise_logs:
   tracker_pgdata:
+  tracker_uploads:
 
 networks:
   default:
