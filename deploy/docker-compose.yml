@@ -12,7 +12,7 @@ services:
 
   cruise-price-check:
     build:
-      context: ./apps/cruise-price-check
+      context: ../apps/cruise-price-check
       dockerfile: Dockerfile
     container_name: cruise-price-check
     ports:
@@ -49,7 +49,7 @@ services:
 
   dashboard:
     build:
-      context: ./
+      context: ../
       dockerfile: apps/dashboard/Dockerfile
     container_name: dashboard
     ports:
@@ -67,7 +67,7 @@ services:
 
   clan-map:
     build:
-      context: ./apps/clan-map
+      context: ../apps/clan-map
       dockerfile: Dockerfile
     container_name: clan-map
     ports:
@@ -102,7 +102,7 @@ services:
 
   qsl-card-creator:
     build:
-      context: ./apps/W5XY-QSL-CARD-CREATOR
+      context: ../apps/W5XY-QSL-CARD-CREATOR
       dockerfile: Dockerfile
     container_name: qsl-card-creator
     ports:
@@ -138,7 +138,7 @@ services:
 
   tracker:
     build:
-      context: ./apps/5k-tracker
+      context: ../apps/5k-tracker
       dockerfile: Dockerfile
     container_name: tracker
     ports:
@@ -150,7 +150,7 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ./apps/5k-tracker:/app
+      - ../apps/5k-tracker:/app
       - ../shared/ssl:/app/ssl:ro
     deploy:
       resources:
@@ -173,7 +173,7 @@ services:
 
   coc-discord-bot:
     build:
-      context: ./apps/coc-discord-bot
+      context: ../apps/coc-discord-bot
       dockerfile: Dockerfile
     env_file:
       - ../shared/config/.env
@@ -232,6 +232,4 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: 1500
-# Last updated: Wed Jul 30 17:13:46 CDT 2025
-# Last updated: Wed Jul 30 17:14:22 CDT 2025
-# Last updated: Wed Jul 30 17:15:38 CDT 2025
+# Last updated: Wed Jul 30 17:19:51 CDT 2025
