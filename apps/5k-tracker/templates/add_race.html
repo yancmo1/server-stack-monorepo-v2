@@ -172,8 +172,8 @@ function getWeather(place, date, time) {
     
     const datetime = date + 'T' + time;
     
-    // Use absolute URL to ensure it works with nginx proxy and application root
-    const weatherUrl = '/tracker/api/weather';
+    // Use relative URL that works with the Flask app routing
+    const weatherUrl = 'api/weather';
     const fullUrl = `${weatherUrl}?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`;
     
     console.log('Fetching weather from:', fullUrl); // Debug log
