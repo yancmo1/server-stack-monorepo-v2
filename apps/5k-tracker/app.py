@@ -139,6 +139,9 @@ def load_user(user_id):
 # --- Routes ---
 @app.route('/')
 def index():
+    import sys
+    print('SCRIPT_NAME:', request.environ.get('SCRIPT_NAME'), file=sys.stderr)
+    print('HTTP_X_SCRIPT_NAME:', request.environ.get('HTTP_X_SCRIPT_NAME'), file=sys.stderr)
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
