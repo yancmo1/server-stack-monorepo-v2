@@ -12,21 +12,21 @@ services:
 
   cruise-price-check:
     build:
-      context: ../apps/cruise-price-check
+      context: ./apps/cruise-price-check
       dockerfile: Dockerfile
     container_name: cruise-price-check
     ports:
       - "5551:5551"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - ./shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
       - CRUISE_DB_PATH=/app/data/cruise_prices.db
     volumes:
-      - ../shared/ssl:/app/ssl:ro
-      - ../shared/config:/app/config:ro
+      - ./shared/ssl:/app/ssl:ro
+      - ./shared/config:/app/config:ro
     deploy:
       resources:
         limits:
@@ -49,37 +49,37 @@ services:
 
   dashboard:
     build:
-      context: ../
+      context: ./
       dockerfile: apps/dashboard/Dockerfile
     container_name: dashboard
     ports:
       - "5550:5550"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - ./shared/config/.env
     environment:
       - DASHBOARD_USER=admin
       - DASHBOARD_PASS=fredrules
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ../shared/ssl:/app/ssl:ro
+      - ./shared/ssl:/app/ssl:ro
 
   clan-map:
     build:
-      context: ../apps/clan-map
+      context: ./apps/clan-map
       dockerfile: Dockerfile
     container_name: clan-map
     ports:
       - "5552:5552"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - ./shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ../shared/ssl:/app/ssl:ro
+      - ./shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -102,20 +102,20 @@ services:
 
   qsl-card-creator:
     build:
-      context: ../apps/W5XY-QSL-CARD-CREATOR
+      context: ./apps/W5XY-QSL-CARD-CREATOR
       dockerfile: Dockerfile
     container_name: qsl-card-creator
     ports:
       - "5553:5553"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - ./shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
       - QSL_DATABASE_PATH=/app/Log4OM\ db.SQLite
     volumes:
-      - ../shared/ssl:/app/ssl:ro
+      - ./shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -145,13 +145,13 @@ services:
       - "5554:5554"
     restart: unless-stopped
     env_file:
-      - ../shared/config/.env
+      - ./shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
       - ./apps/5k-tracker:/app
-      - ../shared/ssl:/app/ssl:ro
+      - ./shared/ssl:/app/ssl:ro
     deploy:
       resources:
         limits:
@@ -173,16 +173,16 @@ services:
 
   coc-discord-bot:
     build:
-      context: ../apps/coc-discord-bot
+      context: ./apps/coc-discord-bot
       dockerfile: Dockerfile
     env_file:
-      - ../shared/config/.env
+      - ./shared/config/.env
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
     volumes:
-      - ../shared/config:/app/config:ro
-      - ../shared/ssl:/app/ssl:ro
+      - ./shared/config:/app/config:ro
+      - ./shared/ssl:/app/ssl:ro
     healthcheck:
       test: ["CMD", "python", "config.py", "--healthcheck"]
       interval: 30s
