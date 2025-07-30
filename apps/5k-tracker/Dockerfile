@@ -21,11 +21,11 @@ COPY . .
 # Add wait-for-it.sh and init_and_run.sh and make them executable
 RUN chmod +x wait-for-it.sh init_and_run.sh
 
-# Create uploads directory
-RUN mkdir -p uploads/photos
-
 # Create non-root user for security
-RUN useradd -m -u 1000 racetracker && chown -R racetracker:racetracker /app
+RUN useradd -m -u 1000 racetracker
+
+# Create uploads directory and set permissions
+RUN mkdir -p uploads/photos && chown -R racetracker:racetracker /app
 USER racetracker
 
 EXPOSE 5554
