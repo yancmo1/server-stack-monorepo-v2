@@ -78,8 +78,12 @@ def logout():
 
 
 # --- Ensure upload directory exists ---
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'photos'), exist_ok=True)
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'photos'), exist_ok=True)
+except PermissionError:
+    # Directory might already exist with proper permissions from Dockerfile
+    pass
 
 # --- Database setup ---
 db = SQLAlchemy(app)
