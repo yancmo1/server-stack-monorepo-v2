@@ -1,26 +1,43 @@
 {
   "applications": {
-    "pi-dashboard": {
-      "name": "Pi Dashboard",
-      "description": "Main dashboard interface",
+    "dashboard": {
+      "name": "Dashboard",
+      "description": "Main monitoring dashboard",
       "icon": "🏠",
       "port": 5550,
       "script": "dashboard.py",
       "path": "/app",
-      "container_name": "pi-dashboard",
-      "protocol": "https",
-      "public_path": "/dashboard/"
+      "container_name": "dashboard",
+      "protocol": "http",
+      "public_path": "/dashboard/",
+      "health_endpoint": "/health",
+      "status": "stable"
+    },
+    "tracker": {
+      "name": "5K Tracker",
+      "description": "Race tracker application",
+      "icon": "🏃",
+      "port": 5554,
+      "script": "app.py", 
+      "path": "/app",
+      "container_name": "tracker",
+      "protocol": "http",
+      "public_path": "/tracker/",
+      "health_endpoint": "/health",
+      "status": "stable"
     },
     "cruise-price-check": {
       "name": "Cruise Price Check",
-      "description": "Cruise price monitoring app",
+      "description": "Cruise price monitoring service",
       "icon": "🚢",
       "port": 5551,
-      "script": "app.py",
+      "script": "web_interface.py",
       "path": "/app",
       "container_name": "cruise-price-check",
-      "protocol": "https",
-      "public_path": "/cruise/"
+      "protocol": "http",
+      "public_path": "/cruise/",
+      "health_endpoint": "/health",
+      "status": "development"
     },
     "clan-map": {
       "name": "Clan Map",
@@ -30,37 +47,50 @@
       "script": "app.py",
       "path": "/app",
       "container_name": "clan-map",
-      "protocol": "https",
-      "public_path": "/clan-map/"
+      "protocol": "http",
+      "public_path": "/clan-map/",
+      "health_endpoint": "/health",
+      "status": "development"
     },
     "qsl-card-creator": {
       "name": "QSL Card Creator",
-      "description": "QSL card web app",
+      "description": "QSL card generation web app",
       "icon": "💳",
       "port": 5553,
       "script": "web_app.py",
       "path": "/app",
       "container_name": "qsl-card-creator",
-      "protocol": "https",
-      "public_path": "/qsl/"
+      "protocol": "http",
+      "public_path": "/qsl/",
+      "health_endpoint": "/status",
+      "status": "development"
     },
-    "tracker": {
-      "name": "5K Tracker",
-      "description": "Race tracker app",
-      "icon": "🏃",
-      "port": 5011,
-      "script": "app.py",
+    "coc-discord-bot": {
+      "name": "COC Discord Bot",
+      "description": "Discord bot for Clash of Clans",
+      "icon": "🤖",
+      "port": null,
+      "script": "bot.py",
       "path": "/app",
-      "container_name": "tracker",
-      "protocol": "https",
-      "public_path": "/tracker/"
+      "container_name": "coc-discord-bot",
+      "protocol": "internal",
+      "public_path": null,
+      "health_endpoint": null,
+      "status": "development"
     }
   },
   "system": {
-  "hostname": "localhost",
-  "dashboard_port": 5550
+    "hostname": "localhost",
+    "dashboard_port": 5550,
+    "environment": "development"
+  },
+  "monitoring": {
+    "health_check_interval": 30,
+    "stable_apps": ["dashboard", "tracker"],
+    "development_apps": ["cruise-price-check", "clan-map", "qsl-card-creator", "coc-discord-bot"]
   },
   "security": {
-    "ssl_enabled": true
+    "ssl_enabled": false,
+    "development_mode": true
   }
 }

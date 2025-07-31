@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pi Application Dashboard</title>
+    <title>🏠 Application Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -16,10 +16,11 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            color: #333;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -48,7 +49,7 @@
         }
 
         .card {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
@@ -61,11 +62,14 @@
             font-size: 1.4em;
             border-bottom: 2px solid #f0f0f0;
             padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .app-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 15px;
         }
 
@@ -75,6 +79,7 @@
             padding: 15px;
             background: #f8f9fa;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .app-card:hover {
@@ -109,20 +114,15 @@
             text-transform: uppercase;
         }
 
-        .status-running {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-stopped {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .status-unknown {
-            background: #fff3cd;
-            color: #856404;
-        }
+        .status-healthy { background: #d4edda; color: #155724; }
+        .status-running { background: #d4edda; color: #155724; }
+        .status-unhealthy { background: #f8d7da; color: #721c24; }
+        .status-connection_refused { background: #f8d7da; color: #721c24; }
+        .status-timeout { background: #fff3cd; color: #856404; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .status-not_found { background: #f8d7da; color: #721c24; }
+        .status-no_health_check { background: #e2e3e5; color: #383d41; }
+        .status-docker_unavailable { background: #fff3cd; color: #856404; }
 
         .app-description {
             color: #666;
@@ -148,10 +148,12 @@
         .detail-label {
             font-weight: bold;
             color: #555;
+            font-size: 0.8em;
         }
 
         .detail-value {
             color: #333;
+            margin-top: 2px;
         }
 
         .app-actions {
@@ -171,56 +173,25 @@
             text-decoration: none;
             display: inline-block;
             text-align: center;
+            min-width: 80px;
         }
 
         .btn:hover {
             transform: translateY(-1px);
         }
 
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #1e7e34;
-        }
-
-        .btn-warning {
-            background: #ffc107;
-            color: #212529;
-        }
-
-        .btn-warning:hover {
-            background: #e0a800;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .btn-info:hover {
-            background: #138496;
-        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-info:hover { background: #138496; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #545b62; }
 
         .system-stats {
             display: grid;
@@ -261,12 +232,20 @@
             transition: width 0.3s ease;
         }
 
+        .load-avg {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
         .system-actions {
             margin-top: 20px;
             padding-top: 15px;
             border-top: 1px solid #e0e0e0;
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .footer {
@@ -276,55 +255,31 @@
             opacity: 0.8;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
+        .stable-app {
+            border-left: 4px solid #28a745;
         }
 
-        .modal-content {
-            position: relative;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 600px;
-            max-height: 400px;
-            overflow-y: auto;
+        .development-app {
+            border-left: 4px solid #ffc107;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .close {
-            font-size: 1.5em;
-            cursor: pointer;
+        .response-time {
+            font-size: 0.8em;
             color: #666;
+            margin-top: 2px;
         }
 
-        .log-content {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85em;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-wrap;
+        .health-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
         }
+
+        .health-healthy { background: #28a745; }
+        .health-unhealthy { background: #dc3545; }
+        .health-unknown { background: #6c757d; }
 
         @media (max-width: 768px) {
             .dashboard-grid {
@@ -338,84 +293,257 @@
             .app-details {
                 grid-template-columns: 1fr;
             }
+            
+            .system-actions {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏠 Pi Application Dashboard</h1>
-            <div class="subtitle">Raspberry Pi Control Center • {{ current_time }}</div>
+            <h1>🚀 ENHANCED Application Dashboard v2.0</h1>
+            <div class="subtitle">Real-time Monitoring & Control • {{ current_time }}</div>
         </div>
 
         <div class="dashboard-grid">
             <div class="card">
                 <h2>📱 Applications</h2>
+                
+                {% if stable_apps %}
+                <h3 style="color: #28a745; margin: 15px 0 10px 0; font-size: 1.1em;">✅ Stable Applications</h3>
                 <div class="app-grid">
-                    {% for app_id, app_data in apps.items() %}
-                    <div class="app-card" data-app-id="{{ app_id }}">
-                        <div class="app-header">
-                            <div class="app-title">
-                                <span class="app-icon">{{ app_data.config.icon }}</span>
-                                <span>{{ app_data.config.name }}</span>
-                            </div>
-                            <span class="status-badge status-{{ app_data.process.status }}">
-                                {{ app_data.process.status }}
-                            </span>
-                        </div>
-                        
-                        <div class="app-description">
-                            {{ app_data.config.description }}
-                        </div>
-                        
-                        <div class="app-details">
-                            {% if app_data.config.port %}
-                            <div class="detail-item">
-                                <div class="detail-label">Port</div>
-                                <div class="detail-value">{{ app_data.config.port }}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Network</div>
-                                <div class="detail-value">
-                                    {% if app_data.port_listening %}
-                                        ✅ Listening
-                                    {% else %}
-                                        ❌ Not accessible
+                    {% for app_id in stable_apps %}
+                        {% if app_id in apps %}
+                            {% set app_data = apps[app_id] %}
+                            <div class="app-card stable-app" data-app-id="{{ app_id }}">
+                                <div class="app-header">
+                                    <div class="app-title">
+                                        <span class="app-icon">{{ app_data.config.icon }}</span>
+                                        <span>{{ app_data.config.name }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="health-indicator health-{{ app_data.health.status if app_data.health else 'unknown' }}"></span>
+                                        <span class="status-badge status-{{ app_data.container.status if app_data.container else 'unknown' }}">
+                                            {{ app_data.container.status if app_data.container else 'unknown' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="app-description">
+                                    {{ app_data.config.description }}
+                                </div>
+                                
+                                <div class="app-details">
+                                    {% if app_data.config.port %}
+                                    <div class="detail-item">
+                                        <div class="detail-label">Port</div>
+                                        <div class="detail-value">{{ app_data.config.port }}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Network</div>
+                                        <div class="detail-value">
+                                            {% if app_data.port_listening %}
+                                                ✅ Listening
+                                            {% else %}
+                                                ❌ Not accessible
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if app_data.health and app_data.health.status != 'no_health_check' %}
+                                    <div class="detail-item">
+                                        <div class="detail-label">Health</div>
+                                        <div class="detail-value">{{ app_data.health.status }}</div>
+                                        {% if app_data.health.response_time %}
+                                        <div class="response-time">{{ app_data.health.response_time }}ms</div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+
+                                    {% if app_data.container and app_data.container.memory_mb %}
+                                    <div class="detail-item">
+                                        <div class="detail-label">Memory</div>
+                                        <div class="detail-value">{{ app_data.container.memory_mb }} MB</div>
+                                    </div>
                                     {% endif %}
                                 </div>
+                                
+                                <div class="app-actions">
+                                    {% if app_data.config.port %}
+                                        <a href="http://localhost:{{ app_data.config.port }}" 
+                                           class="btn btn-primary" target="_blank">Open App</a>
+                                    {% endif %}
+                                    
+                                    {% if app_data.config.health_endpoint %}
+                                        <a href="http://localhost:{{ app_data.config.port }}{{ app_data.config.health_endpoint }}" 
+                                           class="btn btn-info" target="_blank">Health</a>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-warning" onclick="refreshApp('{{ app_id }}')">Refresh</button>
+                                </div>
                             </div>
-                            {% endif %}
-                            
-                            {% if app_data.process.status == 'running' %}
-                            <div class="detail-item">
-                                <div class="detail-label">PID</div>
-                                <div class="detail-value">{{ app_data.process.pid }}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Memory</div>
-                                <div class="detail-value">{{ app_data.process.memory_mb }} MB</div>
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="app-actions">
-                            {% if app_data.process.status == 'running' %}
-                                <button class="btn btn-warning" onclick="controlApp('{{ app_id }}', 'stop')">Stop</button>
-                                <button class="btn btn-info" onclick="controlApp('{{ app_id }}', 'restart')">Restart</button>
-                            {% else %}
-                                <button class="btn btn-success" onclick="controlApp('{{ app_id }}', 'start')">Start</button>
-                            {% endif %}
-                            
-                            {% if app_data.config.public_path %}
-                                <a href="{{ app_data.config.public_path }}" 
-                                   class="btn btn-primary" target="_blank">Open App</a>
-                            {% endif %}
-                            
-                            <button class="btn btn-info" onclick="showLogs('{{ app_id }}')">View Logs</button>
-                        </div>
-                    </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
+                {% endif %}
+
+                {% if development_apps %}
+                <h3 style="color: #ffc107; margin: 15px 0 10px 0; font-size: 1.1em;">🔧 Development Applications</h3>
+                <div class="app-grid">
+                    {% for app_id in development_apps %}
+                        {% if app_id in apps %}
+                            {% set app_data = apps[app_id] %}
+                            <div class="app-card development-app" data-app-id="{{ app_id }}">
+                                <div class="app-header">
+                                    <div class="app-title">
+                                        <span class="app-icon">{{ app_data.config.icon }}</span>
+                                        <span>{{ app_data.config.name }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="health-indicator health-{{ app_data.health.status if app_data.health else 'unknown' }}"></span>
+                                        <span class="status-badge status-{{ app_data.container.status if app_data.container else 'unknown' }}">
+                                            {{ app_data.container.status if app_data.container else 'unknown' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="app-description">
+                                    {{ app_data.config.description }}
+                                </div>
+                                
+                                <div class="app-details">
+                                    {% if app_data.config.port %}
+                                    <div class="detail-item">
+                                        <div class="detail-label">Port</div>
+                                        <div class="detail-value">{{ app_data.config.port }}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Network</div>
+                                        <div class="detail-value">
+                                            {% if app_data.port_listening %}
+                                                ✅ Listening
+                                            {% else %}
+                                                ❌ Not accessible
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if app_data.health and app_data.health.status != 'no_health_check' %}
+                                    <div class="detail-item">
+                                        <div class="detail-label">Health</div>
+                                        <div class="detail-value">{{ app_data.health.status }}</div>
+                                        {% if app_data.health.response_time %}
+                                        <div class="response-time">{{ app_data.health.response_time }}ms</div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+
+                                    {% if app_data.container and app_data.container.memory_mb %}
+                                    <div class="detail-item">
+                                        <div class="detail-label">Memory</div>
+                                        <div class="detail-value">{{ app_data.container.memory_mb }} MB</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="app-actions">
+                                    {% if app_data.config.port %}
+                                        <a href="http://localhost:{{ app_data.config.port }}" 
+                                           class="btn btn-primary" target="_blank">Open App</a>
+                                    {% endif %}
+                                    
+                                    {% if app_data.config.health_endpoint %}
+                                        <a href="http://localhost:{{ app_data.config.port }}{{ app_data.config.health_endpoint }}" 
+                                           class="btn btn-info" target="_blank">Health</a>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-warning" onclick="refreshApp('{{ app_id }}')">Refresh</button>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Fallback: Show all apps if categorization isn't working -->
+                {% if not stable_apps and not development_apps %}
+                <div class="app-grid">
+                    {% for app_id, app_data in apps.items() %}
+                        <div class="app-card" data-app-id="{{ app_id }}">
+                            <div class="app-header">
+                                <div class="app-title">
+                                    <span class="app-icon">{{ app_data.config.icon }}</span>
+                                    <span>{{ app_data.config.name }}</span>
+                                </div>
+                                <div>
+                                    <span class="health-indicator health-{{ app_data.health.status if app_data.health else 'unknown' }}"></span>
+                                    <span class="status-badge status-{{ app_data.container.status if app_data.container else 'unknown' }}">
+                                        {{ app_data.container.status if app_data.container else 'unknown' }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="app-description">
+                                {{ app_data.config.description }}
+                            </div>
+                            
+                            <div class="app-details">
+                                {% if app_data.config.port %}
+                                <div class="detail-item">
+                                    <div class="detail-label">Port</div>
+                                    <div class="detail-value">{{ app_data.config.port }}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Network</div>
+                                    <div class="detail-value">
+                                        {% if app_data.port_listening %}
+                                            ✅ Listening
+                                        {% else %}
+                                            ❌ Not accessible
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if app_data.health and app_data.health.status != 'no_health_check' %}
+                                <div class="detail-item">
+                                    <div class="detail-label">Health</div>
+                                    <div class="detail-value">{{ app_data.health.status }}</div>
+                                    {% if app_data.health.response_time %}
+                                    <div class="response-time">{{ app_data.health.response_time }}ms</div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                                {% if app_data.container and app_data.container.memory_mb %}
+                                <div class="detail-item">
+                                    <div class="detail-label">Memory</div>
+                                    <div class="detail-value">{{ app_data.container.memory_mb }} MB</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="app-actions">
+                                {% if app_data.config.port %}
+                                    <a href="http://localhost:{{ app_data.config.port }}" 
+                                       class="btn btn-primary" target="_blank">Open App</a>
+                                {% endif %}
+                                
+                                {% if app_data.config.health_endpoint %}
+                                    <a href="http://localhost:{{ app_data.config.port }}{{ app_data.config.health_endpoint }}" 
+                                       class="btn btn-info" target="_blank">Health</a>
+                                {% endif %}
+                                
+                                <button class="btn btn-warning" onclick="refreshApp('{{ app_id }}')">Refresh</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div class="card">
@@ -446,108 +574,47 @@
                     </div>
                     
                     <div class="stat-item">
-                        <div class="stat-label">Uptime</div>
+                        <div class="stat-label">System Uptime</div>
                         <div class="stat-value">{{ system.uptime }}</div>
                     </div>
+
+                    {% if system.load_avg %}
+                    <div class="stat-item">
+                        <div class="stat-label">Load Average</div>
+                        <div class="load-avg">
+                            <span>1m: {{ "%.2f"|format(system.load_avg[0]) }}</span>
+                            <span>5m: {{ "%.2f"|format(system.load_avg[1]) }}</span>
+                            <span>15m: {{ "%.2f"|format(system.load_avg[2]) }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <div class="system-actions">
-                    <button class="btn btn-warning" onclick="refreshData()">🔄 Refresh</button>
-                    <button class="btn btn-danger" onclick="confirmAction('reboot')">🔄 Reboot</button>
-                    <button class="btn btn-danger" onclick="confirmAction('shutdown')">⏻ Shutdown</button>
+                    <button class="btn btn-info" onclick="refreshData()">🔄 Refresh</button>
+                    <a href="/api/apps" class="btn btn-secondary" target="_blank">📊 API</a>
+                    <a href="/api/system" class="btn btn-secondary" target="_blank">🖥️ System API</a>
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            <p>Pi Dashboard v1.0 • Raspberry Pi Management Interface</p>
-        </div>
-    </div>
-
-    <!-- Log Modal -->
-    <div id="logModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="logTitle">Application Logs</h3>
-                <span class="close" onclick="closeModal()">&times;</span>
-            </div>
-            <div id="logContent" class="log-content"></div>
+            <p>🚀 Enhanced Dashboard v2.0 • REAL Monitoring & Docker Integration Active</p>
         </div>
     </div>
 
     <script>
-        function controlApp(appId, action) {
-            fetch(`/api/app/${appId}/${action}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    setTimeout(refreshData, 2000); // Refresh after 2 seconds
-                } else {
-                    alert(`Error: ${data.error}`);
-                }
-            })
-            .catch(error => {
-                alert(`Error: ${error}`);
-            });
-        }
-
-        function showLogs(appId) {
-            fetch(`/api/logs/${appId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('logTitle').textContent = `Logs for ${appId}`;
-                    document.getElementById('logContent').textContent = data.logs.join('\n');
-                    document.getElementById('logModal').style.display = 'block';
-                } else {
-                    alert(`Error: ${data.error}`);
-                }
-            })
-            .catch(error => {
-                alert(`Error: ${error}`);
-            });
-        }
-
-        function closeModal() {
-            document.getElementById('logModal').style.display = 'none';
-        }
-
         function refreshData() {
             location.reload();
         }
 
-        function confirmAction(action) {
-            const message = action === 'reboot' ? 
-                'Are you sure you want to reboot the system?' : 
-                'Are you sure you want to shutdown the system?';
-            
-            if (confirm(message)) {
-                fetch(`/api/system/${action}`, {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                })
-                .catch(error => {
-                    alert(`Error: ${error}`);
-                });
-            }
+        function refreshApp(appId) {
+            // Could implement individual app refresh via AJAX
+            refreshData();
         }
 
         // Auto-refresh every 30 seconds
         setInterval(refreshData, 30000);
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('logModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
     </script>
 </body>
 </html>

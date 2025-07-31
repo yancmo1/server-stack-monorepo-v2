@@ -1,0 +1,68 @@
+<div class="app-card {{ 'stable-app' if app_id in stable_apps else 'development-app' if app_id in development_apps else '' }}" data-app-id="{{ app_id }}">
+    <div class="app-header">
+        <div class="app-title">
+            <span class="app-icon">{{ app_data.config.icon }}</span>
+            <span>{{ app_data.config.name }}</span>
+        </div>
+        <div>
+            <span class="health-indicator health-{{ app_data.health.status if app_data.health else 'unknown' }}"></span>
+            <span class="status-badge status-{{ app_data.container.status if app_data.container else 'unknown' }}">
+                {{ app_data.container.status if app_data.container else 'unknown' }}
+            </span>
+        </div>
+    </div>
+    
+    <div class="app-description">
+        {{ app_data.config.description }}
+    </div>
+    
+    <div class="app-details">
+        {% if app_data.config.port %}
+        <div class="detail-item">
+            <div class="detail-label">Port</div>
+            <div class="detail-value">{{ app_data.config.port }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Network</div>
+            <div class="detail-value">
+                {% if app_data.port_listening %}
+                    ✅ Listening
+                {% else %}
+                    ❌ Not accessible
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if app_data.health and app_data.health.status != 'no_health_check' %}
+        <div class="detail-item">
+            <div class="detail-label">Health</div>
+            <div class="detail-value">{{ app_data.health.status }}</div>
+            {% if app_data.health.response_time %}
+            <div class="response-time">{{ app_data.health.response_time }}ms</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if app_data.container and app_data.container.memory_mb %}
+        <div class="detail-item">
+            <div class="detail-label">Memory</div>
+            <div class="detail-value">{{ app_data.container.memory_mb }} MB</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="app-actions">
+        {% if app_data.config.port %}
+            <a href="http://localhost:{{ app_data.config.port }}" 
+               class="btn btn-primary" target="_blank">Open App</a>
+        {% endif %}
+        
+        {% if app_data.config.health_endpoint %}
+            <a href="http://localhost:{{ app_data.config.port }}{{ app_data.config.health_endpoint }}" 
+               class="btn btn-info" target="_blank">Health</a>
+        {% endif %}
+        
+        <button class="btn btn-warning" onclick="refreshApp('{{ app_id }}')">Refresh</button>
+    </div>
+</div>

@@ -1,2 +1,5 @@
 flask
 python-dotenv
+psutil
+requests
+docker
