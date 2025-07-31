@@ -22,7 +22,6 @@ venv/
 env/
 
 # Configuration with secrets (create templates instead)
-config/apps_config.json
 config/.env*
 coc-discord-bot/config/.env.production
 # IDE files
@@ -45,6 +44,5 @@ archive/
 
 *.env
 *.pickle
-*.json
 apps/W5XY-QSL-CARD-CREATOR/gmail_credentials.json
 apps/W5XY-QSL-CARD-CREATOR/gmail_token.pickle

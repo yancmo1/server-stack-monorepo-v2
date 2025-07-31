@@ -373,13 +373,11 @@
                                 
                                 <div class="app-actions">
                                     {% if app_data.config.port %}
-                                        <a href="{{ (base_url ~ app_data.config.public_path) | replace('//', '/') }}" 
-                                           class="btn btn-primary" target="_blank">Open App</a>
+                                        <a href="{{ url_join(base_url, app_data.config.public_path) }}" class="btn btn-primary" target="_blank">Open App</a>
                                     {% endif %}
                                     
                                     {% if app_data.config.health_endpoint %}
-                                        <a href="{{ (base_url ~ app_data.config.public_path ~ app_data.config.health_endpoint) | replace('//', '/') }}" 
-                                           class="btn btn-info" target="_blank">Health</a>
+                                        <a href="{{ url_join(base_url, app_data.config.public_path, app_data.config.health_endpoint) }}" class="btn btn-info" target="_blank">Health</a>
                                     {% endif %}
                                     
                                     <button class="btn btn-warning" onclick="refreshApp('{{ app_id }}')">Refresh</button>
@@ -452,13 +450,11 @@
                                 
                                 <div class="app-actions">
                                     {% if app_data.config.port %}
-                                        <a href="{{ (base_url ~ app_data.config.public_path) | replace('//', '/') }}" 
-                                           class="btn btn-primary" target="_blank">Open App</a>
+                                        <a href="{{ url_join(base_url, app_data.config.public_path) }}" class="btn btn-primary" target="_blank">Open App</a>
                                     {% endif %}
                                     
                                     {% if app_data.config.health_endpoint %}
-                                        <a href="{{ (base_url ~ app_data.config.public_path ~ app_data.config.health_endpoint) | replace('//', '/') }}" 
-                                           class="btn btn-info" target="_blank">Health</a>
+                                        <a href="{{ url_join(base_url, app_data.config.public_path, app_data.config.health_endpoint) }}" class="btn btn-info" target="_blank">Health</a>
                                     {% endif %}
                                     
                                     <button class="btn btn-warning" onclick="refreshApp('{{ app_id }}')">Refresh</button>
@@ -529,13 +525,11 @@
                             
                             <div class="app-actions">
                                 {% if app_data.config.port %}
-                                    <a href="{{ (base_url ~ app_data.config.public_path) | replace('//', '/') }}" 
-                                       class="btn btn-primary" target="_blank">Open App</a>
+                                    <a href="{{ url_join(base_url, app_data.config.public_path) }}" class="btn btn-primary" target="_blank">Open App</a>
                                 {% endif %}
                                 
                                 {% if app_data.config.health_endpoint %}
-                                    <a href="{{ (base_url ~ app_data.config.public_path ~ app_data.config.health_endpoint) | replace('//', '/') }}" 
-                                       class="btn btn-info" target="_blank">Health</a>
+                                    <a href="{{ url_join(base_url, app_data.config.public_path, app_data.config.health_endpoint) }}" class="btn btn-info" target="_blank">Health</a>
                                 {% endif %}
                                 
                                 <button class="btn btn-warning" onclick="refreshApp('{{ app_id }}')">Refresh</button>
