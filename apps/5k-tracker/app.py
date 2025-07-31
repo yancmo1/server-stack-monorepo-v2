@@ -687,5 +687,5 @@ def duplicate_races(from_username, to_username):
     print("Races duplicated. You can now edit times for your wife.")
 
 if __name__ == "__main__":
-    app.run(debug=True)
     duplicate_races('yancmo', 'ambeees')
+    app.run(debug=True)
