@@ -1,6 +1,7 @@
 {% macro url_join(base, path, endpoint=None) %}
+    {# Remove trailing slash from base, trailing and leading slash from path, leading slash from endpoint #}
     {% set base = base.rstrip('/') %}
-    {% set path = path.lstrip('/') %}
+    {% set path = path.strip('/') %}
     {% if endpoint %}
         {% set endpoint = endpoint.lstrip('/') %}
         {{ base ~ '/' ~ path ~ '/' ~ endpoint }}
