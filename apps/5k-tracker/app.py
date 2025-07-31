@@ -664,3 +664,28 @@ def profile():
             flash('Profile updated successfully!', 'success')
         return render_template('profile.html')
     return render_template('profile.html')
+
+def duplicate_races(from_username, to_username):
+    from_user = User.query.filter_by(username=from_username).first()
+    to_user = User.query.filter_by(username=to_username).first()
+    if not from_user or not to_user:
+        print("User not found.")
+        return
+    for race in Race.query.filter_by(user_id=from_user.id).all():
+        new_race = Race()
+        new_race.user_id = to_user.id
+        new_race.race_name = race.race_name
+        new_race.race_type = race.race_type
+        new_race.race_date = race.race_date
+        new_race.race_time = race.race_time
+        new_race.finish_time = race.finish_time
+        new_race.location = race.location
+        new_race.weather = race.weather
+        new_race.notes = race.notes
+        db.session.add(new_race)
+    db.session.commit()
+    print("Races duplicated. You can now edit times for your wife.")
+
+if __name__ == "__main__":
+    app.run(debug=True)
+    duplicate_races('yancmo', 'ambeees')
