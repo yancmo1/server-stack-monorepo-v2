@@ -2606,6 +2606,10 @@ def test_email_template():
             'error': str(e)
         })
 
+@app.route('/qsl/status')
+def qsl_status():
+    return jsonify({"service": "qsl-card-creator", "status": "healthy", "timestamp": datetime.now().isoformat()})
+
 if __name__ == '__main__':
     print("🌐 Starting QSL Card Creator Web Application")
     print("=" * 50)

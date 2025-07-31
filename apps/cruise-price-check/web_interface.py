@@ -380,6 +380,10 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
+@app.route('/cruise/health')
+def cruise_health():
+    return jsonify({"service": "cruise-price-check", "status": "healthy", "timestamp": datetime.now().isoformat()})
+
 if __name__ == '__main__':
     # Ensure data directory exists
     os.makedirs('/app/data', exist_ok=True)

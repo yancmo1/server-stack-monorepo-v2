@@ -221,6 +221,16 @@ def api_system():
     """API endpoint for system information"""
     return jsonify(get_system_info())
 
+@app.route("/dashboard/health")
+def dashboard_health():
+    """Dashboard health check endpoint for /dashboard"""
+    return jsonify({
+        "service": "dashboard",
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.0"
+    })
+
 @app.route("/debug/template")
 def debug_template():
     """Debug template loading"""

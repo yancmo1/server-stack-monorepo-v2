@@ -628,6 +628,10 @@ def create_placeholder_snapshot(output_path, pinned_members):
             for member in pinned_members:
                 f.write(f"• {member['name']} - {member.get('location', 'Unknown')}\n")
 
+@app.route('/clan-map/health')
+def clan_map_health():
+    return jsonify({"service": "clan-map", "status": "healthy", "timestamp": datetime.now().isoformat()})
+
 if __name__ == "__main__":
     import os
     ssl_cert = '/app/ssl/dev.crt'

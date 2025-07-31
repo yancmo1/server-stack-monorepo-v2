@@ -337,6 +337,10 @@ def health_check():
     """Health check endpoint for Docker health monitoring"""
     return jsonify({'status': 'healthy', 'service': '5k-tracker'}), 200
 
+@app.route('/tracker/health')
+def tracker_health():
+    return jsonify({"service": "tracker", "status": "healthy", "timestamp": datetime.now().isoformat()})
+
 def allowed_file(filename):
     """Check if uploaded file has allowed extension"""
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
