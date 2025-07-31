@@ -59,6 +59,7 @@ services:
       - FLASK_ENV=production
     volumes:
       - ../shared/ssl:/app/ssl:ro
+      - ../shared/templates:/app/shared_templates:ro
 
   clan-map:
     build:
