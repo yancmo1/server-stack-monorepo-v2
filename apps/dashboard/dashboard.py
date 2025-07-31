@@ -174,6 +174,7 @@ def dashboard():
     stable_apps = monitoring.get("stable_apps", [])
     development_apps = monitoring.get("development_apps", [])
     
+    base_url = config.get("system", {}).get("base_url", "http://localhost")
     return render_template(
         "dashboard.html",
         apps=apps,
@@ -182,6 +183,7 @@ def dashboard():
         stable_apps=stable_apps,
         development_apps=development_apps,
         config=config,
+        base_url=base_url,
         request=request
     )
 

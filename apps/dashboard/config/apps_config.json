@@ -82,7 +82,8 @@
   "system": {
     "hostname": "localhost",
     "dashboard_port": 5550,
-    "environment": "development"
+    "environment": "production",
+    "base_url": "https://yancmo.xyz"
   },
   "monitoring": {
     "health_check_interval": 30,
