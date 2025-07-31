@@ -378,7 +378,7 @@
                                     {% endif %}
                                     
                                     {% if app_data.config.health_endpoint %}
-                                        <a href="{{ base_url }}{{ app_data.config.public_path }}{{ app_data.config.health_endpoint }}" 
+                                        <a href="{{ base_url }}{{ app_data.config.public_path | rstrip('/') }}{{ app_data.config.health_endpoint }}"
                                            class="btn btn-info" target="_blank">Health</a>
                                     {% endif %}
                                     
