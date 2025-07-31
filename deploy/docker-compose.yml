@@ -60,6 +60,7 @@ services:
     volumes:
       - ../shared/ssl:/app/ssl:ro
       - ../shared/templates:/app/shared_templates:ro
+      - /var/run/docker.sock:/var/run/docker.sock
 
   clan-map:
     build:
