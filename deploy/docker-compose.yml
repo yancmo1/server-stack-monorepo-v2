@@ -36,12 +36,7 @@ services:
           memory: 256M
           cpus: '0.3'
     healthcheck:
-      test:
-        - CMD
-        - curl
-        - -k
-        - -f
-        - http://localhost:5551/health
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5551/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -89,12 +84,7 @@ services:
           memory: 128M
           cpus: '0.25'
     healthcheck:
-      test:
-        - CMD
-        - curl
-        - -k
-        - -f
-        - https://localhost:5552/health
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5552/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -125,12 +115,7 @@ services:
           memory: 256M
           cpus: '0.3'
     healthcheck:
-      test:
-        - CMD
-        - curl
-        - -k
-        - -f
-        - https://localhost:5553/status
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5553/status')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -161,11 +146,7 @@ services:
           memory: 128M
           cpus: '0.25'
     healthcheck:
-      test:
-        - CMD
-        - curl
-        - -f
-        - http://localhost:5554/health
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5554/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
