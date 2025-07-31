@@ -1,3 +1,14 @@
+{% macro url_join(base, path, endpoint=None) %}
+    {% set base = base.rstrip('/') %}
+    {% set path = path.lstrip('/') %}
+    {% if endpoint %}
+        {% set endpoint = endpoint.lstrip('/') %}
+        {{ base ~ '/' ~ path ~ '/' ~ endpoint }}
+    {% else %}
+        {{ base ~ '/' ~ path }}
+    {% endif %}
+{% endmacro %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
