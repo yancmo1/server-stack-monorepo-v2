@@ -1,0 +1,13 @@
+[Unit]
+Description=Nginx with delayed start for Docker containers
+After=docker-apps.service
+Wants=docker-apps.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/yancmo/apps/server-stack-monorepo-v2/deploy/nginx-delayed-start.sh
+User=root
+
+[Install]
+WantedBy=multi-user.target
