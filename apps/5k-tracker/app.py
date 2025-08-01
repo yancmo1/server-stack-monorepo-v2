@@ -308,6 +308,11 @@ def delete_race(race_id):
 def uploaded_file(filename):
     return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], 'photos'), filename)
 
+@app.route('/service-worker.js')
+def service_worker():
+    """Serve service worker from the root path for proper scope"""
+    return send_from_directory('static', 'service-worker.js', mimetype='application/javascript')
+
 
 @app.route('/statistics')
 @login_required

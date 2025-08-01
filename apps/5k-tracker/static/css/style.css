@@ -1,4 +1,4 @@
-/* Custom styles for Race Tracker */
+/* Custom styles for Race Tracker PWA */
 
 .card {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
@@ -69,7 +69,50 @@
     transform: scale(1.05);
 }
 
-/* Mobile responsive adjustments */
+/* PWA-specific styles */
+
+/* PWA install button */
+#install-button {
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    transition: all 0.2s ease-in-out;
+}
+
+#install-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4);
+}
+
+/* Standalone mode adjustments */
+.pwa-standalone .navbar {
+    padding-top: env(safe-area-inset-top, 0);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+.pwa-standalone .container {
+    padding-left: max(15px, env(safe-area-inset-left));
+    padding-right: max(15px, env(safe-area-inset-right));
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.pwa-standalone .footer {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0));
+}
+
+/* Network status indicator */
+#network-status.offline {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+/* Toast container positioning for PWA */
+.toast-container {
+    z-index: 1060;
+}
+
+/* Enhanced mobile experience */
 @media (max-width: 768px) {
     .jumbotron {
         padding: 2rem 0;
@@ -86,6 +129,23 @@
     .btn-lg {
         padding: 0.5rem 1rem;
         font-size: 1rem;
+    }
+    
+    /* PWA mobile optimizations */
+    .pwa-standalone .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .pwa-standalone .nav-link {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Install button positioning for mobile */
+    #install-button {
+        bottom: env(safe-area-inset-bottom, 20px);
+        right: 15px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
     }
 }
 
