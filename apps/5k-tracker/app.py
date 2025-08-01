@@ -313,6 +313,11 @@ def service_worker():
     """Serve service worker from the root path for proper scope"""
     return send_from_directory('static', 'service-worker.js', mimetype='application/javascript')
 
+@app.route('/static/service-worker.js')
+def service_worker_static():
+    """Serve service worker from static path as well"""
+    return send_from_directory('static', 'service-worker.js', mimetype='application/javascript')
+
 
 @app.route('/statistics')
 @login_required

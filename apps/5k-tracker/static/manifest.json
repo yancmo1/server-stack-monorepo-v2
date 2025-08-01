@@ -2,32 +2,32 @@
   "name": "5K Race Tracker",
   "short_name": "5K Tracker",
   "description": "Track your running races and personal records",
-  "start_url": "/tracker/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
   "orientation": "portrait-primary",
-  "scope": "/tracker/",
+  "scope": "/",
   "lang": "en-US",
   "categories": ["sports", "health", "fitness"],
   "icons": [
     {
-      "src": "/tracker/static/icons/icon-192x192.png",
+      "src": "/static/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/tracker/static/icons/icon-512x512.png",
+      "src": "/static/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/tracker/static/icons/favicon-32x32.png",
+      "src": "/static/icons/favicon-32x32.png",
       "sizes": "32x32",
       "type": "image/png",
-      "purpose": "favicon"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -35,10 +35,10 @@
       "name": "Add Race",
       "short_name": "Add Race",
       "description": "Quickly add a new race result",
-      "url": "/tracker/add_race",
+      "url": "/add_race",
       "icons": [
         {
-          "src": "/tracker/static/icons/icon-192x192.png",
+          "src": "/static/icons/icon-192x192.png",
           "sizes": "192x192"
         }
       ]
@@ -47,10 +47,10 @@
       "name": "View Statistics",
       "short_name": "Stats",
       "description": "View your race statistics",
-      "url": "/tracker/statistics",
+      "url": "/statistics",
       "icons": [
         {
-          "src": "/tracker/static/icons/icon-192x192.png",
+          "src": "/static/icons/icon-192x192.png",
           "sizes": "192x192"
         }
       ]

@@ -5,15 +5,15 @@
 
 const CACHE_NAME = '5k-tracker-v1';
 const urlsToCache = [
-  '/tracker/',
-  '/tracker/dashboard',
-  '/tracker/races',
-  '/tracker/add_race',
-  '/tracker/statistics',
-  '/tracker/static/css/style.css',
-  '/tracker/static/icons/icon-192x192.png',
-  '/tracker/static/icons/icon-512x512.png',
-  '/tracker/static/manifest.json',
+  '/',
+  '/dashboard',
+  '/races',
+  '/add_race',
+  '/statistics',
+  '/static/css/style.css',
+  '/static/icons/icon-192x192.png',
+  '/static/icons/icon-512x512.png',
+  '/static/manifest.json',
   // Bootstrap CSS
   'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css',
   // Font Awesome CSS
@@ -72,7 +72,7 @@ self.addEventListener('fetch', event => {
   }
   
   // Handle different types of requests
-  if (url.pathname.startsWith('/tracker/static/') || 
+  if (url.pathname.startsWith('/static/') || 
       url.hostname === 'cdn.jsdelivr.net' || 
       url.hostname === 'cdnjs.cloudflare.com') {
     // Cache-first strategy for static assets and CDN resources
@@ -109,7 +109,7 @@ self.addEventListener('fetch', event => {
           }
         })
     );
-  } else if (url.pathname.startsWith('/tracker/')) {
+  } else if (url.pathname.startsWith('/')) {
     // Network-first strategy for app routes
     event.respondWith(
       fetch(request)
@@ -135,7 +135,7 @@ self.addEventListener('fetch', event => {
                 return response;
               }
               // If no cached version, return offline page
-              return caches.match('/tracker/')
+              return caches.match('/')
                 .then(fallbackResponse => {
                   if (fallbackResponse) {
                     return fallbackResponse;
@@ -179,7 +179,7 @@ self.addEventListener('push', event => {
     badge: '/tracker/static/icons/favicon-32x32.png',
     vibrate: [200, 100, 200],
     data: {
-      url: '/tracker/dashboard'
+      url: '/dashboard'
     },
     actions: [
       {
@@ -206,7 +206,7 @@ self.addEventListener('notificationclick', event => {
   
   if (event.action === 'view') {
     event.waitUntil(
-      clients.openWindow('/tracker/dashboard')
+      clients.openWindow('/dashboard')
     );
   }
 });

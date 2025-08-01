@@ -9,8 +9,8 @@
     // Service Worker Registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/tracker/static/service-worker.js', {
-                scope: '/tracker/'
+            navigator.serviceWorker.register('/service-worker.js', {
+                scope: '/'
             })
             .then(function(registration) {
                 console.log('Service Worker registered successfully:', registration.scope);
