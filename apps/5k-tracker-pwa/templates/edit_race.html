@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Race - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Race</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" autocomplete="off">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="race_name" class="form-label">Race Name *</label>
+                                    <input type="text" class="form-control" id="race_name" name="race_name" 
+                                           value="{{ race.race_name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="race_type" class="form-label">Race Type *</label>
+                                    <select class="form-select" id="race_type" name="race_type" required>
+                                        <option value="5K" {{ 'selected' if race.race_type == '5K' }}>5K</option>
+                                        <option value="10K" {{ 'selected' if race.race_type == '10K' }}>10K</option>
+                                        <option value="Half Marathon" {{ 'selected' if race.race_type == 'Half Marathon' }}>Half Marathon</option>
+                                        <option value="Marathon" {{ 'selected' if race.race_type == 'Marathon' }}>Marathon</option>
+                                        <option value="Other" {{ 'selected' if race.race_type == 'Other' }}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="race_date" class="form-label">Race Date *</label>
+                                    <input type="date" class="form-control" id="race_date" name="race_date" 
+                                           value="{{ race.race_date.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="race_time" class="form-label">Race Start Time *</label>
+                                    <input type="time" class="form-control" id="race_time" name="race_time" 
+                                           value="{{ race.race_time if race.race_time else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="finish_time" class="form-label">Finish Time (Elapsed Gun Time) *</label>
+                                    <input type="text" class="form-control" id="finish_time" name="finish_time" value="{{ race.finish_time }}" placeholder="e.g. 48:19:00" required pattern="^([0-9]{1,2}:)?[0-5]?[0-9]:[0-5][0-9]$" title="Format: HH:MM:SS or MM:SS">
+                                    <div class="form-text">Enter elapsed time (e.g. 48:19:00 for 48 hours, 19 minutes, 0 seconds).</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="location" class="form-label">Location</label>
+                                    <input type="text" class="form-control" id="location" name="location" 
+                                           value="{{ race.location or '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="weather" class="form-label">Weather (Temp, Humidity, Wind in °F)</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="weather" name="weather" value="{{ race.weather or '' }}" placeholder="Auto-fill or enter manually (e.g. 72°F, humidity 60%, wind 5 mph)">
+                                        <button class="btn btn-outline-secondary" type="button" id="fetch-weather-btn" title="Auto-fill from weather API">
+                                            <i class="fas fa-cloud-sun"></i>
+                                        </button>
+                                    </div>
+                                    <div id="weather-status" class="form-text text-muted">Weather will show temperature, humidity, and wind in °F.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Race Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ race.notes or '' }}</textarea>
+                        </div>
+
+                        <!-- Existing Photos -->
+                        {% if race.photos %}
+                        <div class="mb-4">
+                            <label class="form-label">Existing Photos</label>
+                            <div class="row">
+                                {% for photo in race.photos %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card">
+                                            <img src="{{ url_for('uploaded_file', filename=photo.filename) }}" 
+                                                 class="card-img-top" alt="{{ photo.caption or 'Race photo' }}"
+                                                 style="height: 200px; object-fit: cover;">
+                                            <div class="card-body p-2">
+                                                <p class="card-text">
+                                                    <small class="text-muted">
+                                                        <span class="badge bg-secondary">{{ photo.photo_type|title }}</span><br>
+                                                        {{ photo.caption or photo.original_filename }}
+                                                    </small>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Add New Photos -->
+                        <div class="mb-4">
+                            <label class="form-label">Add New Photos</label>
+                            <div id="photo-list"></div>
+                            <button type="button" class="btn btn-outline-primary w-100 mt-2" id="add-photo-btn">
+                                <i class="fas fa-camera"></i> Add Photo
+                            </button>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Update Race
+                            </button>
+                            <a href="{{ url_for('races') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-arrow-left"></i> Back to Races
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Dynamic photo upload logic for edit race page
+let photoCount = 0;
+const maxPhotos = 10;
+const photoList = document.getElementById('photo-list');
+const addPhotoBtn = document.getElementById('add-photo-btn');
+
+function createPhotoRow(idx) {
+    const row = document.createElement('div');
+    row.className = 'card mb-3 shadow-sm';
+    row.style.position = 'relative';
+    row.innerHTML = `
+        <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+            <div class="flex-shrink-0 text-center" style="width:120px;">
+                <img id="photo_preview${idx}" src="" alt="Preview" style="display:none;max-width:100%;max-height:100px;border-radius:8px;" />
+            </div>
+            <div class="flex-grow-1 w-100">
+                <input type="file" class="form-control form-control-lg mb-2" id="photo${idx}" name="photo${idx}" accept="image/*">
+                <select class="form-select form-select-lg mb-2" id="photo_type${idx}" name="photo_type${idx}">
+                    <option value="other">Other</option>
+                    <option value="finish">Finish Line</option>
+                    <option value="medal">Medal</option>
+                    <option value="bib">Race Bib</option>
+                </select>
+                <input type="text" class="form-control form-control-lg mb-2" id="photo_caption${idx}" name="photo_caption${idx}" placeholder="Optional caption">
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <button type="button" class="btn btn-success btn-sm save-photo-btn" title="Save Photo">
+                        <i class="fas fa-save"></i> Save Photo
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm remove-photo-btn ms-2" title="Remove Photo">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    // Preview logic
+    const fileInput = row.querySelector(`#photo${idx}`);
+    const previewImg = row.querySelector(`#photo_preview${idx}`);
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                previewImg.src = ev.target.result;
+                previewImg.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewImg.src = '';
+            previewImg.style.display = 'none';
+        }
+    });
+    // Remove logic
+    row.querySelector('.remove-photo-btn').addEventListener('click', function() {
+        row.remove();
+        photoCount--;
+        addPhotoBtn.disabled = false;
+    });
+    // Save logic (for UI feedback only)
+    row.querySelector('.save-photo-btn').addEventListener('click', function() {
+        alert('Photo info saved for this row.');
+    });
+    return row;
+}
+
+addPhotoBtn.addEventListener('click', function() {
+    if (photoCount >= maxPhotos) return;
+    photoCount++;
+    const row = createPhotoRow(photoCount);
+    photoList.appendChild(row);
+    if (photoCount >= maxPhotos) addPhotoBtn.disabled = true;
+});
+
+// Weather auto-fill logic
+function normalizeTime(timeStr) {
+    // Accepts '07:00', '7:00', '7:00 AM', '7:00PM', '19:00', etc. Returns 'HH:MM' 24-hour format.
+    if (!timeStr) return '';
+    let d = new Date('1970-01-01T' + timeStr);
+    if (!isNaN(d.getTime())) {
+        return d.toTimeString().slice(0,5);
+    }
+    // Try parsing 12-hour manually
+    let match = timeStr.match(/^(\d{1,2}):(\d{2})\s*([APap][Mm])$/);
+    if (match) {
+        let hour = parseInt(match[1], 10);
+        let min = match[2];
+        let ampm = match[3].toLowerCase();
+        if (ampm === 'pm' && hour < 12) hour += 12;
+        if (ampm === 'am' && hour === 12) hour = 0;
+        return (hour < 10 ? '0' : '') + hour + ':' + min;
+    }
+    return timeStr; // fallback
+}
+
+function getWeather(place, date, time) {
+    if (!place || !date || !time) return;
+    const status = document.getElementById('weather-status');
+    status.textContent = 'Fetching weather...';
+    const normTime = normalizeTime(time);
+    const datetime = date + 'T' + normTime;
+    fetch(`/api/weather?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`)
+        .then(r => r.json().then(data => ({ok: r.ok, data})))
+        .then(({ok, data}) => {
+            if (!ok) {
+                if (data && data.error && data.error.includes('geocode')) {
+                    status.textContent = 'Could not find location. Please be more specific.';
+                } else {
+                    status.textContent = data && data.error ? data.error : 'No weather data found.';
+                }
+                return;
+            }
+            if (data && data.weather) {
+                const w = data.weather;
+                let summary = `${w.temperature}\u00b0F, humidity ${w.humidity}%, wind ${w.wind_speed} mph`;
+                document.getElementById('weather').value = summary;
+                status.textContent = 'Weather auto-filled.';
+            } else {
+                status.textContent = 'No weather data found.';
+            }
+        })
+        .catch(() => { status.textContent = 'Could not fetch weather.'; });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const locationInput = document.getElementById('location');
+    const dateInput = document.getElementById('race_date');
+    const timeInput = document.getElementById('race_time');
+    const fetchBtn = document.getElementById('fetch-weather-btn');
+    if (fetchBtn) {
+        fetchBtn.addEventListener('click', function() {
+            getWeather(locationInput.value, dateInput.value, timeInput.value);
+        });
+    }
+    locationInput.addEventListener('blur', function() {
+        if (dateInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
+    });
+    dateInput.addEventListener('change', function() {
+        if (locationInput.value && timeInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
+    });
+    timeInput.addEventListener('change', function() {
+        if (locationInput.value && dateInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
+    });
+});
+</script>
+{% endblock %}

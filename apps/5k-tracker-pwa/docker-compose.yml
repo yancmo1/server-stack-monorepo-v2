@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  race-tracker:
+    build: .
+    container_name: race-tracker
+    restart: unless-stopped
+    ports:
+      - "5554:5554"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./race_tracker.db:/app/race_tracker.db
+      - /Users/yancyshepherd/MEGA/PythonProjects/YANCY/shared/ssl:/app/ssl:ro
+    env_file:
+      - ../../shared/config/.env
+    environment:
+      FLASK_ENV: production
+    networks:
+      - race-tracker-network
+  db:
+    image: postgres:15
+    container_name: race-tracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: racetracker
+      POSTGRES_USER: racetracker
+      POSTGRES_PASSWORD: racetracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - race-tracker-network
+
+volumes:
+  pgdata:
+
+networks:
+  race-tracker-network:
+    driver: bridge

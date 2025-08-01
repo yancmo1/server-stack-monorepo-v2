@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="jumbotron bg-primary text-white">
+    <div class="container">
+        <h1 class="display-4">🏃‍♀️ Race Tracker</h1>
+        <p class="lead">Track your marathon and 5K race times, upload photos, and monitor your progress over time.</p>
+        <hr class="my-4 bg-white">
+        <p>Join our running community and keep track of all your race achievements with photos and detailed statistics.</p>
+        <div class="mt-4">
+            <a class="btn btn-light btn-lg me-3" href="{{ url_for('login') }}" role="button">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            <a class="btn btn-outline-light btn-lg" href="{{ url_for('register') }}" role="button">
+                <i class="fas fa-user-plus"></i> Sign Up
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-stopwatch fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Track Your Times</h5>
+                    <p class="card-text">Log race times for 5K, 10K, half marathons, and full marathons. Keep track of your personal records and improvements.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-camera fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Upload Photos</h5>
+                    <p class="card-text">Capture your achievements! Upload photos of race finishes, medals, and race bibs to preserve your memories.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">View Statistics</h5>
+                    <p class="card-text">Analyze your performance with detailed statistics, track improvements, and see your progress over time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-light py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2>Multiple User Support</h2>
+                <p class="lead">Perfect for families and running groups. Each user gets their own secure account to track personal progress.</p>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Individual user accounts</li>
+                    <li><i class="fas fa-check text-success"></i> Secure login system</li>
+                    <li><i class="fas fa-check text-success"></i> Personal data isolation</li>
+                    <li><i class="fas fa-check text-success"></i> Custom race tracking</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="text-center">
+                    <i class="fas fa-users fa-5x text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

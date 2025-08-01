@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Import Race Results{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0"><i class="fas fa-upload"></i> Import Race Results</h4>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            <div class="mb-3">
+              <label for="results_text" class="form-label">Paste your race results (from OnlineRaceResults or similar):</label>
+              <textarea class="form-control" id="results_text" name="results_text" rows="10" required placeholder="Paste your results here..."></textarea>
+            </div>
+            <div class="d-grid gap-2 mt-4">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-file-import"></i> Import Results
+              </button>
+            </div>
+          </form>
+          {% if imported %}
+            <div class="alert alert-success mt-4">
+              <strong>{{ imported }} races imported successfully!</strong>
+            </div>
+          {% endif %}
+          {% if errors %}
+            <div class="alert alert-danger mt-4">
+              <strong>Some rows could not be imported:</strong>
+              <ul>
+                {% for error in errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
