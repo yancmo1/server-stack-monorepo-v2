@@ -38,7 +38,6 @@ import re
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-app.config['APPLICATION_ROOT'] = '/tracker/pwa'
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', 'sqlite:///race_tracker.db')
@@ -686,23 +685,17 @@ def duplicate_races(from_username, to_username):
     db.session.commit()
     print("Races duplicated. You can now edit times for your wife.")
 
-# Serve manifest.json for PWA at subpath
-@app.route('/tracker/pwa/manifest.json')
+# Serve manifest.json for PWA
+@app.route('/manifest.json')
 def serve_manifest():
     from flask import send_file
     return send_file('manifest.json', mimetype='application/manifest+json')
 
-# Serve service worker for PWA at subpath
-@app.route('/tracker/pwa/sw.js')
+# Serve service worker for PWA
+@app.route('/sw.js')
 def serve_sw():
     from flask import send_file
     return send_file('sw.js', mimetype='application/javascript')
-
-# Add a route for /tracker/pwa and /tracker/pwa/ to support subpath access directly
-@app.route('/tracker/pwa', strict_slashes=False)
-def pwa_root():
-    # Redirect to / so the PrefixMiddleware and Flask routing work for subpath
-    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     with app.app_context():
