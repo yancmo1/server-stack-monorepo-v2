@@ -698,6 +698,12 @@ def serve_sw():
     from flask import send_file
     return send_file('sw.js', mimetype='application/javascript')
 
+# Add a route for /tracker/pwa and /tracker/pwa/ to support subpath access directly
+@app.route('/tracker/pwa', strict_slashes=False)
+def pwa_root():
+    # Redirect to / so the PrefixMiddleware and Flask routing work for subpath
+    return redirect(url_for('index'))
+
 if __name__ == "__main__":
     with app.app_context():
         duplicate_races('yancmo', 'ambeees')
