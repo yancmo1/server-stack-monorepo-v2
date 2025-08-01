@@ -686,6 +686,18 @@ def duplicate_races(from_username, to_username):
     db.session.commit()
     print("Races duplicated. You can now edit times for your wife.")
 
+# Serve manifest.json for PWA at subpath
+@app.route('/tracker/pwa/manifest.json')
+def serve_manifest():
+    from flask import send_file
+    return send_file('manifest.json', mimetype='application/manifest+json')
+
+# Serve service worker for PWA at subpath
+@app.route('/tracker/pwa/sw.js')
+def serve_sw():
+    from flask import send_file
+    return send_file('sw.js', mimetype='application/javascript')
+
 if __name__ == "__main__":
     with app.app_context():
         duplicate_races('yancmo', 'ambeees')
