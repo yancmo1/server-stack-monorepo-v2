@@ -38,7 +38,7 @@ import re
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-app.config['APPLICATION_ROOT'] = '/tracker'
+app.config['APPLICATION_ROOT'] = '/tracker/pwa'
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', 'sqlite:///race_tracker.db')
