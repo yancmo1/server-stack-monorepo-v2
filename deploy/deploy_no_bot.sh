@@ -12,7 +12,7 @@ echo "[Remote] Pulling and restarting apps (except coc-discord-bot)..."
 ssh yancmo@ubuntumac '
   cd /home/yancmo/apps/server-stack-monorepo-v2/deploy && \
   git pull && \
-  docker compose up -d --no-deps dashboard clan-map qsl-card-creator tracker
+  docker compose up -d --no-deps dashboard clan-map qsl-card-creator tracker pwa-tracker
 '
 
 echo "Done."

@@ -21,4 +21,4 @@ with app.app_context():
 "
 
 # Start Gunicorn
-exec gunicorn --bind 0.0.0.0:5554 --workers 2 --timeout 60 app:app
+exec gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app
