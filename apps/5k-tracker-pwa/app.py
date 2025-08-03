@@ -55,19 +55,15 @@ class PrefixMiddleware:
         script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
         path_info = environ.get('PATH_INFO', '')
         print(f"[PrefixMiddleware] BEFORE: script_name: {script_name}, path_info: {path_info}", file=sys.stderr)
-        # Always set SCRIPT_NAME if HTTP_X_SCRIPT_NAME is present
         if script_name:
             environ['SCRIPT_NAME'] = script_name
-        if script_name and path_info.startswith(script_name):
-            environ['PATH_INFO'] = path_info[len(script_name):]
-            print(f"[PrefixMiddleware] PATH_INFO rewritten to: {environ['PATH_INFO']}", file=sys.stderr)
-        else:
-            print("[PrefixMiddleware] No rewrite performed.", file=sys.stderr)
-        print(f"[PrefixMiddleware] AFTER: SCRIPT_NAME: {environ.get('SCRIPT_NAME')}, PATH_INFO: {environ.get('PATH_INFO')}", file=sys.stderr)
+            if path_info.startswith(script_name):
+                environ['PATH_INFO'] = path_info[len(script_name):]
+        print(f"[PrefixMiddleware] AFTER: {environ.get('SCRIPT_NAME')}, PATH_INFO: {environ.get('PATH_INFO')}", file=sys.stderr)
         return self.app(environ, start_response)
 
-# PrefixMiddleware must be the outermost wrapper
-app.wsgi_app = PrefixMiddleware(ProxyFix(app.wsgi_app, x_proto=1, x_host=1))
+# Ensure PrefixMiddleware is the first middleware
+app.wsgi_app = PrefixMiddleware(app.wsgi_app)
 
 # Now initialize extensions, blueprints, etc.
 login_manager = LoginManager()
@@ -714,6 +710,17 @@ def tracker_pwa_redirect():
     import sys
     print('Redirecting /tracker/pwa or /tracker/pwa/ to /', file=sys.stderr)
     return redirect(url_for('index'))
+
+# Add a catch-all route for debugging subpath issues
+from flask import request
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    print(f"[Flask] catch_all route hit: path={path}, full_path={request.full_path}")
+    if path == '' or path == 'index.html':
+        return render_template('index.html')
+    # Optionally, handle static files or return 404
+    return f"404 Not Found: {path}", 404
 
 if __name__ == "__main__":
     with app.app_context():
