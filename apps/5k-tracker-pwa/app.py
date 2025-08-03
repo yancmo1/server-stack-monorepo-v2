@@ -695,32 +695,22 @@ def serve_sw():
     from flask import send_file
     return send_file('sw.js', mimetype='application/javascript')
 
-@app.route('')
-def empty_index():
-    import sys
-    print('SCRIPT_NAME:', request.environ.get('SCRIPT_NAME'), file=sys.stderr)
-    print('HTTP_X_SCRIPT_NAME:', request.environ.get('HTTP_X_SCRIPT_NAME'), file=sys.stderr)
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return render_template('index.html')
-
 @app.route('/tracker/pwa')
 @app.route('/tracker/pwa/')
 def tracker_pwa_redirect():
     import sys
-    print('Redirecting /tracker/pwa or /tracker/pwa/ to /', file=sys.stderr)
-    return redirect(url_for('index'))
+    print('Redirect route hit: /tracker/pwa or /tracker/pwa/', file=sys.stderr)
+    return redirect(url_for('catch_all', path=''))
 
-# Add a catch-all route for debugging subpath issues
-from flask import request
+# Robust catch-all route for all subpaths
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
-    print(f"[Flask] catch_all route hit: path={path}, full_path={request.full_path}")
-    if path == '' or path == 'index.html':
-        return render_template('index.html')
-    # Optionally, handle static files or return 404
-    return f"404 Not Found: {path}", 404
+    import sys
+    print('Catch-all route hit:', path, file=sys.stderr)
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return render_template('index.html')
 
 if __name__ == "__main__":
     with app.app_context():
