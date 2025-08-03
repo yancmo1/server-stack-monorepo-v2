@@ -54,15 +54,16 @@ class PrefixMiddleware:
         import sys
         script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
         path_info = environ.get('PATH_INFO', '')
+        print(f"[PrefixMiddleware] BEFORE: script_name: {script_name}, path_info: {path_info}", file=sys.stderr)
         # Always set SCRIPT_NAME if HTTP_X_SCRIPT_NAME is present
         if script_name:
             environ['SCRIPT_NAME'] = script_name
-        print(f"[PrefixMiddleware] script_name: {script_name}, path_info: {path_info}", file=sys.stderr)
         if script_name and path_info.startswith(script_name):
             environ['PATH_INFO'] = path_info[len(script_name):]
             print(f"[PrefixMiddleware] PATH_INFO rewritten to: {environ['PATH_INFO']}", file=sys.stderr)
         else:
             print("[PrefixMiddleware] No rewrite performed.", file=sys.stderr)
+        print(f"[PrefixMiddleware] AFTER: SCRIPT_NAME: {environ.get('SCRIPT_NAME')}, PATH_INFO: {environ.get('PATH_INFO')}", file=sys.stderr)
         return self.app(environ, start_response)
 
 # PrefixMiddleware must be the outermost wrapper
@@ -697,6 +698,22 @@ def serve_manifest():
 def serve_sw():
     from flask import send_file
     return send_file('sw.js', mimetype='application/javascript')
+
+@app.route('')
+def empty_index():
+    import sys
+    print('SCRIPT_NAME:', request.environ.get('SCRIPT_NAME'), file=sys.stderr)
+    print('HTTP_X_SCRIPT_NAME:', request.environ.get('HTTP_X_SCRIPT_NAME'), file=sys.stderr)
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return render_template('index.html')
+
+@app.route('/tracker/pwa')
+@app.route('/tracker/pwa/')
+def tracker_pwa_redirect():
+    import sys
+    print('Redirecting /tracker/pwa or /tracker/pwa/ to /', file=sys.stderr)
+    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     with app.app_context():
