@@ -12,6 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Use --chown to set ownership during copy
 COPY --chown=botuser:botuser . .
 
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown botuser:botuser /app/logs
+
 USER botuser
 
 CMD ["python", "bot.py"]

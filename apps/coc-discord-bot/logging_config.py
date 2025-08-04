@@ -8,7 +8,12 @@ import functools
 def setup_logging():
     """Set up logging configuration"""
     # Create logs directory if it doesn't exist
-    os.makedirs("logs", exist_ok=True)
+    try:
+        os.makedirs("logs", exist_ok=True)
+        log_to_file = True
+    except PermissionError:
+        print("Warning: Cannot create logs directory, logging to console only")
+        log_to_file = False
     
     # Create formatter
     formatter = logging.Formatter(
@@ -24,12 +29,13 @@ def setup_logging():
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
-    # File handler
-    file_handler = logging.FileHandler(
-        f"logs/bot_{datetime.now().strftime('%Y%m%d')}.log"
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    # File handler (only if we can write to logs directory)
+    if log_to_file:
+        file_handler = logging.FileHandler(
+            f"logs/bot_{datetime.now().strftime('%Y%m%d')}.log"
+        )
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
     
     return logger
 
