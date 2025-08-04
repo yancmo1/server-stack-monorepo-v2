@@ -172,6 +172,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
+      - TRACKER_DATABASE_URI=postgresql://racetracker:racetracker@db:5432/racetracker
     volumes:
       - tracker_uploads:/app/uploads
       - ../shared/ssl:/app/ssl:ro
