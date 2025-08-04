@@ -52,6 +52,26 @@ services:
       - db
     restart: unless-stopped
 
+  # 5K Tracker PWA
+  pwa-tracker:
+    build:
+      context: ../apps/5k-tracker-pwa
+      dockerfile: Dockerfile
+    container_name: pwa-tracker-dev
+    ports:
+      - "5555:5555"
+    environment:
+      - FLASK_ENV=development
+      - PYTHONUNBUFFERED=1
+      - TRACKER_DATABASE_URI=postgresql://racetracker:racetracker@db:5432/racetracker
+    volumes:
+      - tracker_uploads_dev:/app/uploads
+      - ../apps/5k-tracker-pwa:/app/source:ro
+      - ../shared/ssl:/app/ssl:ro
+    depends_on:
+      - db
+    restart: unless-stopped
+
   # Cruise Price Check
   cruise-price-check:
     build:
