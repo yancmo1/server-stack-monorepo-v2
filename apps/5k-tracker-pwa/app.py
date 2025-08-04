@@ -59,7 +59,10 @@ class PrefixMiddleware:
             environ['SCRIPT_NAME'] = script_name
             if path_info.startswith(script_name):
                 environ['PATH_INFO'] = path_info[len(script_name):]
-        print(f"[PrefixMiddleware] AFTER: {environ.get('SCRIPT_NAME')}, PATH_INFO: {environ.get('PATH_INFO')}", file=sys.stderr)
+            # If path_info is now empty or just '/', set to '/'
+            if environ['PATH_INFO'] in ('', None):
+                environ['PATH_INFO'] = '/'
+        print(f"[PrefixMiddleware] AFTER: SCRIPT_NAME: {environ.get('SCRIPT_NAME')}, PATH_INFO: {environ.get('PATH_INFO')}", file=sys.stderr)
         return self.app(environ, start_response)
 
 # Ensure PrefixMiddleware is the first middleware
@@ -695,12 +698,14 @@ def serve_sw():
     from flask import send_file
     return send_file('sw.js', mimetype='application/javascript')
 
-# Robust catch-all route for all subpaths
+
+# Robust catch-all route for all subpaths, including '' and '/'
 @app.route('/', defaults={'path': ''})
+@app.route('', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
     import sys
-    print('Catch-all route hit:', path, file=sys.stderr)
+    print('Catch-all route hit:', repr(path), file=sys.stderr)
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
