@@ -8,6 +8,8 @@ logs/
 backups/
 *.backup
 *.tar.gz
+*.db.bak*
+*.bak
 
 # Temporary files
 tmp/
