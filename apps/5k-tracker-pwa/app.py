@@ -695,13 +695,6 @@ def serve_sw():
     from flask import send_file
     return send_file('sw.js', mimetype='application/javascript')
 
-@app.route('/tracker/pwa')
-@app.route('/tracker/pwa/')
-def tracker_pwa_redirect():
-    import sys
-    print('Redirect route hit: /tracker/pwa or /tracker/pwa/', file=sys.stderr)
-    return redirect(url_for('catch_all', path=''))
-
 # Robust catch-all route for all subpaths
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
