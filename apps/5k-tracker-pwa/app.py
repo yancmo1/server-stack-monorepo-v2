@@ -701,7 +701,6 @@ def serve_sw():
 
 # Robust catch-all route for all subpaths, including '' and '/'
 @app.route('/', defaults={'path': ''})
-@app.route('', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
     import sys
