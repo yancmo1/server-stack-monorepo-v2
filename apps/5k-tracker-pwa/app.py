@@ -358,11 +358,20 @@ def login():
     if request.method == 'POST':
         email = request.form['email']  # Changed from username to email
         password = request.form['password']
+        print(f"[LOGIN DEBUG] Login attempt for email: {email}")
         user = User.query.filter_by(email=email).first()  # Search by email
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for('dashboard'))
+        if user:
+            print(f"[LOGIN DEBUG] User found: {user.email}, admin: {user.is_admin}")
+            if user.check_password(password):
+                print(f"[LOGIN DEBUG] Password correct for {email}")
+                login_user(user)
+                print(f"[LOGIN DEBUG] User logged in, redirecting to dashboard")
+                return redirect(url_for('dashboard'))
+            else:
+                print(f"[LOGIN DEBUG] Password incorrect for {email}")
+                flash('Invalid email or password')
         else:
+            print(f"[LOGIN DEBUG] User not found for email: {email}")
             flash('Invalid email or password')
     return render_template('login.html')
 
