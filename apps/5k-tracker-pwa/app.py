@@ -74,7 +74,131 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 @app.route('/logout')
 def logout():
+    logout_user()
     return redirect(url_for('login'))
+
+
+# --- Admin Routes ---
+@app.route('/admin')
+@login_required
+def admin_dashboard():
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    users = User.query.all()
+    total_users = len(users)
+    total_races = db.session.query(Race).count()
+    return render_template('admin/dashboard.html', 
+                         users=users, 
+                         total_users=total_users, 
+                         total_races=total_races)
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    users = User.query.all()
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
+@login_required
+def admin_reset_password(user_id):
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    new_password = request.form['new_password']
+    user.set_password(new_password)
+    db.session.commit()
+    flash(f'Password reset for {user.email}')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/toggle_admin', methods=['POST'])
+@login_required
+def admin_toggle_admin(user_id):
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('Cannot modify your own admin status')
+        return redirect(url_for('admin_users'))
+    
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    status = 'granted' if user.is_admin else 'revoked'
+    flash(f'Admin privileges {status} for {user.email}')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('Cannot delete your own account')
+        return redirect(url_for('admin_users'))
+    
+    # Delete user and associated races (cascade handles this)
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User {user.email} deleted successfully')
+    return redirect(url_for('admin_users'))
+
+# --- Password Reset Routes ---
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            token = user.generate_reset_token()
+            db.session.commit()
+            
+            # In a real app, you'd send an email here
+            # For now, we'll just show the reset link
+            reset_url = url_for('reset_password', token=token, _external=True)
+            flash(f'Password reset link: {reset_url}')
+        else:
+            flash('If that email is registered, you will receive a reset link.')
+        
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    user = User.query.filter_by(reset_token=token).first()
+    
+    if not user or not user.verify_reset_token(token):
+        flash('Invalid or expired reset token')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        if password != confirm_password:
+            flash('Passwords do not match')
+            return render_template('reset_password.html', token=token)
+        
+        user.set_password(password)
+        user.clear_reset_token()
+        db.session.commit()
+        flash('Password reset successfully')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', token=token)
 
 
 # --- Ensure upload directory exists ---
@@ -93,11 +217,14 @@ db = SQLAlchemy(app)
 # --- Models ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False)  # Will be email
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     # Relationship to races
@@ -108,6 +235,24 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def generate_reset_token(self):
+        """Generate a password reset token"""
+        import secrets
+        self.reset_token = secrets.token_urlsafe(32)
+        self.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)  # Token expires in 1 hour
+        return self.reset_token
+    
+    def verify_reset_token(self, token):
+        """Verify if the reset token is valid and not expired"""
+        return (self.reset_token == token and 
+                self.reset_token_expiry and 
+                self.reset_token_expiry > datetime.utcnow())
+    
+    def clear_reset_token(self):
+        """Clear the reset token after use"""
+        self.reset_token = None
+        self.reset_token_expiry = None
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -174,21 +319,29 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        confirm_password = request.form['confirm_password']
         first_name = request.form['first_name']
         last_name = request.form['last_name']
-        # Check if user already exists
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists')
+        
+        # Validate password confirmation
+        if password != confirm_password:
+            flash('Passwords do not match')
             return render_template('register.html')
+        
+        # Check if user already exists
         if User.query.filter_by(email=email).first():
             flash('Email already registered')
             return render_template('register.html')
-        # Create new user
+        
+        if User.query.filter_by(username=email).first():
+            flash('Email already registered')
+            return render_template('register.html')
+        
+        # Create new user (username = email)
         user = User(
-            username=username,
+            username=email,  # Use email as username
             email=email,
             first_name=first_name,
             last_name=last_name
@@ -203,14 +356,14 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        email = request.form['email']  # Changed from username to email
         password = request.form['password']
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=email).first()  # Username is email
         if user and user.check_password(password):
             login_user(user)
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid username or password')
+            flash('Invalid email or password')
     return render_template('login.html')
 
 
@@ -482,16 +635,18 @@ def create_default_users():
         if not User.query.first():
             # Create default admin user
             admin = User(
-                username='admin',
+                username='admin@example.com',  # Use email as username
                 email='admin@example.com',
                 first_name='Admin',
-                last_name='User'
+                last_name='User',
+                is_admin=True  # Make this user an admin
             )
             admin.set_password(os.environ.get('ADMIN_DEFAULT_PASSWORD', 'admin123'))
             db.session.add(admin)
+            
             # Create sample user
             user = User(
-                username='runner',
+                username='runner@example.com',  # Use email as username
                 email='runner@example.com',
                 first_name='Test',
                 last_name='Runner'
