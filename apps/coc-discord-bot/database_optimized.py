@@ -977,7 +977,7 @@ def get_all_players_with_stars():
     """Get all players with their CWL stars"""
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT name, cwl_stars, missed_attacks FROM players WHERE active = 1 ORDER BY cwl_stars DESC, name")
+        cur.execute("SELECT name, cwl_stars, missed_attacks FROM players WHERE (inactive = 0 OR inactive IS FALSE OR inactive IS NULL) ORDER BY cwl_stars DESC, name")
         return [dict(row) for row in cur.fetchall()]
 
 @performance_decorator("database.reset_all_cwl_stars")
@@ -1252,7 +1252,8 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
         cur.execute("""
             SELECT name, tag, COALESCE(cwl_stars, 0) as cwl_stars, COALESCE(missed_attacks, 0) as missed_attacks
             FROM players 
-            WHERE active = 1 AND (COALESCE(cwl_stars, 0) > 0 OR COALESCE(missed_attacks, 0) > 0)
+            WHERE (inactive = 0 OR inactive IS FALSE OR inactive IS NULL) 
+            AND (COALESCE(cwl_stars, 0) > 0 OR COALESCE(missed_attacks, 0) > 0)
         """)
         
         players_data = cur.fetchall()
