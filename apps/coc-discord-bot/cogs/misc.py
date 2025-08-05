@@ -76,7 +76,7 @@ class MiscCog(commands.Cog):
                 value=(
                     "• `/give_cwl_bonuses [count]` - Award CWL bonuses (Admin/Leader/Co)\n"
                     "• `/bonus_history_all` - View all player bonus history\n"
-                    "• `/next_bonuses` - See who's next in line for bonuses"
+                    "• `/on_deck` - See which players are currently on deck for bonuses"
                 ),
                 inline=False
             )

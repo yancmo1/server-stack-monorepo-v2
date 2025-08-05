@@ -294,15 +294,14 @@ class BonusesCog(commands.Cog):
             await interaction.followup.send(f"Error retrieving bonus history: {e}", ephemeral=True)
 
     @app_commands.command(
-        name="next_bonuses",
-        description="Show next players in line for bonuses — Admin, Leader, Co-Leader, Elder, Member"
+        name="on_deck",
+        description="Show players currently on deck for bonuses — Admin, Leader, Co-Leader, Elder, Member"
     )
     @app_commands.check(is_admin_leader_co_elder_member)
     @app_commands.guilds(GUILD_ID)
-    async def next_bonuses(self, interaction: discord.Interaction):
-        """Show next players in line for bonuses"""
+    async def on_deck(self, interaction: discord.Interaction):
+        """Show players currently on deck for bonuses"""
         await interaction.response.defer(ephemeral=True)
-        
         try:
             players = database.get_player_data()
             # Exclude newbies for rotation
@@ -326,17 +325,17 @@ class BonusesCog(commands.Cog):
                 return (bonus_count, last_bonus)
 
             eligible.sort(key=sort_key)
-            next_five = eligible[:5]
+            on_deck_players = eligible[:5]
             pending_extra = eligible[5:9]
-            
+
             embed = discord.Embed(
-                title="Next in Line for Bonuses", color=discord.Color.blue()
+                title="Players On Deck for Bonuses", color=discord.Color.blue()
             )
-            
-            if next_five:
+
+            if on_deck_players:
                 embed.add_field(
                     name="ON DECK",
-                    value="\n".join(f"• {p['name']}" for p in next_five),
+                    value="\n".join(f"• {p['name']}" for p in on_deck_players),
                     inline=False,
                 )
             if pending_extra:
@@ -346,12 +345,12 @@ class BonusesCog(commands.Cog):
                     + "\n\n* Subject to bonus rewards and leaders decision.",
                     inline=False,
                 )
-            
+
             await interaction.followup.send(embed=embed, ephemeral=True)
-            
+
         except Exception as e:
-            logger.error(f"Error in next_bonuses: {e}", exc_info=True)
-            await interaction.followup.send(f"Error retrieving next bonuses: {e}", ephemeral=True)
+            logger.error(f"Error in on_deck: {e}", exc_info=True)
+            await interaction.followup.send(f"Error retrieving on deck players: {e}", ephemeral=True)
 
 def member_days(join_date_str):
     """Calculate number of days since player joined"""
@@ -446,65 +445,6 @@ def member_days(join_date_str):
             logger.error(f"Error in bonus_history_all: {e}", exc_info=True)
             await interaction.followup.send(f"Error retrieving bonus history: {e}", ephemeral=True)
 
-    @app_commands.command(
-        name="next_bonuses",
-        description="Show next players in line for bonuses — Admin, Leader, Co-Leader, Elder, Member"
-    )
-    @app_commands.check(is_admin_leader_co_elder_member)
-    @app_commands.guilds(GUILD_ID)
-    async def next_bonuses(self, interaction: discord.Interaction):
-        """Show next players in line for bonuses"""
-        await interaction.response.defer(ephemeral=True)
-        
-        try:
-            players = database.get_player_data()
-            # Exclude newbies for rotation
-            eligible = [
-                p
-                for p in players
-                if p.get("bonus_eligibility", 0) and not is_newbie(p.get("join_date", ""))
-            ]
-
-            # Sort eligible by bonus_count, then last_bonus_date
-            def sort_key(p):
-                bonus_count = int(p.get("bonus_count", 0) or 0)
-                last_bonus = p.get("last_bonus_date")
-                if last_bonus:
-                    try:
-                        last_bonus = datetime.strptime(last_bonus, "%Y-%m-%d")
-                    except Exception:
-                        last_bonus = datetime.min
-                else:
-                    last_bonus = datetime.min
-                return (bonus_count, last_bonus)
-
-            eligible.sort(key=sort_key)
-            next_five = eligible[:5]
-            pending_extra = eligible[5:9]
-            
-            embed = discord.Embed(
-                title="Next in Line for Bonuses", color=discord.Color.blue()
-            )
-            
-            if next_five:
-                embed.add_field(
-                    name="ON DECK",
-                    value="\n".join(f"• {p['name']}" for p in next_five),
-                    inline=False,
-                )
-            if pending_extra:
-                embed.add_field(
-                    name="Pending Extra Bonuses *",
-                    value="\n".join(f"• {p['name']}" for p in pending_extra)
-                    + "\n\n* Subject to bonus rewards and leaders decision.",
-                    inline=False,
-                )
-            
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"Error in next_bonuses: {e}", exc_info=True)
-            await interaction.followup.send(f"Error retrieving next bonuses: {e}", ephemeral=True)
 
 # ...existing code...
 
