@@ -21,12 +21,14 @@ show_help() {
     echo "  all               Deploy all services (default)"
     echo "  tracker           Deploy only tracker"
     echo "  dashboard         Deploy only dashboard"
+    echo "  bot               Deploy only coc-discord-bot"
     echo "  no-bot           Deploy all except coc-discord-bot"
     echo ""
     echo "Examples:"
     echo "  ./deploy.sh                           # Deploy all with auto message"
     echo "  ./deploy.sh all \"Updated dashboard\"   # Deploy all with custom message"
     echo "  ./deploy.sh tracker \"Fix login bug\"   # Deploy only tracker"
+    echo "  ./deploy.sh bot \"Updated bot commands\" # Deploy only coc-discord-bot"
     echo "  ./deploy.sh no-bot                   # Deploy without bot"
 }
 
@@ -75,6 +77,9 @@ deploy_to_server() {
         if [ "$service" = "no-bot" ]; then
             echo "Deploying all services except bot..."
             docker compose up -d --build dashboard tracker clan-map qsl-card-creator cruise-price-check
+        elif [ "$service" = "bot" ]; then
+            echo "Deploying coc-discord-bot only..."
+            docker compose up -d --build coc-discord-bot
         elif [ "$service" = "all" ] || [ -z "$service" ]; then
             echo "Deploying all services..."
             docker compose down
@@ -104,7 +109,7 @@ case "${1:-all}" in
         commit_and_push "$2"
         deploy_to_server "all"
         ;;
-    tracker|dashboard|clan-map|cruise-price-check|qsl-card-creator)
+    tracker|dashboard|clan-map|cruise-price-check|qsl-card-creator|bot)
         commit_and_push "$2"
         deploy_to_server "$1"
         ;;
