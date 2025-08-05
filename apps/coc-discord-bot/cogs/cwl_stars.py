@@ -104,13 +104,24 @@ class CWLStarsCog(commands.Cog):
                     
                     if clan_in_war and our_clan_data:
                         logger.info(f"Found our clan in Round {round_num} war {war_tag}")
+                        
+                        # Get opponent data
+                        opponent_data = None
+                        if war_data.get('clan', {}).get('tag') == our_clan_tag:
+                            # We are 'clan', opponent is 'opponent'
+                            opponent_data = war_data.get('opponent', {})
+                        else:
+                            # We are 'opponent', opponent is 'clan'
+                            opponent_data = war_data.get('clan', {})
+                        
                         war_info = {
                             'round': round_num,
                             'war_tag': war_tag,
                             'state': war_data.get('state', 'unknown'),
                             'start_time': war_data.get('startTime'),
                             'end_time': war_data.get('endTime'),
-                            'clan_data': our_clan_data
+                            'clan_data': our_clan_data,
+                            'opponent_data': opponent_data
                         }
                         all_wars.append(war_info)
                 
@@ -150,6 +161,16 @@ class CWLStarsCog(commands.Cog):
             }
             
             logger.info(f"Round {war['round']}: Processing {len(members)} members vs {war_info['opponent']}")
+            logger.info(f"Round {war['round']}: Our {war_info['our_stars']} vs Opponent {war_info['opponent_stars']} stars")
+            
+            # Get all players who attacked (for missed attack calculation)
+            attackers = set()
+            for member in members:
+                attacks = member.get('attacks', [])
+                if attacks:
+                    attackers.add(member.get('tag', ''))
+            
+            logger.info(f"Round {war['round']}: {len(attackers)} out of {len(members)} players attacked")
             
             for member in members:
                 tag = member.get('tag', '')
@@ -161,9 +182,13 @@ class CWLStarsCog(commands.Cog):
                 total_destruction = sum(attack.get('destructionPercentage', 0) for attack in attacks)
                 avg_destruction = round(total_destruction / max(len(attacks), 1), 1)
                 
-                # Calculate missed attacks (CWL typically allows 1 attack per round)
-                expected_attacks = 1  # CWL format: 1 attack per round per player
-                missed_attacks = max(0, expected_attacks - len(attacks))
+                # Calculate missed attacks - player is expected to attack if they're in the war
+                # In CWL, not everyone may be expected to attack depending on strategy
+                # A player "missed" if they have 0 attacks but other players attacked
+                missed_attacks = 0
+                if len(attacks) == 0 and len(attackers) > 0:
+                    # Only count as missed if other players attacked (war is active)
+                    missed_attacks = 1
                 
                 # Add to war player details
                 war_info['players'].append({
@@ -522,6 +547,113 @@ class CWLStarsCog(commands.Cog):
             logger.error(f"Error in cwl_leaderboard: {e}")
             await interaction.followup.send(f"❌ Error generating leaderboard: {str(e)}")
 
+
+    @app_commands.command(
+        name="debug_cwl_api",
+        description="Debug CWL API response (Admin only)"
+    )
+    @app_commands.guilds(GUILD_ID)
+    async def debug_cwl_api(self, interaction: discord.Interaction):
+        """Debug the CWL API response to see raw data"""
+        # Check admin permissions
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("❌ This command requires server membership.", ephemeral=True)
+            return
+        
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ This command requires admin permissions.", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            # Fetch a single war for debugging
+            wars = await self.fetch_cwl_wars()
+            
+            if not wars:
+                await interaction.followup.send("❌ No wars found to debug", ephemeral=True)
+                return
+            
+            # Take the first war for detailed analysis
+            war = wars[0]
+            
+            embed = discord.Embed(
+                title="🐛 CWL API Debug Info",
+                description=f"Debug info for Round {war['round']}",
+                color=0x9932cc
+            )
+            
+            # War basic info
+            clan_data = war.get('clan_data', {})
+            opponent_data = war.get('opponent_data', {})
+            
+            embed.add_field(
+                name="War Info",
+                value=f"**Round:** {war['round']}\n"
+                      f"**State:** {war.get('state', 'unknown')}\n"
+                      f"**War Tag:** {war.get('war_tag', 'unknown')}",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="Our Clan Data",
+                value=f"**Name:** {clan_data.get('name', 'Unknown')}\n"
+                      f"**Tag:** {clan_data.get('tag', 'Unknown')}\n"
+                      f"**Stars:** {clan_data.get('stars', 0)}\n"
+                      f"**Destruction:** {clan_data.get('destructionPercentage', 0)}%\n"
+                      f"**Members:** {len(clan_data.get('members', []))}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="Opponent Data",
+                value=f"**Name:** {opponent_data.get('name', 'Unknown')}\n"
+                      f"**Tag:** {opponent_data.get('tag', 'Unknown')}\n"
+                      f"**Stars:** {opponent_data.get('stars', 0)}\n"
+                      f"**Destruction:** {opponent_data.get('destructionPercentage', 0)}%\n"
+                      f"**Members:** {len(opponent_data.get('members', []))}",
+                inline=True
+            )
+            
+            # Sample player data
+            members = clan_data.get('members', [])
+            if members:
+                sample_member = members[0]
+                attacks = sample_member.get('attacks', [])
+                
+                embed.add_field(
+                    name="Sample Player",
+                    value=f"**Name:** {sample_member.get('name', 'Unknown')}\n"
+                          f"**Tag:** {sample_member.get('tag', 'Unknown')}\n"
+                          f"**Attacks:** {len(attacks)}\n"
+                          f"**Stars:** {sum(a.get('stars', 0) for a in attacks)}",
+                    inline=False
+                )
+                
+                if attacks:
+                    attack = attacks[0]
+                    embed.add_field(
+                        name="Sample Attack",
+                        value=f"**Target:** {attack.get('defenderTag', 'Unknown')}\n"
+                              f"**Stars:** {attack.get('stars', 0)}\n"
+                              f"**Destruction:** {attack.get('destructionPercentage', 0)}%",
+                        inline=False
+                    )
+            
+            # Show total wars found
+            rounds_list = ', '.join([f"Round {w['round']}" for w in wars])
+            embed.add_field(
+                name="Total Wars Found",
+                value=f"**Count:** {len(wars)}\n"
+                      f"**Rounds:** {rounds_list}",
+                inline=False
+            )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in debug_cwl_api: {e}")
+            await interaction.followup.send(f"❌ Debug error: {str(e)}", ephemeral=True)
 
     @app_commands.command(
         name="clear_cwl_data",
