@@ -1426,6 +1426,11 @@ __all__ = [
     'reset_all_cwl_stars',
     'reset_all_missed_attacks',
     'update_player_cwl_stars',
+    'update_player_cwl_data',
+    'reset_cwl_season_data',
+    'check_war_already_processed',
+    'mark_war_processed',
+    'create_processed_wars_table',
 ]
 
 
@@ -1436,4 +1441,75 @@ def update_player_cwl_stars(player_tag, total_stars):
         # Update player's total stars by tag
         cur.execute("UPDATE players SET cwl_stars = %s WHERE tag = %s", (total_stars, player_tag))
         logger.info(f"Updated player {player_tag} CWL stars to {total_stars}")
+
+
+def update_player_cwl_data(player_tag, total_stars, missed_attacks):
+    """Update a player's CWL stars and missed attacks"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        # Update both CWL stars and missed attacks
+        cur.execute("""
+            UPDATE players 
+            SET cwl_stars = %s, missed_attacks = %s 
+            WHERE tag = %s
+        """, (total_stars, missed_attacks, player_tag))
+        logger.info(f"Updated player {player_tag}: {total_stars} CWL stars, {missed_attacks} missed attacks")
+
+
+def reset_cwl_season_data():
+    """Reset CWL stars and missed attacks for new season"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        # Reset both CWL stars and missed attacks
+        cur.execute("UPDATE players SET cwl_stars = 0, missed_attacks = 0")
+        affected_rows = cur.rowcount
+        logger.info(f"Reset CWL season data for {affected_rows} players")
+        return affected_rows
+
+
+def check_war_already_processed(war_tag, season_id=None):
+    """Check if a specific war has already been processed"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        # Check if we have a record of this war being processed
+        cur.execute("""
+            SELECT COUNT(*) FROM processed_wars 
+            WHERE war_tag = %s AND (season_id = %s OR %s IS NULL)
+        """, (war_tag, season_id, season_id))
+        result = cur.fetchone()
+        count = result[0] if result else 0
+        return count > 0
+
+
+def mark_war_processed(war_tag, season_id=None):
+    """Mark a war as processed to prevent duplicate processing"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        # Insert or update the processed war record
+        cur.execute("""
+            INSERT INTO processed_wars (war_tag, season_id, processed_at) 
+            VALUES (%s, %s, NOW()) 
+            ON CONFLICT (war_tag, COALESCE(season_id, '')) DO UPDATE SET processed_at = NOW()
+        """, (war_tag, season_id))
+        logger.info(f"Marked war {war_tag} as processed for season {season_id}")
+
+
+def create_processed_wars_table():
+    """Create the processed_wars table if it doesn't exist"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS processed_wars (
+                id SERIAL PRIMARY KEY,
+                war_tag VARCHAR(50) NOT NULL,
+                season_id VARCHAR(50),
+                processed_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        # Create unique index to handle NULL season_id properly
+        cur.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS processed_wars_unique_idx 
+            ON processed_wars (war_tag, COALESCE(season_id, ''))
+        """)
+        logger.info("Created/verified processed_wars table")
 

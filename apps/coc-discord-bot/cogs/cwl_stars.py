@@ -161,12 +161,17 @@ class CWLStarsCog(commands.Cog):
                 total_destruction = sum(attack.get('destructionPercentage', 0) for attack in attacks)
                 avg_destruction = round(total_destruction / max(len(attacks), 1), 1)
                 
+                # Calculate missed attacks (CWL typically allows 1 attack per round)
+                expected_attacks = 1  # CWL format: 1 attack per round per player
+                missed_attacks = max(0, expected_attacks - len(attacks))
+                
                 # Add to war player details
                 war_info['players'].append({
                     'name': name,
                     'tag': tag,
                     'stars': total_stars,
                     'attacks': len(attacks),
+                    'missed_attacks': missed_attacks,
                     'avg_destruction': avg_destruction
                 })
                 
@@ -176,15 +181,19 @@ class CWLStarsCog(commands.Cog):
                         'name': name,
                         'total_stars': 0,
                         'attacks': 0,
+                        'missed_attacks': 0,
                         'wars_participated': 0
                     }
                 
                 player_stars[tag]['total_stars'] += total_stars
                 player_stars[tag]['attacks'] += len(attacks)
+                player_stars[tag]['missed_attacks'] += missed_attacks
                 player_stars[tag]['wars_participated'] += 1
                 
                 if total_stars > 0:
                     logger.info(f"Player {name} ({tag}): {total_stars} stars in Round {war['round']}")
+                if missed_attacks > 0:
+                    logger.info(f"Player {name} ({tag}): {missed_attacks} missed attacks in Round {war['round']}")
             
             # Sort players by stars in this war
             war_info['players'].sort(key=lambda p: p['stars'], reverse=True)
@@ -217,8 +226,9 @@ class CWLStarsCog(commands.Cog):
                 performers_text = []
                 for i, player in enumerate(top_performers, 1):
                     star_emoji = "⭐" * player['stars'] if player['stars'] <= 3 else f"{player['stars']}⭐"
+                    missed_indicator = " ❌" if player['missed_attacks'] > 0 else ""
                     performers_text.append(
-                        f"{i}. **{player['name']}**: {star_emoji} "
+                        f"{i}. **{player['name']}**: {star_emoji}{missed_indicator} "
                         f"({player['attacks']} attacks, {player['avg_destruction']}% avg)"
                     )
                 
@@ -228,9 +238,23 @@ class CWLStarsCog(commands.Cog):
                     inline=False
                 )
             
+            # Show missed attacks if any
+            missed_players = [p for p in war_info['players'] if p['missed_attacks'] > 0]
+            if missed_players:
+                missed_text = []
+                for player in missed_players[:10]:  # Show up to 10 missed
+                    missed_text.append(f"❌ **{player['name']}** - {player['missed_attacks']} missed")
+                
+                embed.add_field(
+                    name="⚠️ Missed Attacks",
+                    value="\n".join(missed_text),
+                    inline=False
+                )
+            
             # War statistics
             total_attacks = sum(p['attacks'] for p in war_info['players'])
             total_war_stars = sum(p['stars'] for p in war_info['players'])
+            total_missed = sum(p['missed_attacks'] for p in war_info['players'])
             participants = len([p for p in war_info['players'] if p['attacks'] > 0])
             
             embed.add_field(
@@ -238,6 +262,7 @@ class CWLStarsCog(commands.Cog):
                 value=f"**Participants:** {participants}/{len(war_info['players'])}\n"
                       f"**Total Attacks:** {total_attacks}\n"
                       f"**Total Stars:** {total_war_stars}\n"
+                      f"**Missed Attacks:** {total_missed}\n"
                       f"**Avg Stars/Attack:** {total_war_stars/max(total_attacks,1):.1f}",
                 inline=True
             )
@@ -259,6 +284,9 @@ class CWLStarsCog(commands.Cog):
         try:
             logger.info(f"CWL stars fetch requested by {interaction.user.display_name}")
             
+            # Initialize the processed wars table
+            database.create_processed_wars_table()
+            
             # Fetch wars from API
             await interaction.followup.send("🔄 Fetching CWL wars from Clash of Clans API...")
             wars = await self.fetch_cwl_wars()
@@ -267,61 +295,115 @@ class CWLStarsCog(commands.Cog):
                 await interaction.followup.send("❌ Failed to fetch CWL wars. Check if clan is in CWL or try again later.")
                 return
             
-            await interaction.followup.send(f"📊 Found {len(wars)} CWL wars. Processing player stars...")
+            # Check which wars are new (not processed yet)
+            new_wars = []
+            already_processed = []
             
-            # Extract player stars and war details
-            player_stars, war_details = self.extract_player_stars(wars)
+            for war in wars:
+                war_tag = war.get('war_tag', '')
+                if war_tag and not database.check_war_already_processed(war_tag):
+                    new_wars.append(war)
+                else:
+                    already_processed.append(war)
             
-            if not player_stars:
-                await interaction.followup.send("❌ No player data found in CWL wars.")
+            await interaction.followup.send(
+                f"📊 Found {len(wars)} CWL wars total. "
+                f"{len(new_wars)} new wars to process, {len(already_processed)} already processed."
+            )
+            
+            if not new_wars:
+                await interaction.followup.send("✅ All wars have been processed already. No new data to update.")
                 return
             
-            # Update database
+            # Extract player stars and war details from new wars only
+            player_stars, war_details = self.extract_player_stars(new_wars)
+            
+            if not player_stars:
+                await interaction.followup.send("❌ No player data found in new CWL wars.")
+                return
+            
+            # Get current database values to add to (not replace)
+            current_players = database.get_player_data()
+            current_cwl_data = {p.get('tag'): {
+                'cwl_stars': p.get('cwl_stars', 0),
+                'missed_attacks': p.get('missed_attacks', 0)
+            } for p in current_players}
+            
+            # Update database with incremental data
             updated_count = 0
             for tag, player_data in player_stars.items():
                 try:
-                    # Update player's CWL stars in database
-                    database.update_player_cwl_stars(tag, player_data['total_stars'])
+                    # Add new stars and missed attacks to existing totals
+                    current_stars = current_cwl_data.get(tag, {}).get('cwl_stars', 0)
+                    current_missed = current_cwl_data.get(tag, {}).get('missed_attacks', 0)
+                    
+                    new_total_stars = current_stars + player_data['total_stars']
+                    new_total_missed = current_missed + player_data['missed_attacks']
+                    
+                    # Update player's CWL data in database
+                    database.update_player_cwl_data(tag, new_total_stars, new_total_missed)
                     updated_count += 1
-                    logger.info(f"Updated {player_data['name']} ({tag}): {player_data['total_stars']} stars")
+                    
+                    logger.info(f"Updated {player_data['name']} ({tag}): "
+                              f"{new_total_stars} total stars (+{player_data['total_stars']}), "
+                              f"{new_total_missed} total missed (+{player_data['missed_attacks']})")
                 except Exception as e:
                     logger.error(f"Failed to update player {tag}: {e}")
             
-            # Send detailed war-by-war results first
-            await self.send_war_details(interaction, war_details)
+            # Mark wars as processed
+            for war in new_wars:
+                war_tag = war.get('war_tag', '')
+                if war_tag:
+                    database.mark_war_processed(war_tag)
+            
+            # Send detailed war-by-war results for new wars only
+            if new_wars:
+                await interaction.followup.send("📋 **New War Details:**")
+                await self.send_war_details(interaction, war_details)
             
             # Create summary embed
             embed = discord.Embed(
                 title="✅ CWL Stars Updated",
-                description=f"Successfully fetched and updated CWL stars from {len(wars)} wars",
+                description=f"Successfully processed {len(new_wars)} new CWL wars",
                 color=0x00ff00
             )
             
-            rounds_text = ', '.join([f"Round {w['round']}" for w in wars])
-            embed.add_field(
-                name="Wars Processed", 
-                value=f"**Rounds:** {rounds_text}\n"
-                      f"**Total Wars:** {len(wars)}",
-                inline=False
-            )
+            if new_wars:
+                rounds_text = ', '.join([f"Round {w['round']}" for w in new_wars])
+                embed.add_field(
+                    name="New Wars Processed", 
+                    value=f"**Rounds:** {rounds_text}\n"
+                          f"**New Wars:** {len(new_wars)}",
+                    inline=False
+                )
+            
+            if already_processed:
+                processed_rounds = ', '.join([f"Round {w['round']}" for w in already_processed])
+                embed.add_field(
+                    name="Previously Processed", 
+                    value=f"**Rounds:** {processed_rounds}\n"
+                          f"**Wars:** {len(already_processed)}",
+                    inline=False
+                )
             
             embed.add_field(
                 name="Players Updated",
                 value=f"**Count:** {updated_count}\n"
-                      f"**Total Stars:** {sum(p['total_stars'] for p in player_stars.values())}",
+                      f"**New Stars Added:** {sum(p['total_stars'] for p in player_stars.values())}\n"
+                      f"**New Missed Attacks:** {sum(p['missed_attacks'] for p in player_stars.values())}",
                 inline=False
             )
             
-            # Show top performers
-            top_players = sorted(player_stars.values(), key=lambda x: x['total_stars'], reverse=True)[:5]
-            if top_players:
+            # Show top performers from new data
+            if player_stars:
+                top_players = sorted(player_stars.values(), key=lambda x: x['total_stars'], reverse=True)[:5]
                 top_text = "\n".join([
-                    f"⭐ {p['name']}: {p['total_stars']} stars ({p['attacks']} attacks)"
-                    for p in top_players if p['total_stars'] > 0
+                    f"⭐ {p['name']}: +{p['total_stars']} stars, +{p['missed_attacks']} missed"
+                    for p in top_players if p['total_stars'] > 0 or p['missed_attacks'] > 0
                 ])
                 embed.add_field(
-                    name="Top Performers",
-                    value=top_text if top_text else "No attacks found yet",
+                    name="New Activity (This Fetch)",
+                    value=top_text if top_text else "No new activity found",
                     inline=False
                 )
             
@@ -329,17 +411,19 @@ class CWLStarsCog(commands.Cog):
                 name="Next Steps",
                 value="• Use `/bonuses` to see updated CWL performance\n"
                       "• Use `/give_cwl_bonuses` to distribute rewards\n"
-                      "• Data will be preserved when season resets",
+                      "• Run command again to fetch any new completed wars\n"
+                      "• Data is safely accumulated (no duplicates)",
                 inline=False
             )
             
-            embed.set_footer(text=f"Updated by {interaction.user.display_name}")
+            embed.set_footer(text=f"Updated by {interaction.user.display_name} • Wars safely tracked")
             embed.timestamp = datetime.now()
             
             await interaction.followup.send(embed=embed)
             
             logger.info(f"CWL stars fetch completed: {updated_count} players updated, "
-                       f"{sum(p['total_stars'] for p in player_stars.values())} total stars")
+                       f"{sum(p['total_stars'] for p in player_stars.values())} new stars added, "
+                       f"{sum(p['missed_attacks'] for p in player_stars.values())} new missed attacks")
         
         except Exception as e:
             logger.error(f"Error in fetch_cwl_stars command: {e}")
@@ -373,6 +457,7 @@ class CWLStarsCog(commands.Cog):
             leaderboard_text = ""
             for i, player in enumerate(cwl_players[:15], 1):
                 stars = player.get('cwl_stars', 0)
+                missed = player.get('missed_attacks', 0)
                 name = player.get('name', 'Unknown')
                 
                 # Add medal emojis for top 3
@@ -384,7 +469,10 @@ class CWLStarsCog(commands.Cog):
                 elif i == 3:
                     medal = "🥉 "
                 
-                leaderboard_text += f"{medal}**{i}.** {name}: **{stars}** ⭐\n"
+                # Add missed attacks indicator
+                missed_indicator = f" (❌{missed})" if missed > 0 else ""
+                
+                leaderboard_text += f"{medal}**{i}.** {name}: **{stars}** ⭐{missed_indicator}\n"
             
             embed.add_field(
                 name="Top Performers",
@@ -392,16 +480,40 @@ class CWLStarsCog(commands.Cog):
                 inline=False
             )
             
-            total_stars = sum(p.get('cwl_stars', 0) for p in players)
+            # Show missed attacks summary
+            all_players = [p for p in players if p.get('cwl_stars', 0) > 0 or p.get('missed_attacks', 0) > 0]
+            total_stars = sum(p.get('cwl_stars', 0) for p in all_players)
+            total_missed = sum(p.get('missed_attacks', 0) for p in all_players)
+            players_with_missed = len([p for p in all_players if p.get('missed_attacks', 0) > 0])
+            
             embed.add_field(
                 name="Season Summary",
-                value=f"**Total Players:** {len(cwl_players)}\n"
+                value=f"**Active Players:** {len(cwl_players)}\n"
                       f"**Total Stars:** {total_stars}\n"
-                      f"**Average:** {total_stars/len(cwl_players):.1f} stars per player",
+                      f"**Total Missed Attacks:** {total_missed}\n"
+                      f"**Players with Missed Attacks:** {players_with_missed}\n"
+                      f"**Average Stars:** {total_stars/len(cwl_players):.1f} per player",
                 inline=False
             )
             
-            embed.set_footer(text="Use /fetch_cwl_stars to update from API")
+            # Show worst missed attacks
+            if players_with_missed > 0:
+                missed_players = [p for p in all_players if p.get('missed_attacks', 0) > 0]
+                missed_players.sort(key=lambda x: x.get('missed_attacks', 0), reverse=True)
+                
+                worst_missed = []
+                for player in missed_players[:5]:
+                    missed = player.get('missed_attacks', 0)
+                    stars = player.get('cwl_stars', 0)
+                    worst_missed.append(f"❌ {player.get('name', 'Unknown')}: {missed} missed ({stars} ⭐)")
+                
+                embed.add_field(
+                    name="⚠️ Most Missed Attacks",
+                    value="\n".join(worst_missed),
+                    inline=False
+                )
+            
+            embed.set_footer(text="Use /fetch_cwl_stars to update from API • ❌ = missed attacks")
             embed.timestamp = datetime.now()
             
             await interaction.followup.send(embed=embed)
@@ -409,6 +521,59 @@ class CWLStarsCog(commands.Cog):
         except Exception as e:
             logger.error(f"Error in cwl_leaderboard: {e}")
             await interaction.followup.send(f"❌ Error generating leaderboard: {str(e)}")
+
+
+    @app_commands.command(
+        name="reset_processed_wars",
+        description="Reset processed wars tracking (Admin only - for testing)"
+    )
+    @app_commands.guilds(GUILD_ID)
+    async def reset_processed_wars(self, interaction: discord.Interaction):
+        """Reset the processed wars table for testing"""
+        # Check if user has admin permissions (simplified check)
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("❌ This command requires server membership.", ephemeral=True)
+            return
+        
+        # Basic admin check - user needs to be able to manage server
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ This command requires admin permissions.", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            with database.get_optimized_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("DELETE FROM processed_wars")
+                deleted_count = cur.rowcount
+            
+            embed = discord.Embed(
+                title="🔄 Processed Wars Reset",
+                description=f"Cleared {deleted_count} processed war records",
+                color=0xff9900
+            )
+            
+            embed.add_field(
+                name="Effect",
+                value="All wars will be processed as 'new' on next `/fetch_cwl_stars` run.\n"
+                      "This will re-add stars and missed attacks to database totals.",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="⚠️ Warning",
+                value="Only use this for testing or if you need to reprocess wars.\n"
+                      "Consider resetting CWL season data first to avoid duplicates.",
+                inline=False
+            )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            logger.info(f"Processed wars table reset by {interaction.user.display_name}")
+        
+        except Exception as e:
+            logger.error(f"Error resetting processed wars: {e}")
+            await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
 
 async def setup(bot):
