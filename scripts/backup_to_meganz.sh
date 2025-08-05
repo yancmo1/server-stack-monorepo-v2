@@ -10,8 +10,15 @@ BACKUP_TMP="/tmp/$BACKUP_NAME"
 MEGA_FOLDER="/UBUNTU-MAC"
 LOG_FILE="$HOME/backup_meganz.log"
 
-# Create compressed archive (exclude __pycache__, .git, node_modules, and tmp files)
-tar --exclude='*/__pycache__' --exclude='.git' --exclude='node_modules' --exclude='*.pyc' -czf "$BACKUP_TMP" -C "$BACKUP_SRC" . | tee -a "$LOG_FILE"
+
+# Create a file list for easy searching later
+FILELIST_TMP="/tmp/$(basename "$BACKUP_TMP" .tar.gz).filelist.txt"
+find "$BACKUP_SRC" -type f > "$FILELIST_TMP"
+
+# Create compressed archive (include file list)
+tar --exclude='*/__pycache__' --exclude='.git' --exclude='node_modules' --exclude='*.pyc' \
+    -czf "$BACKUP_TMP" -C "$BACKUP_SRC" . \
+    -C /tmp "$(basename "$FILELIST_TMP")" | tee -a "$LOG_FILE"
 
 # Upload to MEGA UBUNTU-MAC folder using MEGAcmd batch mode
 
@@ -20,8 +27,10 @@ EMAIL="yancmo@gmail.com"
 PASSWORD="${MEGA_PASSWORD:?MEGA_PASSWORD not set in environment}"
 echo -e "login $EMAIL $PASSWORD\nput $BACKUP_TMP $MEGA_FOLDER\nexit" | /usr/bin/mega-cmd | tee -a "$LOG_FILE"
 
-# Remove local temp backup
+
+# Remove local temp backup and file list
 rm -f "$BACKUP_TMP"
+rm -f "$FILELIST_TMP"
 
 # Prune old backups (keep only 5 most recent in MEGA UBUNTU-MAC)
 echo -e "login $EMAIL $PASSWORD\nls $MEGA_FOLDER\nexit" | /usr/bin/mega-cmd > /tmp/mega_ls.txt
