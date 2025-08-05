@@ -414,7 +414,7 @@ class BonusesCog(commands.Cog):
                     next_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}")
                 
                 embed.add_field(
-                    name="⏳ Next in Line (60+ Day Members)",
+                    name="⏳ Next in Line",
                     value="\n".join(next_text),
                     inline=False,
                 )
