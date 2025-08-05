@@ -346,6 +346,8 @@ class BonusesCog(commands.Cog):
                         last_bonus_str = str(last_bonus)
                         if 'T' in last_bonus_str:  # ISO format with time
                             last_bonus = datetime.strptime(last_bonus_str.split('T')[0], "%Y-%m-%d")
+                        elif ' ' in last_bonus_str:  # PostgreSQL timestamp format
+                            last_bonus = datetime.strptime(last_bonus_str.split(' ')[0], "%Y-%m-%d")
                         else:
                             last_bonus = datetime.strptime(last_bonus_str, "%Y-%m-%d")
                     except Exception as e:
@@ -364,6 +366,8 @@ class BonusesCog(commands.Cog):
                     try:
                         if 'T' in join_date_str:  # ISO format with time
                             return datetime.strptime(join_date_str.split('T')[0], "%Y-%m-%d")
+                        elif ' ' in join_date_str:  # PostgreSQL timestamp format
+                            return datetime.strptime(join_date_str.split(' ')[0], "%Y-%m-%d")
                         else:
                             return datetime.strptime(join_date_str, "%Y-%m-%d")
                     except Exception as e:

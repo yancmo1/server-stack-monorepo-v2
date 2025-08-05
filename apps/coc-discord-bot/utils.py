@@ -31,6 +31,8 @@ def is_newbie(join_date_str):
         # Handle different date formats
         if 'T' in join_date_str:  # ISO format with time
             join_date = datetime.strptime(join_date_str.split('T')[0], "%Y-%m-%d")
+        elif ' ' in join_date_str:  # PostgreSQL timestamp format
+            join_date = datetime.strptime(join_date_str.split(' ')[0], "%Y-%m-%d")
         else:
             join_date = datetime.strptime(join_date_str, "%Y-%m-%d")
         
@@ -47,6 +49,8 @@ def format_last_bonus(date_str):
         # Handle different date formats
         if 'T' in date_str:  # ISO format with time
             date_obj = datetime.strptime(date_str.split('T')[0], "%Y-%m-%d")
+        elif ' ' in date_str:  # PostgreSQL timestamp format
+            date_obj = datetime.strptime(date_str.split(' ')[0], "%Y-%m-%d")
         else:
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
         
@@ -64,6 +68,8 @@ def days_ago(join_date_str):
         # Handle different date formats
         if 'T' in join_date_str:  # ISO format with time
             join_date = datetime.strptime(join_date_str.split('T')[0], "%Y-%m-%d")
+        elif ' ' in join_date_str:  # PostgreSQL timestamp format
+            join_date = datetime.strptime(join_date_str.split(' ')[0], "%Y-%m-%d")
         else:
             join_date = datetime.strptime(join_date_str, "%Y-%m-%d")
         
