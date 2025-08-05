@@ -15,7 +15,109 @@ from utils import (
 )
 
 GUILD_ID = discord.Object(id=config.GUILD_ID)
-logger = get_logger("cwl")
+logger = get_logger(__name__)
+
+class CWLResetConfirmView(discord.ui.View):
+    """Confirmation view for CWL reset with buttons"""
+    
+    def __init__(self, cwl_players, total_stars, total_missed):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.cwl_players = cwl_players
+        self.total_stars = total_stars
+        self.total_missed = total_missed
+        
+    @discord.ui.button(label="✅ Confirm Reset", style=discord.ButtonStyle.danger)
+    async def confirm_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Perform the actual CWL reset"""
+        await interaction.response.defer()
+        
+        try:
+            # Save current season data to history before reset
+            from datetime import datetime
+            now = datetime.now()
+            
+            # Save season snapshot
+            snapshot_result = database.save_cwl_season_snapshot(now.year, now.month)
+            
+            # Reset all CWL stats
+            reset_count = database.reset_all_cwl_stars()
+            missed_reset_count = database.reset_all_missed_attacks()
+            
+            # Create success embed
+            embed = discord.Embed(
+                title="✅ CWL Stats Reset Complete",
+                description=f"CWL statistics have been reset for new season by {interaction.user.display_name}",
+                color=discord.Color.green()
+            )
+            
+            embed.add_field(
+                name="📊 Reset Summary",
+                value=f"**Players reset:** {len(self.cwl_players)}
+"
+                      f"**Stars reset:** {self.total_stars}
+"
+                      f"**Missed attacks reset:** {self.total_missed}
+"
+                      f"**Database rows updated:** {reset_count + missed_reset_count}",
+                inline=False
+            )
+            
+            # Add history save info
+            embed.add_field(
+                name="💾 Season Data Archived",
+                value=f"**Season:** {now.year}-{now.month:02d}\n"
+                      f"**Players saved:** {snapshot_result['players_saved']}\n"
+                      f"**Historical data preserved for trend analysis**",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="🎯 Ready for New Season",
+                value="All CWL stars and missed attacks have been reset to 0.\n"
+                      "Players are ready for the new CWL season!",
+                inline=False
+            )
+            
+            embed.set_footer(text=f"Reset performed on {datetime.now().strftime('%Y-%m-%d at %H:%M UTC')}")
+            
+            # Disable all buttons
+            self.clear_items()
+            
+            await interaction.edit_original_response(embed=embed, view=self)
+            
+            # Log the reset with history info
+            logger.info(f"CWL stats reset completed by {interaction.user.display_name}: "
+                       f"{len(self.cwl_players)} players, {self.total_stars} stars, {self.total_missed} missed attacks. "
+                       f"Historical data saved for {now.year}-{now.month:02d}")
+                       
+        except Exception as e:
+            logger.error(f"Error performing CWL reset: {e}")
+            embed = discord.Embed(
+                title="❌ Reset Failed",
+                description=f"An error occurred during the reset: {str(e)}",
+                color=discord.Color.red()
+            )
+            await interaction.edit_original_response(embed=embed, view=None)
+    
+    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Cancel the reset operation"""
+        embed = discord.Embed(
+            title="❌ Reset Cancelled",
+            description="CWL reset has been cancelled. No changes were made.",
+            color=discord.Color.red()
+        )
+        
+        # Clear buttons
+        self.clear_items()
+            
+        await interaction.response.edit_message(embed=embed, view=self)
+    
+    async def on_timeout(self):
+        """Handle timeout"""
+        self.clear_items()
+
+logger = get_logger(__name__)
 
 class CWLCog(commands.Cog):
     """CWL (Clan War League) management commands"""
@@ -253,9 +355,8 @@ class CWLCog(commands.Cog):
     )
     @app_commands.check(is_admin_leader_co_leader)
     @app_commands.guilds(GUILD_ID)
-    @app_commands.describe(confirm="Type 'YES' to confirm the reset")
-    async def reset_cwl_stats(self, interaction: discord.Interaction, confirm: str = ""):
-        """Reset CWL statistics for new season"""
+    async def reset_cwl_stats(self, interaction: discord.Interaction):
+        """Reset CWL statistics for new season with button confirmation"""
         logger.info(f"[COMMAND] /reset_cwl_stats invoked by {interaction.user.display_name}")
         await interaction.response.defer(ephemeral=True)
         
@@ -263,124 +364,60 @@ class CWLCog(commands.Cog):
             players = database.get_player_data()
             cwl_players = [p for p in players if p.get("cwl_stars", 0) > 0 or p.get("missed_attacks", 0) > 0]
             
-            if confirm.upper() != "YES":
-                # Show preview
-                embed = discord.Embed(
-                    title="🔄 CWL Reset Preview",
-                    description="Preview of what would be reset for new CWL season",
-                    color=discord.Color.orange()
-                )
-                
-                if cwl_players:
-                    total_stars = sum(p.get("cwl_stars", 0) for p in cwl_players)
-                    total_missed = sum(p.get("missed_attacks", 0) for p in cwl_players)
-                    
-                    embed.add_field(
-                        name="📊 Current Stats to Reset",
-                        value=f"**Players with CWL data:** {len(cwl_players)}\n"
-                              f"**Total stars to reset:** {total_stars}\n"
-                              f"**Total missed attacks to reset:** {total_missed}",
-                        inline=False
-                    )
-                    
-                    # Show top stats that will be reset
-                    stars_leaders = sorted([p for p in cwl_players if p.get("cwl_stars", 0) > 0], 
-                                         key=lambda p: p.get("cwl_stars", 0), reverse=True)[:5]
-                    if stars_leaders:
-                        stars_text = []
-                        for p in stars_leaders:
-                            stars = p.get("cwl_stars", 0)
-                            missed = p.get("missed_attacks", 0)
-                            stars_text.append(f"• {p.get('name', 'Unknown')} - {stars} ⭐ ({missed} missed)")
-                        
-                        embed.add_field(
-                            name="⭐ Top Star Earners (to be reset)",
-                            value="\n".join(stars_text),
-                            inline=False
-                        )
-                    
-                    embed.add_field(
-                        name="⚠️ To Confirm Reset",
-                        value="Use the command again with: `/reset_cwl_stats confirm:YES`\n"
-                              "**Warning:** This action cannot be undone!",
-                        inline=False
-                    )
-                else:
-                    embed.add_field(
-                        name="✅ No Data to Reset",
-                        value="No CWL statistics found to reset.",
-                        inline=False
-                    )
-                
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return
-            
-            # Confirmed reset - execute it
             if not cwl_players:
                 await interaction.followup.send("✅ No CWL data to reset.", ephemeral=True)
                 return
             
-            # Save current season data to history before reset
-            from datetime import datetime
-            now = datetime.now()
-            
-            # Save season snapshot
-            snapshot_result = database.save_cwl_season_snapshot(now.year, now.month)
-            
-            # Backup current data before reset
+            # Calculate stats for preview
             total_stars = sum(p.get("cwl_stars", 0) for p in cwl_players)
             total_missed = sum(p.get("missed_attacks", 0) for p in cwl_players)
             
-            # Reset all CWL stats
-            reset_count = database.reset_all_cwl_stars()
-            missed_reset_count = database.reset_all_missed_attacks()
-            
-            # Create success embed
+            # Show confirmation embed with buttons
             embed = discord.Embed(
-                title="✅ CWL Stats Reset Complete",
-                description=f"CWL statistics have been reset for new season by {interaction.user.display_name}",
-                color=discord.Color.green()
+                title="⚠️ CWL Reset Confirmation",
+                description="Are you sure you want to reset all CWL statistics for a new season?",
+                color=discord.Color.orange()
             )
             
             embed.add_field(
-                name="📊 Reset Summary",
-                value=f"**Players reset:** {len(cwl_players)}\n"
-                      f"**Stars reset:** {total_stars}\n"
-                      f"**Missed attacks reset:** {total_missed}\n"
-                      f"**Database rows updated:** {reset_count + missed_reset_count}",
+                name="📊 Data to Reset",
+                value=f"**Players with CWL data:** {len(cwl_players)}\n"
+                      f"**Total stars to reset:** {total_stars}\n"
+                      f"**Total missed attacks to reset:** {total_missed}",
                 inline=False
             )
             
-            # Add history save info
+            # Show top performers that will be reset
+            stars_leaders = sorted([p for p in cwl_players if p.get("cwl_stars", 0) > 0], 
+                                 key=lambda p: p.get("cwl_stars", 0), reverse=True)[:5]
+            if stars_leaders:
+                stars_text = []
+                for i, player in enumerate(stars_leaders, 1):
+                    stars_text.append(f"{i}. **{player['name']}**: ⭐{player.get('cwl_stars', 0)} ❌{player.get('missed_attacks', 0)}")
+                
+                embed.add_field(
+                    name="🏆 Top 5 Current Leaders",
+                    value="\n".join(stars_text),
+                    inline=False
+                )
+            
             embed.add_field(
-                name="💾 Season Data Archived",
-                value=f"**Season:** {now.year}-{now.month:02d}\n"
-                      f"**Players saved:** {snapshot_result['players_saved']}\n"
-                      f"**Historical data preserved for trend analysis**",
+                name="💾 Historical Data Protection",
+                value="✅ Current season data will be automatically saved to history before reset\n"
+                      "⚠️ This action cannot be undone after confirmation",
                 inline=False
             )
             
-            embed.add_field(
-                name="🎯 Ready for New Season",
-                value="All CWL stars and missed attacks have been reset to 0.\n"
-                      "Players are ready for the new CWL season!",
-                inline=False
-            )
+            # Create confirmation view with buttons
+            view = CWLResetConfirmView(cwl_players, total_stars, total_missed)
             
-            embed.set_footer(text=f"Reset performed on {datetime.now().strftime('%Y-%m-%d at %H:%M UTC')}")
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            
-            # Log the reset with history info
-            logger.info(f"CWL stats reset completed by {interaction.user.display_name}: "
-                       f"{len(cwl_players)} players, {total_stars} stars, {total_missed} missed attacks. "
-                       f"Historical data saved for {now.year}-{now.month:02d}")
-        
         except Exception as e:
             logger.error(f"Error in reset_cwl_stats command: {e}")
             embed = discord.Embed(
                 title="❌ Error",
-                description="An error occurred while resetting CWL stats.",
+                description="An error occurred while preparing CWL reset.",
                 color=discord.Color.red()
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
