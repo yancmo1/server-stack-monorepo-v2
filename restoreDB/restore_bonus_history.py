@@ -7,7 +7,7 @@ PG_PORT = 5432
 PG_DB = "cocstack"         # Change if your DB name is different
 PG_USER = "cocuser"        # Change if your DB user is different
 PG_PASS = "yourpassword"   # Change if your DB password is different
-SQL_FILE = "/Users/yancyshepherd/MEGA/PythonProjects/YANCY/used for restoring coc db/restore_bonus_history.sql"
+SQL_FILE = "/home/yancmo/apps/server-stack-monorepo-v2/restoreDB/restore_bonus_history.sql"
 # ---------------------------------
 
 def parse_sql_inserts(sql_path):
