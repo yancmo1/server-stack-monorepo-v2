@@ -524,6 +524,75 @@ class CWLStarsCog(commands.Cog):
 
 
     @app_commands.command(
+        name="clear_cwl_data",
+        description="Clear current CWL stars and missed attacks (Admin only)"
+    )
+    @app_commands.guilds(GUILD_ID)
+    async def clear_cwl_data(self, interaction: discord.Interaction):
+        """Clear current CWL season data"""
+        # Check if user has admin permissions
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("❌ This command requires server membership.", ephemeral=True)
+            return
+        
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ This command requires admin permissions.", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            # Get current stats before clearing
+            players = database.get_player_data()
+            cwl_players = [p for p in players if p.get('cwl_stars', 0) > 0 or p.get('missed_attacks', 0) > 0]
+            
+            total_stars = sum(p.get('cwl_stars', 0) for p in cwl_players)
+            total_missed = sum(p.get('missed_attacks', 0) for p in cwl_players)
+            
+            # Clear the data
+            affected_rows = database.reset_cwl_season_data()
+            
+            embed = discord.Embed(
+                title="🗑️ CWL Data Cleared",
+                description="Successfully cleared current CWL season data",
+                color=0xff6600
+            )
+            
+            embed.add_field(
+                name="📊 Data Cleared",
+                value=f"**Players Affected:** {affected_rows}\n"
+                      f"**Stars Cleared:** {total_stars}\n"
+                      f"**Missed Attacks Cleared:** {total_missed}",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="⚠️ Note",
+                value="CWL stars and missed attacks have been reset to zero.\n"
+                      "Use `/fetch_cwl_stars` to re-fetch fresh data from API.\n"
+                      "Consider also running `/reset_processed_wars` to reprocess all wars.",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="Next Steps",
+                value="1. Run `/reset_processed_wars` (optional - to reprocess all wars)\n"
+                      "2. Run `/fetch_cwl_stars` to get fresh CWL data\n"
+                      "3. Check `/cwl_leaderboard` to verify clean slate",
+                inline=False
+            )
+            
+            embed.set_footer(text=f"Cleared by {interaction.user.display_name}")
+            embed.timestamp = datetime.now()
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            logger.info(f"CWL data cleared by {interaction.user.display_name}: {affected_rows} players, {total_stars} stars, {total_missed} missed attacks")
+        
+        except Exception as e:
+            logger.error(f"Error clearing CWL data: {e}")
+            await interaction.followup.send(f"❌ Error clearing data: {str(e)}", ephemeral=True)
+
+    @app_commands.command(
         name="reset_processed_wars",
         description="Reset processed wars tracking (Admin only - for testing)"
     )
@@ -564,7 +633,15 @@ class CWLStarsCog(commands.Cog):
             embed.add_field(
                 name="⚠️ Warning",
                 value="Only use this for testing or if you need to reprocess wars.\n"
-                      "Consider resetting CWL season data first to avoid duplicates.",
+                      "Consider using `/clear_cwl_data` first to avoid duplicates.",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="Recommended Workflow",
+                value="1. `/clear_cwl_data` - Clear current CWL data\n"
+                      "2. `/reset_processed_wars` - Reset war tracking\n"
+                      "3. `/fetch_cwl_stars` - Re-fetch all wars fresh",
                 inline=False
             )
             
