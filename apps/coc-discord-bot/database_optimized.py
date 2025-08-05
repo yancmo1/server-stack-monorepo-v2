@@ -1220,7 +1220,6 @@ def initialize_database():
         conn.commit()
         print("[DATABASE] Database initialization complete")
 
-@performance_decorator("database.save_cwl_season_snapshot")
 def save_cwl_season_snapshot(season_year=None, season_month=None):
     """Save current CWL stats as historical snapshot before reset"""
     from datetime import datetime
@@ -1257,10 +1256,12 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
         """)
         
         players_data = cur.fetchall()
+        print(f"DEBUG: Found {len(players_data)} players with CWL data")
         saved_count = 0
         
         # Save each player's season stats to history
         for player in players_data:
+            print(f"DEBUG: Saving player {player[0]} with {player[2]} stars, {player[3]} missed")
             cur.execute("""
                 INSERT INTO cwl_history 
                 (season_year, season_month, reset_date, player_name, player_tag, cwl_stars, missed_attacks)
@@ -1268,14 +1269,20 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
             """, (season_year, season_month, player[0], player[1], player[2], player[3]))
             saved_count += 1
         
+        print(f"DEBUG: About to commit with saved_count = {saved_count}")
         conn.commit()
+        
+        print(f"DEBUG: Building return dict...")
+        total_stars = sum(p[2] for p in players_data) if players_data else 0
+        total_missed = sum(p[3] for p in players_data) if players_data else 0
+        print(f"DEBUG: total_stars={total_stars}, total_missed={total_missed}")
         
         return {
             'season_year': season_year,
             'season_month': season_month,
             'players_saved': saved_count,
-            'total_stars': sum(p[2] for p in players_data),
-            'total_missed': sum(p[3] for p in players_data)
+            'total_stars': total_stars,
+            'total_missed': total_missed
         }
 
 @performance_decorator("database.get_cwl_season_history")
