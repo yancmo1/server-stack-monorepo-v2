@@ -23,22 +23,50 @@ def is_admin_leader_co_elder_member(interaction):
 
 def is_newbie(join_date_str):
     try:
-        join_date = datetime.strptime(join_date_str, "%Y-%m-%d")
+        if not join_date_str or join_date_str in ("None", "null", ""):
+            return False
+        
+        join_date_str = str(join_date_str)
+        
+        # Handle different date formats
+        if 'T' in join_date_str:  # ISO format with time
+            join_date = datetime.strptime(join_date_str.split('T')[0], "%Y-%m-%d")
+        else:
+            join_date = datetime.strptime(join_date_str, "%Y-%m-%d")
+        
         return (datetime.utcnow() - join_date).days < 60
     except Exception:
         return False
 
 def format_last_bonus(date_str):
-    if not date_str or date_str in ("None", "null"):
+    if not date_str or date_str in ("None", "null", ""):
         return "Never"
     try:
-        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%b %d, %Y")
+        date_str = str(date_str)
+        
+        # Handle different date formats
+        if 'T' in date_str:  # ISO format with time
+            date_obj = datetime.strptime(date_str.split('T')[0], "%Y-%m-%d")
+        else:
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        
+        return date_obj.strftime("%b %d, %Y")
     except Exception:
         return "Never"
 
 def days_ago(join_date_str):
     try:
-        join_date = datetime.strptime(join_date_str, "%Y-%m-%d")
+        if not join_date_str or join_date_str in ("None", "null", ""):
+            return "?"
+        
+        join_date_str = str(join_date_str)
+        
+        # Handle different date formats
+        if 'T' in join_date_str:  # ISO format with time
+            join_date = datetime.strptime(join_date_str.split('T')[0], "%Y-%m-%d")
+        else:
+            join_date = datetime.strptime(join_date_str, "%Y-%m-%d")
+        
         return (datetime.utcnow() - join_date).days
     except Exception:
         return "?"

@@ -305,6 +305,20 @@ class BonusesCog(commands.Cog):
         try:
             players = database.get_player_data()
             
+            # Debug logging to check data
+            logger.info(f"Total players retrieved: {len(players)}")
+            
+            # Log some sample data to debug
+            for i, p in enumerate(players[:3]):
+                logger.info(f"Player {i}: name={p.get('name')}, join_date={p.get('join_date')}, bonus_count={p.get('bonus_count')}, last_bonus_date={p.get('last_bonus_date')}, bonus_eligibility={p.get('bonus_eligibility')}")
+                
+                # Test newbie function
+                join_date = p.get('join_date')
+                if join_date:
+                    is_new = is_newbie(str(join_date))
+                    days = days_ago(str(join_date))
+                    logger.info(f"  join_date={join_date}, is_newbie={is_new}, days_ago={days}")
+            
             # Split players into eligible (60+ days) and new members (under 60 days)
             eligible_players = []
             new_members = []
@@ -313,10 +327,14 @@ class BonusesCog(commands.Cog):
                 if not p.get("bonus_eligibility", 0):
                     continue  # Skip ineligible players
                     
-                if is_newbie(p.get("join_date", "")):
+                join_date_str = str(p.get("join_date", "")) if p.get("join_date") else ""
+                if is_newbie(join_date_str):
                     new_members.append(p)
                 else:
                     eligible_players.append(p)
+
+            logger.info(f"Eligible players (60+ days): {len(eligible_players)}")
+            logger.info(f"New members (<60 days): {len(new_members)}")
 
             # Sort eligible players by bonus_count, then last_bonus_date
             def sort_key(p):
@@ -324,8 +342,14 @@ class BonusesCog(commands.Cog):
                 last_bonus = p.get("last_bonus_date")
                 if last_bonus:
                     try:
-                        last_bonus = datetime.strptime(last_bonus, "%Y-%m-%d")
-                    except Exception:
+                        # Handle different date formats
+                        last_bonus_str = str(last_bonus)
+                        if 'T' in last_bonus_str:  # ISO format with time
+                            last_bonus = datetime.strptime(last_bonus_str.split('T')[0], "%Y-%m-%d")
+                        else:
+                            last_bonus = datetime.strptime(last_bonus_str, "%Y-%m-%d")
+                    except Exception as e:
+                        logger.warning(f"Date parsing error for {p.get('name')}: {last_bonus} -> {e}")
                         last_bonus = datetime.min
                 else:
                     last_bonus = datetime.min
@@ -335,11 +359,15 @@ class BonusesCog(commands.Cog):
             
             # Sort new members by join date (oldest first, closest to 60 days)
             def newbie_sort_key(p):
-                join_date_str = p.get("join_date", "")
+                join_date_str = str(p.get("join_date", "")) if p.get("join_date") else ""
                 if join_date_str and join_date_str != "None":
                     try:
-                        return datetime.strptime(join_date_str, "%Y-%m-%d")
-                    except Exception:
+                        if 'T' in join_date_str:  # ISO format with time
+                            return datetime.strptime(join_date_str.split('T')[0], "%Y-%m-%d")
+                        else:
+                            return datetime.strptime(join_date_str, "%Y-%m-%d")
+                    except Exception as e:
+                        logger.warning(f"Join date parsing error for {p.get('name')}: {join_date_str} -> {e}")
                         return datetime.min
                 return datetime.min
             
@@ -348,6 +376,10 @@ class BonusesCog(commands.Cog):
             # Get the groups
             top_5_eligible = eligible_players[:5]
             next_eligible = eligible_players[5:10]  # Next 5 eligible players
+
+            logger.info(f"Top 5 eligible: {[p.get('name') for p in top_5_eligible]}")
+            logger.info(f"Next eligible: {[p.get('name') for p in next_eligible]}")
+            logger.info(f"New members: {[p.get('name') for p in new_members]}")
 
             embed = discord.Embed(
                 title="🎯 Players On Deck for Bonuses", 
@@ -360,7 +392,7 @@ class BonusesCog(commands.Cog):
                 top_5_text = []
                 for p in top_5_eligible:
                     bonus_count = p.get("bonus_count", 0)
-                    last_bonus = format_last_bonus(p.get("last_bonus_date"))
+                    last_bonus = format_last_bonus(str(p.get("last_bonus_date", "")))
                     top_5_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}")
                 
                 embed.add_field(
@@ -374,7 +406,7 @@ class BonusesCog(commands.Cog):
                 next_text = []
                 for p in next_eligible:
                     bonus_count = p.get("bonus_count", 0)
-                    last_bonus = format_last_bonus(p.get("last_bonus_date"))
+                    last_bonus = format_last_bonus(str(p.get("last_bonus_date", "")))
                     next_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}")
                 
                 embed.add_field(
@@ -387,7 +419,7 @@ class BonusesCog(commands.Cog):
             if new_members:
                 new_text = []
                 for p in new_members:
-                    days_member = days_ago(p.get("join_date", ""))
+                    days_member = days_ago(str(p.get("join_date", "")))
                     bonus_count = p.get("bonus_count", 0)
                     new_text.append(f"• **{p['name']}** - Member for {days_member} days ({bonus_count} bonuses)")
                 
