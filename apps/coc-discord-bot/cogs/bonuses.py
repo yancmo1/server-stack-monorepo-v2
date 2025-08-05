@@ -304,14 +304,21 @@ class BonusesCog(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         try:
             players = database.get_player_data()
-            # Exclude newbies for rotation
-            eligible = [
-                p
-                for p in players
-                if p.get("bonus_eligibility", 0) and not is_newbie(p.get("join_date", ""))
-            ]
+            
+            # Split players into eligible (60+ days) and new members (under 60 days)
+            eligible_players = []
+            new_members = []
+            
+            for p in players:
+                if not p.get("bonus_eligibility", 0):
+                    continue  # Skip ineligible players
+                    
+                if is_newbie(p.get("join_date", "")):
+                    new_members.append(p)
+                else:
+                    eligible_players.append(p)
 
-            # Sort eligible by bonus_count, then last_bonus_date
+            # Sort eligible players by bonus_count, then last_bonus_date
             def sort_key(p):
                 bonus_count = int(p.get("bonus_count", 0) or 0)
                 last_bonus = p.get("last_bonus_date")
@@ -324,27 +331,80 @@ class BonusesCog(commands.Cog):
                     last_bonus = datetime.min
                 return (bonus_count, last_bonus)
 
-            eligible.sort(key=sort_key)
-            on_deck_players = eligible[:5]
-            pending_extra = eligible[5:9]
+            eligible_players.sort(key=sort_key)
+            
+            # Sort new members by join date (oldest first, closest to 60 days)
+            def newbie_sort_key(p):
+                join_date_str = p.get("join_date", "")
+                if join_date_str and join_date_str != "None":
+                    try:
+                        return datetime.strptime(join_date_str, "%Y-%m-%d")
+                    except Exception:
+                        return datetime.min
+                return datetime.min
+            
+            new_members.sort(key=newbie_sort_key)
+
+            # Get the groups
+            top_5_eligible = eligible_players[:5]
+            next_eligible = eligible_players[5:10]  # Next 5 eligible players
 
             embed = discord.Embed(
-                title="Players On Deck for Bonuses", color=discord.Color.blue()
+                title="🎯 Players On Deck for Bonuses", 
+                color=discord.Color.blue(),
+                description="Bonus eligibility based on 60+ day membership rule"
             )
 
-            if on_deck_players:
+            # Section 1: Top 5 On Deck (60+ days)
+            if top_5_eligible:
+                top_5_text = []
+                for p in top_5_eligible:
+                    bonus_count = p.get("bonus_count", 0)
+                    last_bonus = format_last_bonus(p.get("last_bonus_date"))
+                    top_5_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}")
+                
                 embed.add_field(
-                    name="ON DECK",
-                    value="\n".join(f"• {p['name']}" for p in on_deck_players),
+                    name="🏆 Top 5 On Deck",
+                    value="\n".join(top_5_text),
                     inline=False,
                 )
-            if pending_extra:
+            
+            # Section 2: Next in Line (60+ days)
+            if next_eligible:
+                next_text = []
+                for p in next_eligible:
+                    bonus_count = p.get("bonus_count", 0)
+                    last_bonus = format_last_bonus(p.get("last_bonus_date"))
+                    next_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}")
+                
                 embed.add_field(
-                    name="Pending Extra Bonuses *",
-                    value="\n".join(f"• {p['name']}" for p in pending_extra)
-                    + "\n\n* Subject to bonus rewards and leaders decision.",
+                    name="⏳ Next in Line (60+ Day Members)",
+                    value="\n".join(next_text),
                     inline=False,
                 )
+
+            # Section 3: New Members (Under 60 days)
+            if new_members:
+                new_text = []
+                for p in new_members:
+                    days_member = days_ago(p.get("join_date", ""))
+                    bonus_count = p.get("bonus_count", 0)
+                    new_text.append(f"• **{p['name']}** - Member for {days_member} days ({bonus_count} bonuses)")
+                
+                embed.add_field(
+                    name="🆕 New Members (Under 60 Days)",
+                    value="\n".join(new_text) + "\n\n*New members can be included at leadership discretion*",
+                    inline=False,
+                )
+            else:
+                embed.add_field(
+                    name="🆕 New Members (Under 60 Days)",
+                    value="No new members currently",
+                    inline=False,
+                )
+
+            # Add footer with explanation
+            embed.set_footer(text="60-day rule: Regular rotation includes members 60+ days. New members shown for consideration.")
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -359,134 +419,6 @@ def member_days(join_date_str):
         return (datetime.utcnow() - join_date).days
     except Exception:
         return "?"
-
-    @app_commands.command(
-        name="bonus_history_all",
-        description="Show bonus history for all players (last 6 months) — Admin, Leader, Co-Leader, Elder, Member"
-    )
-    @app_commands.check(is_admin_leader_co_elder_member)
-    @app_commands.guilds(GUILD_ID)
-    async def bonus_history_all(self, interaction: discord.Interaction):
-        """Show bonus history for all players (last 6 months)"""
-        await interaction.response.defer(ephemeral=True)
-        
-        try:
-            # Get all recent bonus history
-            six_months_ago = datetime.utcnow() - timedelta(days=180)
-            
-            # Get bonus history from database
-            all_bonus_records = database.get_bonus_history(limit=200)  # Get more records to filter
-            
-            # Filter to last 6 months
-            bonus_records = []
-            for record in all_bonus_records:
-                try:
-                    awarded_date = record.get('awarded_date')
-                    if isinstance(awarded_date, str):
-                        date_obj = datetime.strptime(awarded_date, "%Y-%m-%d %H:%M:%S")
-                    else:
-                        date_obj = awarded_date
-                    
-                    if date_obj >= six_months_ago:
-                        bonus_records.append(record)
-                except Exception:
-                    # Include records with parsing issues
-                    bonus_records.append(record)
-            
-            if not bonus_records:
-                await interaction.followup.send("❌ No bonus history found in the last 6 months.", ephemeral=True)
-                return
-            
-            # Sort by date (newest first)
-            bonus_records.sort(key=lambda x: x.get('awarded_date', ''), reverse=True)
-            
-            # Create embed
-            embed = discord.Embed(
-                title="🏆 Bonus History - Last 6 Months",
-                description=f"Recent bonus awards (Total: {len(bonus_records)})",
-                color=discord.Color.gold()
-            )
-            
-            def format_bonus_date(date_str):
-                """Format the bonus date for display (without time)"""
-                if not date_str:
-                    return "Unknown"
-                try:
-                    if isinstance(date_str, str):
-                        date_obj = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                    else:
-                        date_obj = date_str
-                    return date_obj.strftime("%b %d, %Y")
-                except Exception:
-                    try:
-                        date_obj = datetime.strptime(str(date_str)[:10], "%Y-%m-%d")
-                        return date_obj.strftime("%b %d, %Y")
-                    except Exception:
-                        return str(date_str)[:10] if date_str else "Unknown"
-            
-            # Group by month for better organization
-            monthly_bonuses = {}
-            for record in bonus_records:
-                date_str = record.get('awarded_date', '')
-                try:
-                    if isinstance(date_str, str):
-                        date_obj = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                    else:
-                        date_obj = date_str
-                    month_key = date_obj.strftime("%B %Y")
-                except Exception:
-                    month_key = "Unknown Date"
-                
-                if month_key not in monthly_bonuses:
-                    monthly_bonuses[month_key] = []
-                monthly_bonuses[month_key].append(record)
-            
-            # Add fields for each month (newest first)
-            field_count = 0
-            max_fields = 24  # Leave room for summary
-            
-            for month in sorted(monthly_bonuses.keys(), reverse=True):
-                if field_count >= max_fields:
-                    break
-                    
-                month_records = monthly_bonuses[month]
-                month_text = []
-                
-                for record in month_records[:10]:  # Limit per month
-                    player_name = record.get('player_name', 'Unknown')
-                    date_formatted = format_bonus_date(record.get('awarded_date'))
-                    awarded_by = record.get('awarded_by', 'Unknown')
-                    month_text.append(f"• **{player_name}** - {date_formatted}")
-                
-                if len(month_records) > 10:
-                    month_text.append(f"... and {len(month_records) - 10} more")
-                
-                embed.add_field(
-                    name=f"📅 {month} ({len(month_records)} bonuses)",
-                    value="\n".join(month_text) if month_text else "No bonuses",
-                    inline=False
-                )
-                field_count += 1
-            
-            # Add summary
-            total_players = len(set(r.get('player_name') for r in bonus_records))
-            embed.add_field(
-                name="📊 Summary",
-                value=f"**Total Bonuses:** {len(bonus_records)}\n**Players Awarded:** {total_players}",
-                inline=False
-            )
-            
-            if len(bonus_records) > 100:
-                embed.set_footer(text="Showing recent bonus history. Some older records may be truncated.")
-            
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"Error in bonus_history_all: {e}", exc_info=True)
-            await interaction.followup.send(f"Error retrieving bonus history: {e}", ephemeral=True)
-
-
-# ...existing code...
 
 async def setup(bot):
     await bot.add_cog(BonusesCog(bot))
