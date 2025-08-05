@@ -744,10 +744,10 @@ def get_active_players():
     """Get all players marked as active for CWL war rotation participation"""
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        # Get players where inactive is 0 or NULL (active)
+        # Get players where inactive is FALSE or NULL (active)
         cur.execute("""
             SELECT * FROM players 
-            WHERE (inactive = 0 OR inactive IS NULL)
+            WHERE (inactive IS FALSE OR inactive IS NULL)
             ORDER BY name
         """)
         return [dict(row) for row in cur.fetchall()]
@@ -757,10 +757,10 @@ def get_inactive_players():
     """Get all players marked as inactive for CWL war rotation participation"""
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        # Get players where inactive is 1
+        # Get players where inactive is TRUE
         cur.execute("""
             SELECT * FROM players 
-            WHERE inactive = 1 
+            WHERE inactive IS TRUE 
             ORDER BY name
         """)
         return [dict(row) for row in cur.fetchall()]
@@ -772,11 +772,11 @@ def reset_all_active_status():
         cur = conn.cursor()
         
         # Get count of players that will be affected
-        cur.execute("SELECT COUNT(*) FROM players WHERE inactive = 1")
+        cur.execute("SELECT COUNT(*) FROM players WHERE inactive IS TRUE")
         inactive_count = cur.fetchone()[0]
         
-        # Reset all players to active (inactive = 0)
-        cur.execute("UPDATE players SET inactive = 0")
+        # Reset all players to active (inactive = FALSE)
+        cur.execute("UPDATE players SET inactive = FALSE")
         conn.commit()
         
         return inactive_count
@@ -788,10 +788,10 @@ def get_cwl_active_status_summary():
         cur = conn.cursor()
         
         # Get counts
-        cur.execute("SELECT COUNT(*) FROM players WHERE (inactive = 0 OR inactive IS NULL)")
+        cur.execute("SELECT COUNT(*) FROM players WHERE (inactive IS FALSE OR inactive IS NULL)")
         active_count = cur.fetchone()[0]
         
-        cur.execute("SELECT COUNT(*) FROM players WHERE inactive = 1")
+        cur.execute("SELECT COUNT(*) FROM players WHERE inactive IS TRUE")
         inactive_count = cur.fetchone()[0]
         
         cur.execute("SELECT COUNT(*) FROM players")
@@ -824,7 +824,7 @@ def auto_reactivate_player(player_name):
         
         # Reactivate the player
         cur.execute(
-            "UPDATE players SET inactive = 0 WHERE LOWER(name) = LOWER(%s)",
+            "UPDATE players SET inactive = FALSE WHERE LOWER(name) = LOWER(%s)",
             (player_name,)
         )
         
@@ -977,7 +977,7 @@ def get_all_players_with_stars():
     """Get all players with their CWL stars"""
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT name, cwl_stars, missed_attacks FROM players WHERE (inactive = 0 OR inactive IS FALSE OR inactive IS NULL) ORDER BY cwl_stars DESC, name")
+        cur.execute("SELECT name, cwl_stars, missed_attacks FROM players WHERE (inactive IS FALSE OR inactive IS NULL) ORDER BY cwl_stars DESC, name")
         return [dict(row) for row in cur.fetchall()]
 
 @performance_decorator("database.reset_all_cwl_stars")
@@ -1252,7 +1252,7 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
         cur.execute("""
             SELECT name, tag, COALESCE(cwl_stars, 0) as cwl_stars, COALESCE(missed_attacks, 0) as missed_attacks
             FROM players 
-            WHERE (inactive = 0 OR inactive IS FALSE OR inactive IS NULL) 
+            WHERE (inactive IS FALSE OR inactive IS NULL) 
             AND (COALESCE(cwl_stars, 0) > 0 OR COALESCE(missed_attacks, 0) > 0)
         """)
         
