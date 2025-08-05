@@ -52,12 +52,9 @@ class CWLResetConfirmView(discord.ui.View):
             
             embed.add_field(
                 name="📊 Reset Summary",
-                value=f"**Players reset:** {len(self.cwl_players)}
-"
-                      f"**Stars reset:** {self.total_stars}
-"
-                      f"**Missed attacks reset:** {self.total_missed}
-"
+                value=f"**Players reset:** {len(self.cwl_players)}\n"
+                      f"**Stars reset:** {self.total_stars}\n"
+                      f"**Missed attacks reset:** {self.total_missed}\n"
                       f"**Database rows updated:** {reset_count + missed_reset_count}",
                 inline=False
             )
