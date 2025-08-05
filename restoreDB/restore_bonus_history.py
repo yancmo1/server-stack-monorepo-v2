@@ -13,21 +13,29 @@ PG_DB_ENV = os.getenv("PGDATABASE", os.getenv("POSTGRES_DB", "cocstack"))
 PG_USER_ENV = os.getenv("PGUSER", os.getenv("POSTGRES_USER", "cocuser"))
 PG_PASS_ENV = os.getenv("PGPASSWORD", os.getenv("POSTGRES_PASSWORD", ""))
 
-DEFAULT_SQL_FILE = "/Users/yancyshepherd/MEGA/PythonProjects/YANCY/used for restoring coc db/restore_bonus_history.sql"
+DEFAULT_SQL_FILE = "/Users/yancyshepherd/MEGA/PythonProjects/YANCY/restoreDB/restore_bonus_history.sql"
 
 
 def parse_sql_inserts(sql_path):
     with open(sql_path, "r") as f:
         sql = f.read()
-    # Extract tuples inside VALUES (...)
-    tuples = re.findall(r"\(([^()]*?(?:'[^']*'[^()]*)*)\)", sql, flags=re.S)
+    
+    # Find VALUES section and extract only data tuples (not column names)
+    values_match = re.search(r'VALUES\s+(.*)', sql, re.DOTALL | re.IGNORECASE)
+    if not values_match:
+        return []
+    
+    values_text = values_match.group(1)
+    # Extract tuples that start with quoted strings (data, not column names)
+    tuples = re.findall(r"\(([^()]*?'[^']*'[^()]*)\)", values_text, flags=re.S)
+    
     records = []
     for t in tuples:
         # Split on commas not inside single quotes
         parts = re.findall(r"(?:'[^']*'|[^,]+)", t)
         row = [p.strip().strip("'") for p in parts]
-        # Expect exactly 6 columns
-        if len(row) == 6:
+        # Expect exactly 6 columns and first column shouldn't be a SQL keyword
+        if len(row) == 6 and not row[0].lower() in ['player_name', 'awarded_date']:
             records.append(row)
     return records
 
