@@ -374,7 +374,8 @@ class BonusesCog(commands.Cog):
                 for p in top_5_eligible:
                     bonus_count = p.get("bonus_count", 0)
                     last_bonus = format_last_bonus(str(p.get("last_bonus_date", "")))
-                    top_5_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}")
+                    missed_attacks = p.get("missed_attacks", 0)
+                    top_5_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}, Missed: {missed_attacks}")
                 
                 embed.add_field(
                     name="🏆 Top 5 On Deck",
@@ -388,7 +389,8 @@ class BonusesCog(commands.Cog):
                 for p in next_eligible:
                     bonus_count = p.get("bonus_count", 0)
                     last_bonus = format_last_bonus(str(p.get("last_bonus_date", "")))
-                    next_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}")
+                    missed_attacks = p.get("missed_attacks", 0)
+                    next_text.append(f"• **{p['name']}** - {bonus_count} bonuses, Last: {last_bonus}, Missed: {missed_attacks}")
                 
                 embed.add_field(
                     name="⏳ Next in Line",
