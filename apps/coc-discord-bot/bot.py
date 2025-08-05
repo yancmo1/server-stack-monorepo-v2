@@ -63,7 +63,7 @@ COGS = [
     "cogs.missed_attacks",
     # Advanced cogs to be added later:
     # "cogs.link",
-    # "cogs.cwl_stars", 
+    "cogs.cwl_stars", 
     # "cogs.notifications",
     # "cogs.rolesync",
     "cogs.command_groups",

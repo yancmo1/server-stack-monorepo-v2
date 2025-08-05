@@ -1425,5 +1425,15 @@ __all__ = [
     'get_player_cwl_history',
     'reset_all_cwl_stars',
     'reset_all_missed_attacks',
+    'update_player_cwl_stars',
 ]
+
+
+def update_player_cwl_stars(player_tag, total_stars):
+    """Simple function to update a player's CWL stars by tag"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        # Update player's total stars by tag
+        cur.execute("UPDATE players SET cwl_stars = %s WHERE tag = %s", (total_stars, player_tag))
+        logger.info(f"Updated player {player_tag} CWL stars to {total_stars}")
 
