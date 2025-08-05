@@ -1273,14 +1273,19 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
                 print(f"DEBUG: Processing player {i+1}: {player}")
                 print(f"DEBUG: Player tuple length: {len(player)}")
                 if len(player) >= 4:
-                    print(f"DEBUG: Player data: name={player[0]}, tag={player[1]}, stars={player[2]}, missed={player[3]}")
+                    # Access RealDictRow fields by name, not index
+                    name = player['name']
+                    tag = player['tag'] 
+                    stars = player['cwl_stars']
+                    missed = player['missed_attacks']
+                    print(f"DEBUG: Player data: name={name}, tag={tag}, stars={stars}, missed={missed}")
                     cur.execute("""
                         INSERT INTO cwl_history 
                         (season_year, season_month, reset_date, player_name, player_tag, cwl_stars, missed_attacks)
                         VALUES (%s, %s, NOW(), %s, %s, %s, %s)
-                    """, (season_year, season_month, player[0], player[1], player[2], player[3]))
+                    """, (season_year, season_month, name, tag, stars, missed))
                     saved_count += 1
-                    print(f"DEBUG: Successfully saved player {player[0]}")
+                    print(f"DEBUG: Successfully saved player {name}")
                 else:
                     print(f"DEBUG: Player tuple too short: {player}")
                     raise Exception(f"Invalid player data structure: {player}")
@@ -1292,8 +1297,8 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
         conn.commit()
         
         print(f"DEBUG: Building return dict...")
-        total_stars = sum(p[2] for p in players_data) if players_data else 0
-        total_missed = sum(p[3] for p in players_data) if players_data else 0
+        total_stars = sum(p['cwl_stars'] for p in players_data) if players_data else 0
+        total_missed = sum(p['missed_attacks'] for p in players_data) if players_data else 0
         print(f"DEBUG: total_stars={total_stars}, total_missed={total_missed}")
         
         return {
