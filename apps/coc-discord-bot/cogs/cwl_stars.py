@@ -16,6 +16,7 @@ from discord.ext import commands, tasks
 import config
 import database_optimized as database
 import logging
+import asyncio
 
 GUILD_ID = discord.Object(id=config.GUILD_ID)
 import requests
@@ -126,14 +127,29 @@ class CWLStarsCog(commands.Cog):
             return None
 
     def extract_player_stars(self, wars):
-        """Extract player stars from war data"""
+        """Extract player stars from war data and return detailed war information"""
         player_stars = {}
+        war_details = []
         
         for war in wars:
             clan_data = war.get('clan_data', {})
+            opponent_data = war.get('opponent_data', {})
             members = clan_data.get('members', [])
             
-            logger.info(f"Round {war['round']}: Processing {len(members)} members")
+            # Create detailed war info
+            war_info = {
+                'round': war['round'],
+                'opponent': opponent_data.get('name', 'Unknown'),
+                'our_stars': clan_data.get('stars', 0),
+                'opponent_stars': opponent_data.get('stars', 0),
+                'our_destruction': clan_data.get('destructionPercentage', 0),
+                'opponent_destruction': opponent_data.get('destructionPercentage', 0),
+                'result': '🏆 Victory' if clan_data.get('stars', 0) > opponent_data.get('stars', 0) else 
+                         '🤝 Tie' if clan_data.get('stars', 0) == opponent_data.get('stars', 0) else '❌ Defeat',
+                'players': []
+            }
+            
+            logger.info(f"Round {war['round']}: Processing {len(members)} members vs {war_info['opponent']}")
             
             for member in members:
                 tag = member.get('tag', '')
@@ -142,7 +158,19 @@ class CWLStarsCog(commands.Cog):
                 # Count stars from attacks
                 attacks = member.get('attacks', [])
                 total_stars = sum(attack.get('stars', 0) for attack in attacks)
+                total_destruction = sum(attack.get('destructionPercentage', 0) for attack in attacks)
+                avg_destruction = round(total_destruction / max(len(attacks), 1), 1)
                 
+                # Add to war player details
+                war_info['players'].append({
+                    'name': name,
+                    'tag': tag,
+                    'stars': total_stars,
+                    'attacks': len(attacks),
+                    'avg_destruction': avg_destruction
+                })
+                
+                # Add to overall player stats
                 if tag not in player_stars:
                     player_stars[tag] = {
                         'name': name,
@@ -157,8 +185,67 @@ class CWLStarsCog(commands.Cog):
                 
                 if total_stars > 0:
                     logger.info(f"Player {name} ({tag}): {total_stars} stars in Round {war['round']}")
+            
+            # Sort players by stars in this war
+            war_info['players'].sort(key=lambda p: p['stars'], reverse=True)
+            war_details.append(war_info)
         
-        return player_stars
+        return player_stars, war_details
+
+    async def send_war_details(self, interaction, war_details):
+        """Send detailed war results page by page"""
+        for war_info in war_details:
+            embed = discord.Embed(
+                title=f"⚔️ CWL Round {war_info['round']} Results",
+                description=f"**vs {war_info['opponent']}**\n{war_info['result']}",
+                color=0x00ff00 if '🏆' in war_info['result'] else 0xff0000 if '❌' in war_info['result'] else 0xffff00
+            )
+            
+            # War summary
+            embed.add_field(
+                name="📊 War Summary",
+                value=f"**Our Stars:** {war_info['our_stars']} ⭐\n"
+                      f"**Opponent Stars:** {war_info['opponent_stars']} ⭐\n"
+                      f"**Our Destruction:** {war_info['our_destruction']:.1f}%\n"
+                      f"**Opponent Destruction:** {war_info['opponent_destruction']:.1f}%",
+                inline=True
+            )
+            
+            # Top performers in this war
+            top_performers = war_info['players'][:8]  # Show top 8
+            if top_performers:
+                performers_text = []
+                for i, player in enumerate(top_performers, 1):
+                    star_emoji = "⭐" * player['stars'] if player['stars'] <= 3 else f"{player['stars']}⭐"
+                    performers_text.append(
+                        f"{i}. **{player['name']}**: {star_emoji} "
+                        f"({player['attacks']} attacks, {player['avg_destruction']}% avg)"
+                    )
+                
+                embed.add_field(
+                    name="🏆 Top Performers",
+                    value="\n".join(performers_text),
+                    inline=False
+                )
+            
+            # War statistics
+            total_attacks = sum(p['attacks'] for p in war_info['players'])
+            total_war_stars = sum(p['stars'] for p in war_info['players'])
+            participants = len([p for p in war_info['players'] if p['attacks'] > 0])
+            
+            embed.add_field(
+                name="📈 War Stats",
+                value=f"**Participants:** {participants}/{len(war_info['players'])}\n"
+                      f"**Total Attacks:** {total_attacks}\n"
+                      f"**Total Stars:** {total_war_stars}\n"
+                      f"**Avg Stars/Attack:** {total_war_stars/max(total_attacks,1):.1f}",
+                inline=True
+            )
+            
+            await interaction.followup.send(embed=embed)
+            
+            # Small delay between war pages to avoid rate limits
+            await asyncio.sleep(0.5)
 
     @app_commands.command(
         name="fetch_cwl_stars",
@@ -182,8 +269,8 @@ class CWLStarsCog(commands.Cog):
             
             await interaction.followup.send(f"📊 Found {len(wars)} CWL wars. Processing player stars...")
             
-            # Extract player stars
-            player_stars = self.extract_player_stars(wars)
+            # Extract player stars and war details
+            player_stars, war_details = self.extract_player_stars(wars)
             
             if not player_stars:
                 await interaction.followup.send("❌ No player data found in CWL wars.")
@@ -199,6 +286,9 @@ class CWLStarsCog(commands.Cog):
                     logger.info(f"Updated {player_data['name']} ({tag}): {player_data['total_stars']} stars")
                 except Exception as e:
                     logger.error(f"Failed to update player {tag}: {e}")
+            
+            # Send detailed war-by-war results first
+            await self.send_war_details(interaction, war_details)
             
             # Create summary embed
             embed = discord.Embed(
