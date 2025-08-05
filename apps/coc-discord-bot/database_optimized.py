@@ -1248,26 +1248,45 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
         """)
         
         # Get all players with CWL activity (stars > 0 or missed attacks > 0)
-        cur.execute("""
+        query = """
             SELECT name, tag, COALESCE(cwl_stars, 0) as cwl_stars, COALESCE(missed_attacks, 0) as missed_attacks
             FROM players 
             WHERE (inactive IS FALSE OR inactive IS NULL) 
             AND (COALESCE(cwl_stars, 0) > 0 OR COALESCE(missed_attacks, 0) > 0)
-        """)
+        """
+        print(f"DEBUG: Executing query: {query}")
+        cur.execute(query)
         
         players_data = cur.fetchall()
         print(f"DEBUG: Found {len(players_data)} players with CWL data")
+        
+        if players_data:
+            print(f"DEBUG: First player data structure: {players_data[0]}")
+            print(f"DEBUG: First player type: {type(players_data[0])}")
+            print(f"DEBUG: Length of first player tuple: {len(players_data[0]) if players_data[0] else 0}")
+        
         saved_count = 0
         
         # Save each player's season stats to history
-        for player in players_data:
-            print(f"DEBUG: Saving player {player[0]} with {player[2]} stars, {player[3]} missed")
-            cur.execute("""
-                INSERT INTO cwl_history 
-                (season_year, season_month, reset_date, player_name, player_tag, cwl_stars, missed_attacks)
-                VALUES (%s, %s, NOW(), %s, %s, %s, %s)
-            """, (season_year, season_month, player[0], player[1], player[2], player[3]))
-            saved_count += 1
+        for i, player in enumerate(players_data):
+            try:
+                print(f"DEBUG: Processing player {i+1}: {player}")
+                print(f"DEBUG: Player tuple length: {len(player)}")
+                if len(player) >= 4:
+                    print(f"DEBUG: Player data: name={player[0]}, tag={player[1]}, stars={player[2]}, missed={player[3]}")
+                    cur.execute("""
+                        INSERT INTO cwl_history 
+                        (season_year, season_month, reset_date, player_name, player_tag, cwl_stars, missed_attacks)
+                        VALUES (%s, %s, NOW(), %s, %s, %s, %s)
+                    """, (season_year, season_month, player[0], player[1], player[2], player[3]))
+                    saved_count += 1
+                    print(f"DEBUG: Successfully saved player {player[0]}")
+                else:
+                    print(f"DEBUG: Player tuple too short: {player}")
+                    raise Exception(f"Invalid player data structure: {player}")
+            except Exception as insert_error:
+                print(f"DEBUG: Error saving player {i+1}: {insert_error}")
+                raise insert_error
         
         print(f"DEBUG: About to commit with saved_count = {saved_count}")
         conn.commit()
