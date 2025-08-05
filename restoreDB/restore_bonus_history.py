@@ -2,7 +2,7 @@ import psycopg2
 import re
 
 # --- CONFIGURE THESE VARIABLES ---
-PG_HOST = "db"
+PG_HOST = "localhost"
 PG_PORT = 5432
 PG_DB = "cocstack"
 PG_USER = "cocuser"
