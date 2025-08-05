@@ -13,7 +13,7 @@ PG_DB_ENV = os.getenv("PGDATABASE", os.getenv("POSTGRES_DB", "cocstack"))
 PG_USER_ENV = os.getenv("PGUSER", os.getenv("POSTGRES_USER", "cocuser"))
 PG_PASS_ENV = os.getenv("PGPASSWORD", os.getenv("POSTGRES_PASSWORD", ""))
 
-DEFAULT_SQL_FILE = "/Users/yancyshepherd/MEGA/PythonProjects/YANCY/restoreDB/restore_bonus_history.sql"
+DEFAULT_SQL_FILE = "/apps/server-stack-monorepo-v2/restoreDB/restore_bonus_history.sql"
 
 
 def parse_sql_inserts(sql_path):
