@@ -305,20 +305,6 @@ class BonusesCog(commands.Cog):
         try:
             players = database.get_player_data()
             
-            # Debug logging to check data
-            logger.info(f"Total players retrieved: {len(players)}")
-            
-            # Log some sample data to debug
-            for i, p in enumerate(players[:3]):
-                logger.info(f"Player {i}: name={p.get('name')}, join_date={p.get('join_date')}, bonus_count={p.get('bonus_count')}, last_bonus_date={p.get('last_bonus_date')}, bonus_eligibility={p.get('bonus_eligibility')}")
-                
-                # Test newbie function
-                join_date = p.get('join_date')
-                if join_date:
-                    is_new = is_newbie(str(join_date))
-                    days = days_ago(str(join_date))
-                    logger.info(f"  join_date={join_date}, is_newbie={is_new}, days_ago={days}")
-            
             # Split players into eligible (60+ days) and new members (under 60 days)
             eligible_players = []
             new_members = []
@@ -332,9 +318,6 @@ class BonusesCog(commands.Cog):
                     new_members.append(p)
                 else:
                     eligible_players.append(p)
-
-            logger.info(f"Eligible players (60+ days): {len(eligible_players)}")
-            logger.info(f"New members (<60 days): {len(new_members)}")
 
             # Sort eligible players by bonus_count, then last_bonus_date
             def sort_key(p):
@@ -351,7 +334,6 @@ class BonusesCog(commands.Cog):
                         else:
                             last_bonus = datetime.strptime(last_bonus_str, "%Y-%m-%d")
                     except Exception as e:
-                        logger.warning(f"Date parsing error for {p.get('name')}: {last_bonus} -> {e}")
                         last_bonus = datetime.min
                 else:
                     last_bonus = datetime.min
@@ -371,7 +353,6 @@ class BonusesCog(commands.Cog):
                         else:
                             return datetime.strptime(join_date_str, "%Y-%m-%d")
                     except Exception as e:
-                        logger.warning(f"Join date parsing error for {p.get('name')}: {join_date_str} -> {e}")
                         return datetime.min
                 return datetime.min
             
@@ -380,10 +361,6 @@ class BonusesCog(commands.Cog):
             # Get the groups
             top_5_eligible = eligible_players[:5]
             next_eligible = eligible_players[5:10]  # Next 5 eligible players
-
-            logger.info(f"Top 5 eligible: {[p.get('name') for p in top_5_eligible]}")
-            logger.info(f"Next eligible: {[p.get('name') for p in next_eligible]}")
-            logger.info(f"New members: {[p.get('name') for p in new_members]}")
 
             embed = discord.Embed(
                 title="🎯 Players On Deck for Bonuses", 
