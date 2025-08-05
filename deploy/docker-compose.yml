@@ -10,6 +10,17 @@ services:
     volumes:
       - tracker_pgdata:/var/lib/postgresql/data
 
+  cocstack-db:
+    image: postgres:15
+    container_name: cocstack-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cocstack
+      POSTGRES_USER: racetracker
+      POSTGRES_PASSWORD: racetracker
+    volumes:
+      - cocstack_pgdata:/var/lib/postgresql/data
+
   cruise-price-check:
     build:
       context: ../apps/cruise-price-check
@@ -243,6 +254,7 @@ volumes:
   cruise_data:
   cruise_logs:
   tracker_pgdata:
+  cocstack_pgdata:
   tracker_uploads:
 
 networks:
