@@ -2,11 +2,11 @@ import psycopg2
 import re
 
 # --- CONFIGURE THESE VARIABLES ---
-PG_HOST = "localhost"
+PG_HOST = "db"
 PG_PORT = 5432
-PG_DB = "cocstack"         # Change if your DB name is different
-PG_USER = "cocuser"        # Change if your DB user is different
-PG_PASS = "yourpassword"   # Change if your DB password is different
+PG_DB = "cocstack"
+PG_USER = "cocuser"
+PG_PASS = "yourpassword"
 SQL_FILE = "/home/yancmo/apps/server-stack-monorepo-v2/restoreDB/restore_bonus_history.sql"
 # ---------------------------------
 
