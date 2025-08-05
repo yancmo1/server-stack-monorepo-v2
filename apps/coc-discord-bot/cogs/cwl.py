@@ -37,11 +37,18 @@ class CWLResetConfirmView(discord.ui.View):
             now = datetime.now()
             
             # Save season snapshot
+            logger.info("Starting season snapshot save...")
             snapshot_result = database.save_cwl_season_snapshot(now.year, now.month)
+            logger.info(f"Season snapshot completed: {snapshot_result}")
             
             # Reset all CWL stats
+            logger.info("Resetting CWL stars...")
             reset_count = database.reset_all_cwl_stars()
+            logger.info(f"CWL stars reset completed: {reset_count} rows affected")
+            
+            logger.info("Resetting missed attacks...")
             missed_reset_count = database.reset_all_missed_attacks()
+            logger.info(f"Missed attacks reset completed: {missed_reset_count} rows affected")
             
             # Create success embed
             embed = discord.Embed(
