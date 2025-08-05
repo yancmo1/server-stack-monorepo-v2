@@ -6,6 +6,7 @@ Enhanced database module with connection pooling and performance tracking
 
 import os
 import time
+import logging
 from datetime import datetime, timedelta
 import platform
 from typing import List, Dict, Any, Optional, Union
@@ -17,6 +18,9 @@ import psycopg2.extras
 import config
 DB_TYPE = 'postgres'
 DB_FILE = getattr(config, 'DB_PATH', None)
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 print(f"[DATABASE] Using PostgreSQL database: {DB_FILE}")
 
@@ -1216,6 +1220,121 @@ def initialize_database():
         conn.commit()
         print("[DATABASE] Database initialization complete")
 
+@performance_decorator("database.save_cwl_season_snapshot")
+def save_cwl_season_snapshot(season_year=None, season_month=None):
+    """Save current CWL stats as historical snapshot before reset"""
+    from datetime import datetime
+    
+    if not season_year or not season_month:
+        now = datetime.now()
+        season_year = now.year
+        season_month = now.month
+    
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        
+        # Create cwl_history table if it doesn't exist (for PostgreSQL)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cwl_history (
+                id SERIAL PRIMARY KEY,
+                season_year INTEGER NOT NULL,
+                season_month INTEGER NOT NULL,
+                reset_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                player_name TEXT NOT NULL,
+                player_tag TEXT,
+                cwl_stars INTEGER NOT NULL DEFAULT 0,
+                missed_attacks INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Get all players with CWL activity (stars > 0 or missed attacks > 0)
+        cur.execute("""
+            SELECT name, tag, COALESCE(cwl_stars, 0) as cwl_stars, COALESCE(missed_attacks, 0) as missed_attacks
+            FROM players 
+            WHERE active = 1 AND (COALESCE(cwl_stars, 0) > 0 OR COALESCE(missed_attacks, 0) > 0)
+        """)
+        
+        players_data = cur.fetchall()
+        saved_count = 0
+        
+        # Save each player's season stats to history
+        for player in players_data:
+            cur.execute("""
+                INSERT INTO cwl_history 
+                (season_year, season_month, reset_date, player_name, player_tag, cwl_stars, missed_attacks)
+                VALUES (%s, %s, NOW(), %s, %s, %s, %s)
+            """, (season_year, season_month, player[0], player[1], player[2], player[3]))
+            saved_count += 1
+        
+        conn.commit()
+        
+        return {
+            'season_year': season_year,
+            'season_month': season_month,
+            'players_saved': saved_count,
+            'total_stars': sum(p[2] for p in players_data),
+            'total_missed': sum(p[3] for p in players_data)
+        }
+
+@performance_decorator("database.get_cwl_season_history")
+def get_cwl_season_history(season_year=None, season_month=None, limit=50):
+    """Get CWL season history"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        
+        try:
+            if season_year and season_month:
+                cur.execute("""
+                    SELECT player_name, cwl_stars, missed_attacks, reset_date
+                    FROM cwl_history 
+                    WHERE season_year = %s AND season_month = %s
+                    ORDER BY cwl_stars DESC, player_name ASC
+                    LIMIT %s
+                """, (season_year, season_month, limit))
+            else:
+                cur.execute("""
+                    SELECT season_year, season_month, player_name, cwl_stars, missed_attacks, reset_date
+                    FROM cwl_history 
+                    ORDER BY reset_date DESC, cwl_stars DESC
+                    LIMIT %s
+                """, (limit,))
+            
+            results = cur.fetchall()
+            if not results:
+                return []
+            
+            columns = [desc[0] for desc in cur.description] if cur.description else []
+            return [dict(zip(columns, row)) for row in results]
+        except Exception as e:
+            logger.warning(f"Error getting CWL season history: {e}")
+            return []
+
+@performance_decorator("database.get_player_cwl_season_history")
+def get_player_cwl_season_history(player_name, limit=10):
+    """Get CWL season history for a specific player"""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        
+        try:
+            cur.execute("""
+                SELECT season_year, season_month, cwl_stars, missed_attacks, reset_date
+                FROM cwl_history 
+                WHERE LOWER(player_name) = LOWER(%s)
+                ORDER BY reset_date DESC
+                LIMIT %s
+            """, (player_name, limit))
+            
+            results = cur.fetchall()
+            if not results:
+                return []
+            
+            columns = [desc[0] for desc in cur.description] if cur.description else []
+            return [dict(zip(columns, row)) for row in results]
+        except Exception as e:
+            logger.warning(f"Error getting player CWL season history for {player_name}: {e}")
+            return []
+
 @performance_decorator("database.clear_all_cwl_history")
 def clear_all_cwl_history():
     """Clear all CWL history and reset missed attacks to zero for a fresh start"""
@@ -1224,34 +1343,55 @@ def clear_all_cwl_history():
         
         # Count current state
         cur.execute("SELECT COUNT(*) FROM players WHERE missed_attacks > 0")
-        players_with_missed = cur.fetchone()[0]
+        result = cur.fetchone()
+        players_with_missed = result[0] if result else 0
         
         cur.execute("SELECT COALESCE(SUM(missed_attacks), 0) FROM players")
-        total_missed = cur.fetchone()[0]
+        result = cur.fetchone()
+        total_missed = result[0] if result else 0
         
-        cur.execute("SELECT COUNT(*) FROM missed_attacks_history")
-        history_count = cur.fetchone()[0]
+        try:
+            cur.execute("SELECT COUNT(*) FROM missed_attacks_history")
+            result = cur.fetchone()
+            history_count = result[0] if result else 0
+        except:
+            history_count = 0
         
         # Clear all history tables
-        cur.execute("DELETE FROM missed_attacks_history")
-        deleted_history = cur.rowcount
+        try:
+            cur.execute("DELETE FROM missed_attacks_history")
+            deleted_history = cur.rowcount
+        except:
+            deleted_history = 0
         
-        # Reset all missed attacks to active (inactive = 0)
+        # Reset all missed attacks
         cur.execute("UPDATE players SET missed_attacks = 0 WHERE missed_attacks > 0")
+        reset_count = cur.rowcount
+        
         conn.commit()
         
         return {
             'players_with_missed_before': players_with_missed,
             'total_missed_before': total_missed,
             'history_records_deleted': deleted_history,
-            'players_reset': reset_count,
-            'cwl_stars_reset': reset_stars
+            'players_reset': reset_count
         }
 
 # Export the performance context for external use
 __all__ = [
-    # Database Management Functions
-    'initialize_database',
-    # ...existing code...
+    # Database connections
+    'get_connection',
+    'get_optimized_connection',
+    
+    # New CWL History Functions
+    'save_cwl_season_snapshot',
+    'get_cwl_season_history', 
+    'get_player_cwl_season_history',
+    
+    # Existing CWL functions
+    'get_cwl_history',
+    'get_player_cwl_history',
+    'reset_all_cwl_stars',
+    'reset_all_missed_attacks',
 ]
 

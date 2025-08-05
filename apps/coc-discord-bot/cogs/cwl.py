@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 import config
 import database_optimized as database
@@ -320,6 +320,13 @@ class CWLCog(commands.Cog):
                 await interaction.followup.send("✅ No CWL data to reset.", ephemeral=True)
                 return
             
+            # Save current season data to history before reset
+            from datetime import datetime
+            now = datetime.now()
+            
+            # Save season snapshot
+            snapshot_result = database.save_cwl_season_snapshot(now.year, now.month)
+            
             # Backup current data before reset
             total_stars = sum(p.get("cwl_stars", 0) for p in cwl_players)
             total_missed = sum(p.get("missed_attacks", 0) for p in cwl_players)
@@ -344,6 +351,15 @@ class CWLCog(commands.Cog):
                 inline=False
             )
             
+            # Add history save info
+            embed.add_field(
+                name="💾 Season Data Archived",
+                value=f"**Season:** {now.year}-{now.month:02d}\n"
+                      f"**Players saved:** {snapshot_result['players_saved']}\n"
+                      f"**Historical data preserved for trend analysis**",
+                inline=False
+            )
+            
             embed.add_field(
                 name="🎯 Ready for New Season",
                 value="All CWL stars and missed attacks have been reset to 0.\n"
@@ -355,13 +371,142 @@ class CWLCog(commands.Cog):
             
             await interaction.followup.send(embed=embed, ephemeral=True)
             
-            # Log the reset
+            # Log the reset with history info
             logger.info(f"CWL stats reset completed by {interaction.user.display_name}: "
-                       f"{len(cwl_players)} players, {total_stars} stars, {total_missed} missed attacks")
+                       f"{len(cwl_players)} players, {total_stars} stars, {total_missed} missed attacks. "
+                       f"Historical data saved for {now.year}-{now.month:02d}")
+        
+        except Exception as e:
+            logger.error(f"Error in reset_cwl_stats command: {e}")
+            embed = discord.Embed(
+                title="❌ Error",
+                description="An error occurred while resetting CWL stats.",
+                color=discord.Color.red()
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="cwl_history", description="View CWL season history")
+    @app_commands.describe(
+        season_year="Year of the season to view (default: all seasons)",
+        season_month="Month of the season to view (default: all seasons)", 
+        player="View history for specific player only"
+    )
+    async def cwl_history(self, interaction: discord.Interaction, season_year: Optional[int] = None, season_month: Optional[int] = None, player: Optional[str] = None):
+        """View CWL season history and trends"""
+        await interaction.response.defer()
+        
+        try:
+            if player:
+                # Get specific player history
+                history = database.get_player_cwl_season_history(player, limit=10)
+                
+                if not history:
+                    embed = discord.Embed(
+                        title="❌ No History Found",
+                        description=f"No CWL season history found for **{player}**",
+                        color=discord.Color.red()
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    return
+                
+                embed = discord.Embed(
+                    title=f"⭐ CWL History: {player}",
+                    description="Season performance history",
+                    color=discord.Color.blue()
+                )
+                
+                for season in history:
+                    season_name = f"{season['season_year']}-{season['season_month']:02d}"
+                    performance = "🟢 Excellent" if season['cwl_stars'] >= 8 and season['missed_attacks'] == 0 else \
+                                 "🟡 Good" if season['cwl_stars'] >= 6 and season['missed_attacks'] <= 1 else \
+                                 "🟠 Average" if season['cwl_stars'] >= 4 else "🔴 Poor"
+                    
+                    embed.add_field(
+                        name=f"Season {season_name}",
+                        value=f"⭐ {season['cwl_stars']} stars\n❌ {season['missed_attacks']} missed\n{performance}",
+                        inline=True
+                    )
+                
+            else:
+                # Get season overview
+                history = database.get_cwl_season_history(season_year, season_month, limit=20)
+                
+                if not history:
+                    embed = discord.Embed(
+                        title="❌ No History Found",
+                        description="No CWL season history found for the specified criteria",
+                        color=discord.Color.red()
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    return
+                
+                if season_year and season_month:
+                    embed = discord.Embed(
+                        title=f"⭐ CWL Season {season_year}-{season_month:02d}",
+                        description="Top performers from this season",
+                        color=discord.Color.gold()
+                    )
+                else:
+                    embed = discord.Embed(
+                        title="⭐ Recent CWL History",
+                        description="Recent season performances",
+                        color=discord.Color.gold()
+                    )
+                
+                # Group by season if showing all
+                if not (season_year and season_month):
+                    current_season = None
+                    season_data = []
+                    
+                    for record in history:
+                        season_key = f"{record['season_year']}-{record['season_month']:02d}"
+                        if current_season != season_key:
+                            if season_data:
+                                # Add previous season
+                                top_3 = sorted(season_data, key=lambda x: x['cwl_stars'], reverse=True)[:3]
+                                value = "\n".join([f"⭐ {p['player_name']}: {p['cwl_stars']} stars" for p in top_3])
+                                embed.add_field(name=f"Season {current_season}", value=value, inline=True)
+                            current_season = season_key
+                            season_data = []
+                        season_data.append(record)
+                    
+                    # Add last season
+                    if season_data:
+                        top_3 = sorted(season_data, key=lambda x: x['cwl_stars'], reverse=True)[:3]
+                        value = "\n".join([f"⭐ {p['player_name']}: {p['cwl_stars']} stars" for p in top_3])
+                        embed.add_field(name=f"Season {current_season}", value=value, inline=True)
+                else:
+                    # Show specific season details
+                    for i, record in enumerate(history[:10]):
+                        performance = "🟢" if record['cwl_stars'] >= 8 and record['missed_attacks'] == 0 else \
+                                     "🟡" if record['cwl_stars'] >= 6 and record['missed_attacks'] <= 1 else \
+                                     "🟠" if record['cwl_stars'] >= 4 else "🔴"
+                        
+                        embed.add_field(
+                            name=f"{i+1}. {record['player_name']}",
+                            value=f"{performance} ⭐{record['cwl_stars']} ❌{record['missed_attacks']}",
+                            inline=True
+                        )
+            
+            await interaction.followup.send(embed=embed)
             
         except Exception as e:
-            logger.error(f"Error in reset_cwl_stats command: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ Error in CWL reset: {e}", ephemeral=True)
+            logger.error(f"Error in cwl_history command: {e}")
+            embed = discord.Embed(
+                title="❌ Error",
+                description="An error occurred while retrieving CWL history.",
+                color=discord.Color.red()
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @cwl_history.autocomplete('player')
+    async def cwl_history_player_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        """Autocomplete for player names in cwl_history command"""
+        try:
+            names = database.get_autocomplete_names(current)
+            return [app_commands.Choice(name=name, value=name) for name in names[:25]]
+        except Exception:
+            return []
 
 async def setup(bot):
     await bot.add_cog(CWLCog(bot))
