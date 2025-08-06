@@ -93,14 +93,20 @@ class CWLNotifications(commands.Cog):
         else:
             await channel.send(f"⭐ **{name}** earned a new star in CWL! Total: {stars}")
 
-    @discord.app_commands.command(name="test_cwl_notification", description="Send a test CWL notification to the configured channel.")
-    async def test_cwl_notification(self, interaction: discord.Interaction):
-        channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
-        if channel:
-            await channel.send("✅ Test notification: CWL notifications are working!")
-            await interaction.response.send_message("Test notification sent to CWL rewards channel.", ephemeral=True)
-        else:
-            await interaction.response.send_message("CWL rewards channel not found. Check the channel ID in config.", ephemeral=True)
+    @discord.app_commands.command(name="sync_cwl_commands", description="Sync CWL notification slash commands for this server (admin only).")
+    @commands.is_owner()
+    async def sync_cwl_commands(self, interaction: discord.Interaction):
+        """
+        Sync only the CWL notification commands for this guild. Owner/admin only.
+        """
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        try:
+            synced = await self.bot.tree.sync(guild=interaction.guild)
+            # Filter for CWL commands only (optional, for feedback)
+            cwl_cmds = [cmd for cmd in synced if cmd.name.startswith("test_cwl_notification") or cmd.name.startswith("sync_cwl_commands")]
+            await interaction.followup.send(f"✅ Synced {len(cwl_cmds)} CWL notification command(s) for this server.", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Failed to sync CWL commands: {e}", ephemeral=True)
 
     @discord.app_commands.command(name="test_cwl_notification", description="Send a test CWL notification to the configured channel.")
     async def test_cwl_notification(self, interaction: discord.Interaction):
