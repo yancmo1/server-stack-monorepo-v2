@@ -437,5 +437,10 @@ class MiscCog(commands.Cog):
         except Exception:
             return []
 
+    @app_commands.command(name="test_new_command", description="Test if new commands can be added")
+    async def test_new_command(self, interaction: discord.Interaction):
+        """Simple test to see if we can add new commands"""
+        await interaction.response.send_message("✅ New command is working in misc.py!", ephemeral=True)
+
 async def setup(bot):
     await bot.add_cog(MiscCog(bot))
