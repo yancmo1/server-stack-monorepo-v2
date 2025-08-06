@@ -1,5 +1,6 @@
 import discord
 from discord.ext import tasks, commands
+from discord import app_commands
 import asyncio
 import logging
 from datetime import datetime
@@ -8,6 +9,7 @@ import os
 from utils_supercell import get_current_cwl_war
 import config
 
+ADMIN_DISCORD_ID = config.ADMIN_DISCORD_ID
 logger = logging.getLogger("cwl_notifications")
 CACHE_PATH = os.path.join(os.path.dirname(__file__), "../data/cwl_notification_cache.json")
 
@@ -93,20 +95,57 @@ class CWLNotifications(commands.Cog):
         else:
             await channel.send(f"⭐ **{name}** earned a new star in CWL! Total: {stars}")
 
-    @discord.app_commands.command(name="sync_cwl_commands", description="Sync CWL notification slash commands for this server (admin only).")
+    @discord.app_commands.command(name="force_sync", description="Force sync all commands globally (admin only).")
     @commands.is_owner()
+    async def force_sync(self, interaction: discord.Interaction):
+        """Force sync all commands globally (admin only)"""
+        if interaction.user.id != int(ADMIN_DISCORD_ID):
+            await interaction.response.send_message("❌ Only the bot owner can use this command.", ephemeral=True)
+            return
+        
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Clear existing commands first
+            self.bot.tree.clear_commands(guild=None)
+            self.bot.tree.clear_commands(guild=interaction.guild)
+            
+            # Force global sync
+            global_synced = await self.bot.tree.sync()
+            
+            # Force guild sync
+            guild_synced = await self.bot.tree.sync(guild=interaction.guild)
+            
+            await interaction.followup.send(
+                f"🔄 **FORCE SYNC COMPLETE**\n"
+                f"• Global: {len(global_synced)} command(s)\n"
+                f"• Guild: {len(guild_synced)} command(s)\n"
+                f"• Commands cleared and re-synced\n"
+                f"• May take 5-15 minutes to appear in Discord",
+                ephemeral=True
+            )
+                
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error in force sync: {str(e)}", ephemeral=True)
+
+    @discord.app_commands.command(name="sync_cwl_commands", description="Manually sync CWL commands (Owner only)")
     async def sync_cwl_commands(self, interaction: discord.Interaction):
         """
         Sync only the CWL notification commands for this guild. Owner/admin only.
         """
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
-            synced = await self.bot.tree.sync(guild=interaction.guild)
+            global_synced = await self.bot.tree.sync(guild=interaction.guild)
             # Filter for CWL commands only (optional, for feedback)
-            cwl_cmds = [cmd for cmd in synced if cmd.name.startswith("test_cwl_notification") or cmd.name.startswith("sync_cwl_commands")]
+            cwl_cmds = [cmd for cmd in global_synced if cmd.name.startswith("test_cwl_notification") or cmd.name.startswith("sync_cwl_commands")]
             await interaction.followup.send(f"✅ Synced {len(cwl_cmds)} CWL notification command(s) for this server.", ephemeral=True)
         except Exception as e:
             await interaction.followup.send(f"❌ Failed to sync CWL commands: {e}", ephemeral=True)
+
+    @discord.app_commands.command(name="cwl_test", description="Simple test - verify CWL system is working")
+    async def cwl_test(self, interaction: discord.Interaction):
+        """Simple test command to verify the CWL system is working"""
+        await interaction.response.send_message("✅ CWL Notification system is online and working!", ephemeral=True)
 
     @discord.app_commands.command(name="test_cwl_notification", description="Send a test CWL notification to the configured channel.")
     async def test_cwl_notification(self, interaction: discord.Interaction):

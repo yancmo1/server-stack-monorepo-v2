@@ -92,9 +92,18 @@ async def on_ready():
         # Handle manual sync command flag
         if manual_sync_flag:
             logger.info("🔄 Manual command sync requested...")
-            await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
-            logger.info(f"✅ Commands synced to guild {config.GUILD_ID}")
-            logger.info("🏁 Sync complete, exiting...")
+            try:
+                # Try both global and guild sync for better coverage
+                global_synced = await bot.tree.sync()
+                logger.info(f"✅ Global commands synced: {len(global_synced)}")
+                
+                # Also sync to the main guild for faster availability
+                guild_synced = await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
+                logger.info(f"✅ Guild commands synced: {len(guild_synced)} to guild {config.GUILD_ID}")
+                
+                logger.info("🏁 Sync complete, exiting...")
+            except Exception as e:
+                logger.error(f"❌ Error syncing commands: {e}")
             await bot.close()
             return
         
