@@ -64,7 +64,7 @@ COGS = [
     # Advanced cogs to be added later:
     # "cogs.link",
     "cogs.cwl_stars", 
-    # "cogs.notifications",
+    "cogs.notifications",
     # "cogs.rolesync",
     "cogs.command_groups",
     # "cogs.error_monitoring",

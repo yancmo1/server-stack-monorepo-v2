@@ -33,7 +33,7 @@ ELDER_ROLE_ID = 1378202569561866311
 MEMBER_ROLE_ID = 1378202569561866311
 
 # Add your CWL-Rewards channel ID here for bonus notifications
-CWL_REWARDS_CHANNEL_ID = 553752047309160454  # CWL rewards channel
+CWL_REWARDS_CHANNEL_ID = 1383446813247537223  # CWL rewards channel (updated)
 
 # Webhook URLs for notifications (optional - configure via /configure_webhook command)
 # These can also be set via environment variables

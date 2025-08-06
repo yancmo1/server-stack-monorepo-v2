@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext import tasks, commands
 import asyncio
@@ -93,6 +92,15 @@ class CWLNotifications(commands.Cog):
             await channel.send(f"🌟 **{name}** has reached **8+ stars** in CWL! Consider subbing if needed.")
         else:
             await channel.send(f"⭐ **{name}** earned a new star in CWL! Total: {stars}")
+
+    @commands.command(name="test_cwl_notification", help="Send a test CWL notification to the configured channel.")
+    async def test_cwl_notification(self, ctx):
+        channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
+        if channel:
+            await channel.send("✅ Test notification: CWL notifications are working!")
+            await ctx.send("Test notification sent to CWL rewards channel.")
+        else:
+            await ctx.send("CWL rewards channel not found. Check the channel ID in config.")
 
 async def setup(bot):
     await bot.add_cog(CWLNotifications(bot))
