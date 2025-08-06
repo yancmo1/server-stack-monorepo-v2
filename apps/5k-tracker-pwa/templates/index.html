@@ -22,7 +22,7 @@
 
 <!-- iPhone App Installation Instructions -->
 <div class="container my-4">
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
+    <div id="install-alert" class="alert alert-info alert-dismissible fade show" role="alert">
         <h5 class="alert-heading">📱 Install as iPhone App</h5>
         <p class="mb-2">Get the full app experience! Install this tracker directly to your iPhone home screen:</p>
         <ol class="mb-0">
@@ -33,7 +33,10 @@
         </ol>
         <hr>
         <p class="mb-0"><small class="text-muted">Once installed, the app will open like a native iPhone app without Safari's browser interface!</small></p>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="mt-2 d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="dont-show-install">Don't show me again</button>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     </div>
 </div>
 
@@ -90,4 +93,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+    // Hide install alert if user opted out
+    document.addEventListener('DOMContentLoaded', function() {
+        if (localStorage.getItem('hideInstallAlert') === '1') {
+            var alertElem = document.getElementById('install-alert');
+            if (alertElem) alertElem.style.display = 'none';
+        }
+        var dontShowBtn = document.getElementById('dont-show-install');
+        if (dontShowBtn) {
+            dontShowBtn.addEventListener('click', function() {
+                localStorage.setItem('hideInstallAlert', '1');
+                var alertElem = document.getElementById('install-alert');
+                if (alertElem) alertElem.style.display = 'none';
+            });
+        }
+    });
+</script>
 {% endblock %}
