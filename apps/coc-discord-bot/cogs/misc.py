@@ -437,6 +437,11 @@ class MiscCog(commands.Cog):
         except Exception:
             return []
 
+    @app_commands.command(name="emergency_test", description="Emergency test command with global sync")
+    async def emergency_test(self, interaction: discord.Interaction):
+        """Emergency test to see if global commands work"""
+        await interaction.response.send_message("🚨 Emergency test command is working!", ephemeral=True)
+
     @app_commands.command(name="test_new_command", description="Test if new commands can be added")
     async def test_new_command(self, interaction: discord.Interaction):
         """Simple test to see if we can add new commands"""
