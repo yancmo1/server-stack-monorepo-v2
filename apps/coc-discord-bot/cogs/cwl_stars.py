@@ -146,6 +146,7 @@ class CWLStarsCog(commands.Cog):
             clan_data = war.get('clan_data', {})
             opponent_data = war.get('opponent_data', {})
             members = clan_data.get('members', [])
+            war_state = war.get('state', 'unknown')
             
             # Create detailed war info
             war_info = {
@@ -157,10 +158,11 @@ class CWLStarsCog(commands.Cog):
                 'opponent_destruction': opponent_data.get('destructionPercentage', 0),
                 'result': '🏆 Victory' if clan_data.get('stars', 0) > opponent_data.get('stars', 0) else 
                          '🤝 Tie' if clan_data.get('stars', 0) == opponent_data.get('stars', 0) else '❌ Defeat',
+                'state': war_state,
                 'players': []
             }
             
-            logger.info(f"Round {war['round']}: Processing {len(members)} members vs {war_info['opponent']}")
+            logger.info(f"Round {war['round']}: Processing {len(members)} members vs {war_info['opponent']} (State: {war_state})")
             logger.info(f"Round {war['round']}: Our {war_info['our_stars']} vs Opponent {war_info['opponent_stars']} stars")
             
             # Get all players who attacked (for missed attack calculation)
@@ -172,6 +174,9 @@ class CWLStarsCog(commands.Cog):
             
             logger.info(f"Round {war['round']}: {len(attackers)} out of {len(members)} players attacked")
             
+            # Determine if we should count missed attacks based on war state
+            should_count_missed = war_state in ['warEnded'] or (war_state == 'inWar' and len(attackers) > len(members) * 0.7)
+            
             for member in members:
                 tag = member.get('tag', '')
                 name = member.get('name', 'Unknown')
@@ -182,12 +187,9 @@ class CWLStarsCog(commands.Cog):
                 total_destruction = sum(attack.get('destructionPercentage', 0) for attack in attacks)
                 avg_destruction = round(total_destruction / max(len(attacks), 1), 1)
                 
-                # Calculate missed attacks - player is expected to attack if they're in the war
-                # In CWL, not everyone may be expected to attack depending on strategy
-                # A player "missed" if they have 0 attacks but other players attacked
+                # Calculate missed attacks - only for ended wars or when most players have attacked
                 missed_attacks = 0
-                if len(attacks) == 0 and len(attackers) > 0:
-                    # Only count as missed if other players attacked (war is active)
+                if should_count_missed and len(attacks) == 0 and len(attackers) > 0:
                     missed_attacks = 1
                 
                 # Add to war player details
@@ -229,10 +231,30 @@ class CWLStarsCog(commands.Cog):
     async def send_war_details(self, interaction, war_details):
         """Send detailed war results page by page"""
         for war_info in war_details:
+            war_state = war_info.get('state', 'unknown')
+            
+            # Determine title and color based on war state
+            if war_state == 'preparation':
+                title_prefix = "⏳ CWL Round"
+                description_suffix = "**Preparation Day**"
+                color = 0x9932cc  # Purple for preparation
+            elif war_state == 'inWar':
+                title_prefix = "⚔️ CWL Round"
+                description_suffix = "**War Day - In Progress**"
+                color = 0xffa500  # Orange for ongoing
+            elif war_state == 'warEnded':
+                title_prefix = "✅ CWL Round"
+                description_suffix = war_info['result']
+                color = 0x00ff00 if '🏆' in war_info['result'] else 0xff0000 if '❌' in war_info['result'] else 0xffff00
+            else:
+                title_prefix = "⚔️ CWL Round"
+                description_suffix = war_info['result']
+                color = 0x808080  # Gray for unknown
+            
             embed = discord.Embed(
-                title=f"⚔️ CWL Round {war_info['round']} Results",
-                description=f"**vs {war_info['opponent']}**\n{war_info['result']}",
-                color=0x00ff00 if '🏆' in war_info['result'] else 0xff0000 if '❌' in war_info['result'] else 0xffff00
+                title=f"{title_prefix} {war_info['round']} Results",
+                description=f"**vs {war_info['opponent']}**\n{description_suffix}",
+                color=color
             )
             
             # War summary
@@ -251,7 +273,16 @@ class CWLStarsCog(commands.Cog):
                 performers_text = []
                 for i, player in enumerate(top_performers, 1):
                     star_emoji = "⭐" * player['stars'] if player['stars'] <= 3 else f"{player['stars']}⭐"
-                    missed_indicator = " ❌" if player['missed_attacks'] > 0 else ""
+                    
+                    # Only show missed indicator for ended wars or when most have attacked
+                    missed_indicator = ""
+                    if war_state == 'warEnded' and player['missed_attacks'] > 0:
+                        missed_indicator = " ❌"
+                    elif war_state == 'inWar' and player['attacks'] == 0:
+                        missed_indicator = " ⏳"  # Pending attack
+                    elif player['missed_attacks'] > 0:
+                        missed_indicator = " ❌"
+                    
                     performers_text.append(
                         f"{i}. **{player['name']}**: {star_emoji}{missed_indicator} "
                         f"({player['attacks']} attacks, {player['avg_destruction']}% avg)"
@@ -263,16 +294,35 @@ class CWLStarsCog(commands.Cog):
                     inline=False
                 )
             
-            # Show missed attacks if any
-            missed_players = [p for p in war_info['players'] if p['missed_attacks'] > 0]
-            if missed_players:
-                missed_text = []
-                for player in missed_players[:10]:  # Show up to 10 missed
-                    missed_text.append(f"❌ **{player['name']}** - {player['missed_attacks']} missed")
-                
+            # Show missed attacks only for ended wars, or pending attacks for ongoing wars
+            if war_state == 'warEnded':
+                missed_players = [p for p in war_info['players'] if p['missed_attacks'] > 0]
+                if missed_players:
+                    missed_text = []
+                    for player in missed_players[:10]:  # Show up to 10 missed
+                        missed_text.append(f"❌ **{player['name']}** - {player['missed_attacks']} missed")
+                    
+                    embed.add_field(
+                        name="⚠️ Missed Attacks",
+                        value="\n".join(missed_text),
+                        inline=False
+                    )
+            elif war_state == 'inWar':
+                pending_players = [p for p in war_info['players'] if p['attacks'] == 0]
+                if pending_players:
+                    pending_text = []
+                    for player in pending_players[:10]:  # Show up to 10 pending
+                        pending_text.append(f"⏳ **{player['name']}** - Attack pending")
+                    
+                    embed.add_field(
+                        name="⏳ Pending Attacks",
+                        value="\n".join(pending_text),
+                        inline=False
+                    )
+            elif war_state == 'preparation':
                 embed.add_field(
-                    name="⚠️ Missed Attacks",
-                    value="\n".join(missed_text),
+                    name="📋 War Status",
+                    value="War lineup is being prepared. Attacks will begin soon!",
                     inline=False
                 )
             
@@ -282,13 +332,22 @@ class CWLStarsCog(commands.Cog):
             total_missed = sum(p['missed_attacks'] for p in war_info['players'])
             participants = len([p for p in war_info['players'] if p['attacks'] > 0])
             
+            stats_value = f"**Participants:** {participants}/{len(war_info['players'])}\n"
+            stats_value += f"**Total Attacks:** {total_attacks}\n"
+            stats_value += f"**Total Stars:** {total_war_stars}\n"
+            
+            if war_state == 'warEnded':
+                stats_value += f"**Missed Attacks:** {total_missed}\n"
+            elif war_state == 'inWar':
+                pending_count = len([p for p in war_info['players'] if p['attacks'] == 0])
+                stats_value += f"**Pending Attacks:** {pending_count}\n"
+            
+            if total_attacks > 0:
+                stats_value += f"**Avg Stars/Attack:** {total_war_stars/total_attacks:.1f}"
+            
             embed.add_field(
                 name="📈 War Stats",
-                value=f"**Participants:** {participants}/{len(war_info['players'])}\n"
-                      f"**Total Attacks:** {total_attacks}\n"
-                      f"**Total Stars:** {total_war_stars}\n"
-                      f"**Missed Attacks:** {total_missed}\n"
-                      f"**Avg Stars/Attack:** {total_war_stars/max(total_attacks,1):.1f}",
+                value=stats_value,
                 inline=True
             )
             
