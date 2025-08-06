@@ -261,6 +261,11 @@ class CWLNotifications(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"❌ Error resetting cache: {str(e)}", ephemeral=True)
 
+    @discord.app_commands.command(name="ping", description="Simple ping command - everyone can use")
+    async def ping_command(self, interaction: discord.Interaction):
+        """Simple ping command that everyone can see and use"""
+        await interaction.response.send_message("🏓 Pong! Bot is working!", ephemeral=True)
+
     @discord.app_commands.command(name="cwl_test", description="Simple test - verify CWL system is working")
     async def cwl_test(self, interaction: discord.Interaction):
         """Simple test command to verify the CWL system is working"""
