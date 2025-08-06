@@ -93,9 +93,14 @@ async def on_ready():
         if manual_sync_flag:
             logger.info("🔄 Manual command sync requested...")
             try:
-                # Only sync to guild to avoid global rate limits
-                guild_synced = await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
-                logger.info(f"✅ Guild commands synced: {len(guild_synced)} to guild {config.GUILD_ID}")
+                # Try guild sync first, if it fails, use global sync
+                try:
+                    guild_synced = await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
+                    logger.info(f"✅ Guild commands synced: {len(guild_synced)} to guild {config.GUILD_ID}")
+                except Exception as guild_error:
+                    logger.warning(f"Guild sync failed: {guild_error}, trying global sync...")
+                    global_synced = await bot.tree.sync()
+                    logger.info(f"✅ Global commands synced: {len(global_synced)}")
                 logger.info("🏁 Sync complete, exiting...")
             except Exception as e:
                 logger.error(f"❌ Error syncing commands: {e}")
@@ -104,8 +109,13 @@ async def on_ready():
         
         # Only sync commands if .sync_commands file exists (normal startup)
         if os.path.exists(".sync_commands"):
-            await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
-            logger.info(f"Synced commands to guild {config.GUILD_ID}")
+            try:
+                await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
+                logger.info(f"Synced commands to guild {config.GUILD_ID}")
+            except Exception as guild_error:
+                logger.warning(f"Guild sync failed: {guild_error}, using global sync...")
+                await bot.tree.sync()
+                logger.info("Synced commands globally")
         else:
             logger.info("Skipping command sync to avoid rate limits.")
     except Exception as e:

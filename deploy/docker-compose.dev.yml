@@ -124,23 +124,10 @@ services:
       - ../shared/ssl:/app/ssl:ro
     restart: unless-stopped
 
-  # COC Discord Bot (optional for development)
-  coc-discord-bot:
-    build:
-      context: ../apps/coc-discord-bot
-      dockerfile: Dockerfile
-    container_name: coc-discord-bot-dev
-    env_file:
-      - ../shared/config/.env
-    environment:
-      - FLASK_ENV=development
-      - PYTHONUNBUFFERED=1
-    volumes:
-      - ../apps/coc-discord-bot:/app/source:ro
-      - ../shared/ssl:/app/ssl:ro
-      - ../shared/config:/app/config:ro
-    profiles: ["with-bot"]  # Only start with: docker compose --profile with-bot up
-    restart: unless-stopped
+  # COC Discord Bot - REMOVED FROM DEV
+  # Discord bot should only run in production to avoid conflicts
+  # Use production deployment for bot testing and development
+  # Commands: ./deploy.sh bot
 
 volumes:
   tracker_pgdata_dev:

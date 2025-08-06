@@ -6,10 +6,18 @@
 ```bash
 ./deploy/dev.sh start
 ```
-- Starts all services locally
+- Starts all services locally (excludes Discord bot)
 - Dashboard: http://localhost:5550
 - Tracker: http://localhost:5554
 - All other apps on their respective ports
+
+### Discord Bot Development
+**Bot runs production-only** to avoid conflicts:
+```bash
+./deploy/deploy.sh bot "Updated bot features"  # Deploy bot changes
+# Test in Discord server with /cwl_test
+# See apps/coc-discord-bot/DEV-WORKFLOW.md for details
+```
 
 ### Development Management
 ```bash

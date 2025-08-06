@@ -194,21 +194,30 @@ class CWLNotifications(commands.Cog):
             
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
-            # Only sync to current guild - much faster and avoids global rate limits
-            guild_synced = await self.bot.tree.sync(guild=interaction.guild)
-            
-            # Filter for CWL commands only (optional, for feedback)
-            cwl_cmds = [cmd for cmd in guild_synced if any(name in cmd.name for name in ["cwl_test", "test_cwl_notification", "sync_cwl_commands", "quick_sync", "force_sync"])]
-            
-            guild_name = interaction.guild.name if interaction.guild else "Unknown Server"
-            await interaction.followup.send(
-                f"✅ **Guild sync complete!**\n"
-                f"• Synced {len(cwl_cmds)} CWL command(s) to **{guild_name}**\n"
-                f"• Guild-only sync = faster + no global rate limits\n" 
-                f"• Commands available in 1-2 minutes\n"
-                f"📝 Try `/cwl_test` to verify it worked!",
-                ephemeral=True
-            )
+            # Try guild sync first, fallback to global if it fails
+            try:
+                guild_synced = await self.bot.tree.sync(guild=interaction.guild)
+                guild_name = interaction.guild.name if interaction.guild else "Unknown Server"
+                await interaction.followup.send(
+                    f"✅ **Guild sync complete!**\n"
+                    f"• Synced {len(guild_synced)} command(s) to **{guild_name}**\n"
+                    f"• Guild-only sync = faster + no global rate limits\n" 
+                    f"• Commands available in 1-2 minutes\n"
+                    f"📝 Try `/cwl_test` to verify it worked!",
+                    ephemeral=True
+                )
+            except Exception as guild_error:
+                # Guild sync failed, try global sync
+                global_synced = await self.bot.tree.sync()
+                await interaction.followup.send(
+                    f"⚠️ **Guild sync failed, used global sync instead**\n"
+                    f"• Synced {len(global_synced)} command(s) globally\n"
+                    f"• Commands will appear in ALL servers the bot is in\n"
+                    f"• Commands available in 1-2 minutes\n"
+                    f"📝 Try `/cwl_test` to verify it worked!\n"
+                    f"• Guild error: {str(guild_error)[:100]}",
+                    ephemeral=True
+                )
         except discord.HTTPException as e:
             if "rate limit" in str(e).lower():
                 await interaction.followup.send(
