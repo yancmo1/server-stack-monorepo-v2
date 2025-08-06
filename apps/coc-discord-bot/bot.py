@@ -54,6 +54,9 @@ class CustomBot(commands.Bot):
 
 bot = CustomBot(command_prefix="!", intents=intents)
 
+# Global flag for manual sync
+manual_sync_flag = False
+
 COGS = [
     "cogs.bonuses",
     "cogs.roster", 
@@ -74,6 +77,7 @@ COGS = [
 
 @bot.event
 async def on_ready():
+    global manual_sync_flag
     user_id = bot.user.id if bot.user else "Unknown"
     logger.info(f"Bot connected as {bot.user} (ID: {user_id})")
     try:
@@ -84,7 +88,17 @@ async def on_ready():
                 logger.info(f"Loaded cog: {cog}")
             except Exception as e:
                 logger.error(f"Failed to load cog {cog}: {e}", exc_info=True)
-        # Only sync commands if .sync_commands file exists
+        
+        # Handle manual sync command flag
+        if manual_sync_flag:
+            logger.info("🔄 Manual command sync requested...")
+            await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
+            logger.info(f"✅ Commands synced to guild {config.GUILD_ID}")
+            logger.info("🏁 Sync complete, exiting...")
+            await bot.close()
+            return
+        
+        # Only sync commands if .sync_commands file exists (normal startup)
         if os.path.exists(".sync_commands"):
             await bot.tree.sync(guild=discord.Object(id=config.GUILD_ID))
             logger.info(f"Synced commands to guild {config.GUILD_ID}")
