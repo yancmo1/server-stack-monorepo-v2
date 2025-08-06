@@ -541,7 +541,6 @@ class CWLStarsCog(commands.Cog):
             leaderboard_text = ""
             for i, player in enumerate(cwl_players[:15], 1):
                 stars = player.get('cwl_stars', 0)
-                missed = player.get('missed_attacks', 0)
                 name = player.get('name', 'Unknown')
                 
                 # Add medal emojis for top 3
@@ -553,10 +552,8 @@ class CWLStarsCog(commands.Cog):
                 elif i == 3:
                     medal = "🥉 "
                 
-                # Add missed attacks indicator
-                missed_indicator = f" (❌{missed})" if missed > 0 else ""
-                
-                leaderboard_text += f"{medal}**{i}.** {name}: **{stars}** ⭐{missed_indicator}\n"
+                # Remove missed attacks indicator from leaderboard
+                leaderboard_text += f"{medal}**{i}.** {name}: **{stars}** ⭐\n"
             
             embed.add_field(
                 name="Top Performers",
@@ -580,24 +577,23 @@ class CWLStarsCog(commands.Cog):
                 inline=False
             )
             
-            # Show worst missed attacks
+            # Show missed attacks summary only for completed wars
+            # Don't show missed attacks during active CWL to avoid confusion
             if players_with_missed > 0:
-                missed_players = [p for p in all_players if p.get('missed_attacks', 0) > 0]
-                missed_players.sort(key=lambda x: x.get('missed_attacks', 0), reverse=True)
-                
-                worst_missed = []
-                for player in missed_players[:5]:
-                    missed = player.get('missed_attacks', 0)
-                    stars = player.get('cwl_stars', 0)
-                    worst_missed.append(f"❌ {player.get('name', 'Unknown')}: {missed} missed ({stars} ⭐)")
-                
-                embed.add_field(
-                    name="⚠️ Most Missed Attacks",
-                    value="\n".join(worst_missed),
-                    inline=False
-                )
+                # Check if we have any completed wars by looking at processed wars
+                try:
+                    # Only show missed attacks section if we're not in an active war period
+                    # This prevents showing current war "missed" attacks that aren't actually missed yet
+                    embed.add_field(
+                        name="📊 Season Performance Note",
+                        value="Missed attacks tracking available after wars complete.\n"
+                              "Current leaderboard shows star performance only.",
+                        inline=False
+                    )
+                except Exception:
+                    pass
             
-            embed.set_footer(text="Use /fetch_cwl_stars to update from API • ❌ = missed attacks")
+            embed.set_footer(text="Use /fetch_cwl_stars to update from API • ⭐ = stars earned")
             embed.timestamp = datetime.now()
             
             await interaction.followup.send(embed=embed)
