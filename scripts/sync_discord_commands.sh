@@ -31,23 +31,52 @@ echo "✅ Bot container is running: $CONTAINER_STATUS"
 echo "🔄 Syncing Discord commands..."
 echo "⏳ This may take 10-30 seconds..."
 
-# Run the sync command with timeout and capture output
-if timeout 60 ssh yancmo@ubuntumac "docker exec deploy-coc-discord-bot-1 python bot.py --sync-commands" 2>&1; then
-    echo "✅ Discord commands synced successfully!"
-    echo ""
-    echo "📝 Commands should now be available in Discord:"
-    echo "   • /test_cwl_notification"
-    echo "   • /sync_cwl_commands"
-    echo ""
-    echo "💡 It may take 1-2 minutes for commands to appear in Discord"
-else
-    exit_code=$?
-    if [ $exit_code -eq 124 ]; then
-        echo "⚠️  Command sync timed out after 60 seconds"
-        echo "💡 This might still have worked - check Discord for new commands"
+# Run the sync command with gtimeout (if available) or fallback to regular ssh
+if command -v gtimeout >/dev/null 2>&1; then
+    # Use gtimeout on macOS (install with: brew install coreutils)
+    if gtimeout 60 ssh yancmo@ubuntumac "docker exec deploy-coc-discord-bot-1 python bot.py --sync-commands" 2>&1; then
+        echo "✅ Discord commands synced successfully!"
     else
-        echo "❌ Command sync failed with exit code: $exit_code"
+        exit_code=$?
+        if [ $exit_code -eq 124 ]; then
+            echo "⚠️  Command sync timed out after 60 seconds"
+            echo "💡 This might still have worked - check Discord for new commands"
+        else
+            echo "❌ Command sync failed with exit code: $exit_code"
+            echo "💡 Check bot logs: ssh yancmo@ubuntumac 'docker logs deploy-coc-discord-bot-1 --tail 20'"
+            exit 1
+        fi
+    fi
+elif command -v timeout >/dev/null 2>&1; then
+    # Use timeout on Linux
+    if timeout 60 ssh yancmo@ubuntumac "docker exec deploy-coc-discord-bot-1 python bot.py --sync-commands" 2>&1; then
+        echo "✅ Discord commands synced successfully!"
+    else
+        exit_code=$?
+        if [ $exit_code -eq 124 ]; then
+            echo "⚠️  Command sync timed out after 60 seconds"
+            echo "💡 This might still have worked - check Discord for new commands"
+        else
+            echo "❌ Command sync failed with exit code: $exit_code"
+            echo "💡 Check bot logs: ssh yancmo@ubuntumac 'docker logs deploy-coc-discord-bot-1 --tail 20'"
+            exit 1
+        fi
+    fi
+else
+    # No timeout available - run without timeout
+    echo "⚠️  No timeout command available - running without timeout"
+    if ssh yancmo@ubuntumac "docker exec deploy-coc-discord-bot-1 python bot.py --sync-commands" 2>&1; then
+        echo "✅ Discord commands synced successfully!"
+    else
+        echo "❌ Command sync failed"
         echo "💡 Check bot logs: ssh yancmo@ubuntumac 'docker logs deploy-coc-discord-bot-1 --tail 20'"
         exit 1
     fi
 fi
+
+echo ""
+echo "📝 Commands should now be available in Discord:"
+echo "   • /test_cwl_notification"
+echo "   • /sync_cwl_commands"
+echo ""
+echo "💡 It may take 1-2 minutes for commands to appear in Discord"
