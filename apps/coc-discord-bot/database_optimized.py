@@ -289,7 +289,7 @@ def get_autocomplete_names(prefix: str = "") -> List[str]:
                 ORDER BY name 
                 LIMIT 25
             """)
-        return [row[0] for row in cur.fetchall()]
+        return [dict(row)['name'] for row in cur.fetchall()]
 
 # Enhanced operations for better performance
 @performance_decorator("database.add_player")
