@@ -68,8 +68,7 @@ COGS = [
     # "cogs.link",
     "cogs.cwl_stars", 
     "cogs.notifications",
-    # TEMPORARILY DISABLED FOR TESTING:
-    # "cogs.cwl_notifications",  # CWL notification polling and commands
+    "cogs.cwl_notifications",  # CWL notification polling and commands
     # "cogs.rolesync",
     "cogs.command_groups",
     # "cogs.error_monitoring",
