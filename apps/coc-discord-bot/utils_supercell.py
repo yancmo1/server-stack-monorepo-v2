@@ -41,3 +41,46 @@ def get_player_clan_history(player_tag: str):
         return result
     except Exception:
         return []
+
+def get_current_cwl_war(clan_tag: str):
+    """
+    Fetch the current CWL war for the given clan tag from the Supercell API.
+    Returns a dict with war data, or None if not available.
+    """
+    api_token = config.SUPERCELL_API_TOKEN
+    if not api_token:
+        return None
+    tag = clan_tag.replace('#', '%23') if clan_tag.startswith('#') else clan_tag
+    # Step 1: Get CWL group info
+    group_url = f"https://api.clashofclans.com/v1/clans/{tag}/currentwar/leaguegroup"
+    headers = {"Authorization": f"Bearer {api_token}"}
+    try:
+        group_resp = requests.get(group_url, headers=headers, timeout=10)
+        if group_resp.status_code != 200:
+            return None
+        group_data = group_resp.json()
+        if 'rounds' not in group_data or 'state' not in group_data:
+            return None
+        # Find the current round (the last one with a warTag)
+        current_war_tag = None
+        for round in reversed(group_data['rounds']):
+            for war_tag in round.get('warTags', []):
+                if war_tag and war_tag != '#0':
+                    current_war_tag = war_tag
+                    break
+            if current_war_tag:
+                break
+        if not current_war_tag:
+            return None
+        # Step 2: Get current war details
+        war_tag_encoded = current_war_tag.replace('#', '%23')
+        war_url = f"https://api.clashofclans.com/v1/clanwarleagues/wars/{war_tag_encoded}"
+        war_resp = requests.get(war_url, headers=headers, timeout=10)
+        if war_resp.status_code != 200:
+            return None
+        war_data = war_resp.json()
+        # Add warTag to the data for reference
+        war_data['warTag'] = current_war_tag
+        return war_data
+    except Exception:
+        return None
