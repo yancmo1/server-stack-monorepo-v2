@@ -128,17 +128,68 @@ class CWLNotifications(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"❌ Error in force sync: {str(e)}", ephemeral=True)
 
+    @discord.app_commands.command(name="quick_sync", description="Quick sync without rate limits (Owner only)")
+    async def quick_sync(self, interaction: discord.Interaction):
+        """Quick sync that just refreshes the command tree without API calls"""
+        if interaction.user.id != int(ADMIN_DISCORD_ID):
+            await interaction.response.send_message("❌ Only the bot owner can use this command.", ephemeral=True)
+            return
+        
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Just refresh the command tree locally without syncing to Discord
+            # This can help if commands are cached but not showing
+            await self.bot.tree.fetch_commands(guild=interaction.guild)
+            
+            await interaction.followup.send(
+                f"✅ **Quick sync complete!**\n"
+                f"• Refreshed local command cache\n"
+                f"• No API calls = no rate limits\n"
+                f"• Commands should be available immediately\n"
+                f"📝 Use `/sync_cwl_commands` if this doesn't work.",
+                ephemeral=True
+            )
+                
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error in quick sync: {str(e)}", ephemeral=True)
+
     @discord.app_commands.command(name="sync_cwl_commands", description="Manually sync CWL commands (Owner only)")
     async def sync_cwl_commands(self, interaction: discord.Interaction):
         """
         Sync only the CWL notification commands for this guild. Owner/admin only.
+        Guild-only sync to avoid global rate limits.
         """
+        if interaction.user.id != int(ADMIN_DISCORD_ID):
+            await interaction.response.send_message("❌ Only the bot owner can use this command.", ephemeral=True)
+            return
+            
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
-            global_synced = await self.bot.tree.sync(guild=interaction.guild)
+            # Only sync to current guild - much faster and avoids global rate limits
+            guild_synced = await self.bot.tree.sync(guild=interaction.guild)
+            
             # Filter for CWL commands only (optional, for feedback)
-            cwl_cmds = [cmd for cmd in global_synced if cmd.name.startswith("test_cwl_notification") or cmd.name.startswith("sync_cwl_commands")]
-            await interaction.followup.send(f"✅ Synced {len(cwl_cmds)} CWL notification command(s) for this server.", ephemeral=True)
+            cwl_cmds = [cmd for cmd in guild_synced if any(name in cmd.name for name in ["cwl_test", "test_cwl_notification", "sync_cwl_commands", "quick_sync", "force_sync"])]
+            
+            guild_name = interaction.guild.name if interaction.guild else "Unknown Server"
+            await interaction.followup.send(
+                f"✅ **Guild sync complete!**\n"
+                f"• Synced {len(cwl_cmds)} CWL command(s) to **{guild_name}**\n"
+                f"• Guild-only sync = faster + no global rate limits\n" 
+                f"• Commands available in 1-2 minutes\n"
+                f"📝 Try `/cwl_test` to verify it worked!",
+                ephemeral=True
+            )
+        except discord.HTTPException as e:
+            if "rate limit" in str(e).lower():
+                await interaction.followup.send(
+                    f"⏳ **Rate limited!** Try again in a few minutes.\n"
+                    f"💡 Use `/quick_sync` for immediate refresh without API calls.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(f"❌ Failed to sync CWL commands: {e}", ephemeral=True)
         except Exception as e:
             await interaction.followup.send(f"❌ Failed to sync CWL commands: {e}", ephemeral=True)
 

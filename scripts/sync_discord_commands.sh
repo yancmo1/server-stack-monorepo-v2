@@ -29,7 +29,7 @@ echo "✅ Bot container is running: $CONTAINER_STATUS"
 
 # Execute command sync in the container
 echo "🔄 Syncing Discord commands..."
-echo "⏳ This may take 10-30 seconds..."
+echo "⏳ Using guild-only sync to avoid rate limits..."
 
 # Run the sync command with gtimeout (if available) or fallback to regular ssh
 if command -v gtimeout >/dev/null 2>&1; then
