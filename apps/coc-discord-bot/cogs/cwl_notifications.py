@@ -46,32 +46,55 @@ class CWLNotifications(commands.Cog):
             if not clan_tag:
                 logger.warning("No CLAN_TAG configured for CWL notifications.")
                 return
+                
             war_data = get_current_cwl_war(clan_tag)
             if not war_data:
                 logger.info("No current CWL war data found.")
                 return
+                
             war_state = war_data.get('state')
             war_tag = war_data.get('warTag')
-            # Detect war state change
-            if war_state != self.last_war_state:
-                self.last_war_state = war_state
+            
+            # Only send war state notification if state actually changed AND we have a previous state
+            if war_state != self.last_war_state and self.last_war_state is not None:
+                logger.info(f"War state changed from {self.last_war_state} to {war_state}")
                 await self.send_war_state_notification(war_state, war_tag)
+            elif self.last_war_state is None:
+                logger.info(f"Initial war state detected: {war_state} (no notification sent)")
+            
+            # Update war state
+            self.last_war_state = war_state
+            
             # Detect new stars for each player
-            for member in war_data.get('clan', {}).get('members', []):
-                tag = member.get('tag')
-                name = member.get('name')
-                stars = sum(a.get('stars', 0) for a in member.get('attacks', []))
-                prev_stars = self.last_player_stars.get(tag, 0)
-                if stars > prev_stars:
-                    await self.send_star_notification(name, tag, stars, prev_stars)
-                self.last_player_stars[tag] = stars
+            if war_state in ["inWar", "warEnded"]:  # Only track stars during war
+                clan_members = war_data.get('clan', {}).get('members', [])
+                for member in clan_members:
+                    tag = member.get('tag')
+                    name = member.get('name')
+                    attacks = member.get('attacks', [])
+                    
+                    # Calculate total stars from all attacks
+                    total_stars = sum(attack.get('stars', 0) for attack in attacks)
+                    prev_stars = self.last_player_stars.get(tag, 0)
+                    
+                    # Send notification for star increases (including 8+ star achievements)
+                    if total_stars > prev_stars:
+                        logger.info(f"{name} increased stars from {prev_stars} to {total_stars}")
+                        await self.send_star_notification(name, tag, total_stars, prev_stars)
+                    
+                    # Update stored stars
+                    self.last_player_stars[tag] = total_stars
+            
             # Save cache after each poll
             save_cache({
                 "last_war_state": self.last_war_state,
                 "last_player_stars": self.last_player_stars
             })
+            
         except Exception as e:
             logger.error(f"CWL polling error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     async def send_war_state_notification(self, state, war_tag):
         channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
@@ -90,10 +113,15 @@ class CWLNotifications(commands.Cog):
         if not channel:
             logger.warning("CWL rewards channel not found!")
             return
+            
+        stars_gained = stars - prev_stars
+        
         if stars >= 8 and prev_stars < 8:
-            await channel.send(f"🌟 **{name}** has reached **8+ stars** in CWL! Consider subbing if needed.")
+            await channel.send(f"🌟 **{name}** has reached **8+ stars** ({stars} total) in CWL! Consider subbing if needed.")
+        elif stars_gained > 1:
+            await channel.send(f"⭐ **{name}** gained {stars_gained} stars! Total: {stars} stars")
         else:
-            await channel.send(f"⭐ **{name}** earned a new star in CWL! Total: {stars}")
+            await channel.send(f"⭐ **{name}** earned a new star! Total: {stars} stars")
 
     @discord.app_commands.command(name="force_sync", description="Force sync all commands globally (admin only).")
     @commands.is_owner()
@@ -192,6 +220,37 @@ class CWLNotifications(commands.Cog):
                 await interaction.followup.send(f"❌ Failed to sync CWL commands: {e}", ephemeral=True)
         except Exception as e:
             await interaction.followup.send(f"❌ Failed to sync CWL commands: {e}", ephemeral=True)
+
+    @discord.app_commands.command(name="reset_cwl_cache", description="Reset CWL notification cache (Owner only)")
+    async def reset_cwl_cache(self, interaction: discord.Interaction):
+        """Reset the CWL notification cache (Owner only)"""
+        if interaction.user.id != int(ADMIN_DISCORD_ID):
+            await interaction.response.send_message("❌ Only the bot owner can use this command.", ephemeral=True)
+            return
+        
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Reset the cache
+            self.last_war_state = None
+            self.last_player_stars = {}
+            
+            # Save empty cache
+            save_cache({
+                "last_war_state": None,
+                "last_player_stars": {}
+            })
+            
+            await interaction.followup.send(
+                "✅ **CWL cache reset!**\n"
+                "• War state cleared\n"
+                "• Player stars cleared\n"
+                "• Next poll will treat everything as 'new'",
+                ephemeral=True
+            )
+                
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error resetting cache: {str(e)}", ephemeral=True)
 
     @discord.app_commands.command(name="cwl_test", description="Simple test - verify CWL system is working")
     async def cwl_test(self, interaction: discord.Interaction):
