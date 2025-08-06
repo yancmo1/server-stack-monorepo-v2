@@ -1469,47 +1469,64 @@ def reset_cwl_season_data():
 
 def check_war_already_processed(war_tag, season_id=None):
     """Check if a specific war has already been processed"""
-    with get_optimized_connection() as conn:
-        cur = conn.cursor()
-        # Check if we have a record of this war being processed
-        cur.execute("""
-            SELECT COUNT(*) FROM processed_wars 
-            WHERE war_tag = %s AND (season_id = %s OR %s IS NULL)
-        """, (war_tag, season_id, season_id))
-        result = cur.fetchone()
-        count = result[0] if result else 0
-        return count > 0
+    try:
+        with get_optimized_connection() as conn:
+            cur = conn.cursor()
+            # First ensure the table exists
+            create_processed_wars_table()
+            
+            # Check if we have a record of this war being processed
+            cur.execute("""
+                SELECT COUNT(*) FROM processed_wars 
+                WHERE war_tag = %s AND (season_id = %s OR %s IS NULL)
+            """, (war_tag, season_id, season_id))
+            result = cur.fetchone()
+            count = result[0] if result else 0
+            return count > 0
+    except Exception as e:
+        logger.error(f"Error checking processed war {war_tag}: {e}")
+        # If there's any error, assume not processed to be safe
+        return False
 
 
 def mark_war_processed(war_tag, season_id=None):
     """Mark a war as processed to prevent duplicate processing"""
-    with get_optimized_connection() as conn:
-        cur = conn.cursor()
-        # Insert or update the processed war record
-        cur.execute("""
-            INSERT INTO processed_wars (war_tag, season_id, processed_at) 
-            VALUES (%s, %s, NOW()) 
-            ON CONFLICT (war_tag, COALESCE(season_id, '')) DO UPDATE SET processed_at = NOW()
-        """, (war_tag, season_id))
-        logger.info(f"Marked war {war_tag} as processed for season {season_id}")
+    try:
+        with get_optimized_connection() as conn:
+            cur = conn.cursor()
+            # First ensure the table exists
+            create_processed_wars_table()
+            
+            # Insert or update the processed war record
+            cur.execute("""
+                INSERT INTO processed_wars (war_tag, season_id, processed_at) 
+                VALUES (%s, %s, NOW()) 
+                ON CONFLICT (war_tag, COALESCE(season_id, '')) DO UPDATE SET processed_at = NOW()
+            """, (war_tag, season_id))
+            logger.info(f"Marked war {war_tag} as processed for season {season_id}")
+    except Exception as e:
+        logger.error(f"Error marking war {war_tag} as processed: {e}")
 
 
 def create_processed_wars_table():
     """Create the processed_wars table if it doesn't exist"""
-    with get_optimized_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS processed_wars (
-                id SERIAL PRIMARY KEY,
-                war_tag VARCHAR(50) NOT NULL,
-                season_id VARCHAR(50),
-                processed_at TIMESTAMP DEFAULT NOW()
-            )
-        """)
-        # Create unique index to handle NULL season_id properly
-        cur.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS processed_wars_unique_idx 
-            ON processed_wars (war_tag, COALESCE(season_id, ''))
-        """)
-        logger.info("Created/verified processed_wars table")
+    try:
+        with get_optimized_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS processed_wars (
+                    id SERIAL PRIMARY KEY,
+                    war_tag VARCHAR(50) NOT NULL,
+                    season_id VARCHAR(50),
+                    processed_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            # Create unique index to handle NULL season_id properly
+            cur.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS processed_wars_unique_idx 
+                ON processed_wars (war_tag, COALESCE(season_id, ''))
+            """)
+            logger.info("Created/verified processed_wars table")
+    except Exception as e:
+        logger.error(f"Error creating processed_wars table: {e}")
 
