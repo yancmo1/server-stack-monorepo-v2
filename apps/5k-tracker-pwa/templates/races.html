@@ -82,6 +82,11 @@
                                         <i class="fas fa-stopwatch text-muted"></i> 
                                         <strong>Finish: {{ race.finish_time }}</strong>
                                     </p>
+                                    {% if race.location %}
+                                        <p class="mb-2">
+                                            <i class="fas fa-map-marker-alt text-muted"></i> 
+                                            {{ race.location }}
+                                        </p>
                                     {% endif %}
                                 </div>
                                 <div class="col-6">
@@ -90,7 +95,7 @@
                                             <i class="fas fa-map-marker-alt text-muted"></i> 
                                             {{ race.location }}
                                         </p>
-                                    {% if race.weather %}
+                                    {% endif %}                                    {% if race.weather %}
                                         <p class="mb-2">
                                             <i class="fas fa-cloud text-muted"></i> 
                                             {{ race.weather }}
