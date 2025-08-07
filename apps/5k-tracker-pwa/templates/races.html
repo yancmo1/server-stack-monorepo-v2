@@ -108,7 +108,10 @@
                             {% if race.notes %}
                                 <div class="mt-3">
                                     <strong>Notes:</strong>
-                                    <p class="text-muted">{{ race.notes }}</p>
+                                    <p class="text-muted">
+                                        {% set url_pattern = r'(https?://[\w\-\.\?\=\&\#\/%]+)' %}
+                                        {{ race.notes | replace('\n', '<br>') | regex_replace(url_pattern, '<a href="\\1" target="_blank" rel="noopener">\\1</a>') | safe }}
+                                    </p>
                                 </div>
                             {% endif %}
                             
