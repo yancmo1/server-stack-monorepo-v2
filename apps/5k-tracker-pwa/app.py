@@ -40,6 +40,7 @@ from dotenv import load_dotenv
 import re
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+
 app = Flask(__name__)
 app.config['APPLICATION_ROOT'] = '/tracker'
 app.config['PREFERRED_URL_SCHEME'] = 'https'
@@ -48,6 +49,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', '
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# --- Flask-Login Manager ---
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 # --- PrefixMiddleware for subpath support ---
 class PrefixMiddleware:
