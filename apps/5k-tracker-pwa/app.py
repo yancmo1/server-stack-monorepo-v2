@@ -344,7 +344,9 @@ class Race(db.Model):
     race_time = db.Column(db.String(8), nullable=True)  # Format: HH:MM or HH:MM:SS
     finish_time = db.Column(db.String(20), nullable=False)  # Format: HH:MM:SS
     location = db.Column(db.String(200))
-    weather = db.Column(db.String(100))
+    weather = db.Column(db.String(100))  # legacy, can be removed later
+    start_weather = db.Column(db.String(100))  # cached weather at start
+    finish_weather = db.Column(db.String(100))  # cached weather at finish
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Photo relationships
@@ -597,65 +599,83 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/api/weather')
-def get_weather():
-    """Get weather data for a location and datetime"""
-    place = request.args.get('place')
-    datetime_str = request.args.get('datetime')
-    
-    if not place or not datetime_str:
-        return jsonify({'error': 'Missing place or datetime parameter'}), 400
-    
+def get_weather_for_datetime(place, dt):
+    """Fetch weather for a location and datetime string."""
     try:
-        # Parse the datetime
-        dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
-        today = datetime.utcnow().date()
-        days_ago = (today - dt.date()).days
+        resp = requests.get(f"http://localhost:5555/api/weather", params={"place": place, "datetime": dt.isoformat()}, timeout=2)
+        if resp.ok:
+            data = resp.json().get('weather', {})
+            if data and 'temperature' in data:
+                return f"{data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
+    except Exception:
+        pass
+    return "Weather unavailable"
 
-        # Helper: get state from input (e.g., "McAlester, OK" -> "OK")
-        def extract_state(place):
-            if ',' in place:
-                parts = place.split(',')
-                if len(parts) > 1:
-                    return parts[1].strip()
-            return None
-
-        # Geocode the location, US only, try city,state, then city
-        def geocode(query, state=None):
-            url = f"https://geocoding-api.open-meteo.com/v1/search?name={query}&count=10&language=en&country=US&format=json"
-            resp = requests.get(url, timeout=10)
-            if not resp.ok:
-                return None
-            data = resp.json()
+def cache_race_weather(race):
+    """Cache weather for start and finish times if missing."""
+    place = race.location or ''
+    # Start time
+    try:
+        date = race.race_date
+        time_str = race.race_time or "07:00"
+        time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
+        if len(time_parts) == 3:
+            dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
+        elif len(time_parts) == 2:
+            dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
+        else:
+            dt_start = datetime(date.year, date.month, date.day, 7, 0)
+    except Exception:
+        dt_start = datetime(date.year, date.month, date.day, 7, 0)
+    # Finish time
+    try:
+        time_str = race.finish_time or "08:00"
+        time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
+        if len(time_parts) == 3:
+            dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
+        elif len(time_parts) == 2:
+            dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
+        else:
+            dt_finish = datetime(date.year, date.month, date.day, 8, 0)
+    except Exception:
+        dt_finish = datetime(date.year, date.month, date.day, 8, 0)
+    # Cache start weather
+    if not race.start_weather:
+        race.start_weather = get_weather_for_datetime(place, dt_start)
+    # Cache finish weather
+    if not race.finish_weather:
+        race.finish_weather = get_weather_for_datetime(place, dt_finish)
+    return race.start_weather, race.finish_weather
             if not data.get('results'):
                 return None
             # If state provided, filter for state match (admin1)
             if state:
                 for loc in data['results']:
                     if 'admin1' in loc and (loc['admin1'].lower().startswith(state.lower()) or state.lower() in loc['admin1'].lower()):
-                        return loc
-            # Otherwise, return first result
-            return data['results'][0]
-
-        state = extract_state(place)
-        location = geocode(place, state)
-        # Fallback: try just city name if not found
-        if not location and ',' in place:
-            city = place.split(',')[0].strip()
-            location = geocode(city, state)
-        if not location and ' ' in place:
-            city = place.split(' ')[0].strip()
-            location = geocode(city, state)
-        if not location:
-            return jsonify({'error': 'Could not find location. Try just the city name, e.g. "McAlester".'}), 400
-        lat, lon = location['latitude'], location['longitude']
-
-        date_str = dt.strftime('%Y-%m-%d')
-        target_hour = dt.hour
-
-        # Use historical API for dates more than 5 days ago
-        if days_ago > 5:
-            weather_url = "https://archive-api.open-meteo.com/v1/archive"
-            params = {
+                        date = race.race_date
+                        try:
+                            time_str = race.race_time or "07:00"
+                            time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
+                            if len(time_parts) == 3:
+                                dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
+                            elif len(time_parts) == 2:
+                                dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
+                            else:
+                                dt_start = datetime(date.year, date.month, date.day, 7, 0)
+                        except Exception:
+                            dt_start = datetime(date.year, date.month, date.day, 7, 0)
+                        # Finish time
+                        try:
+                            time_str = race.finish_time or "08:00"
+                            time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
+                            if len(time_parts) == 3:
+                                dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
+                            elif len(time_parts) == 2:
+                                dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
+                            else:
+                                dt_finish = datetime(date.year, date.month, date.day, 8, 0)
+                        except Exception:
+                            dt_finish = datetime(date.year, date.month, date.day, 8, 0)
                 'latitude': lat,
                 'longitude': lon,
                 'start_date': date_str,
@@ -793,11 +813,19 @@ def races():
     races = query.order_by(Race.race_date.desc()).paginate(
         page=page, per_page=10, error_out=False)
 
-    # Fetch weather for each race
+    # Fetch and cache weather for each race
     race_weather = {}
     for race in races.items:
-        weather = get_race_weather(race)
-        race_weather[race.id] = weather
+        start_weather, finish_weather = cache_race_weather(race)
+        race_weather[race.id] = {
+            'start': start_weather,
+            'finish': finish_weather
+        }
+    # Commit any new cached weather to DB
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
     return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes, race_weather=race_weather)
 
