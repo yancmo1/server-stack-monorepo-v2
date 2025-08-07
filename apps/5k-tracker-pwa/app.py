@@ -28,14 +28,18 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 def linkify_notes(text):
     if not text:
         return ''
-    # Convert URLs to hyperlinks
-    url_pattern = re.compile(r'(https?://[\w\-\.\?\=\&\#\/%]+)')
-    def replace_url(match):
-        url = match.group(0)
-        return f'<a href="{url}" target="_blank" rel="noopener">{url}</a>'
-    linked = url_pattern.sub(replace_url, text)
-    # Convert newlines to <br>
-    return linked.replace('\n', '<br>')
+    if not isinstance(text, str):
+        text = str(text)
+    try:
+        url_pattern = re.compile(r'(https?://[\w\-\.\?\=\&\#\/%]+)')
+        def replace_url(match):
+            url = match.group(0)
+            return f'<a href="{url}" target="_blank" rel="noopener">{url}</a>'
+        linked = url_pattern.sub(replace_url, text)
+        return linked.replace('\n', '<br>')
+    except Exception as e:
+        # If anything goes wrong, just return the text with line breaks
+        return str(text).replace('\n', '<br>')
 def add_test_races():
     """Add generic test races for the 'runner' user."""
     with app.app_context():
