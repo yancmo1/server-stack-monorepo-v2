@@ -20,14 +20,14 @@ def get_race_weather(race):
         dt_str = f"{date.isoformat()}T12:00:00"
     # Call internal weather API
     try:
-        resp = requests.get(f"http://localhost:5555/api/weather", params={"place": place, "datetime": dt_str}, timeout=5)
+        resp = requests.get(f"http://localhost:5555/api/weather", params={"place": place, "datetime": dt_str}, timeout=2)
         if resp.ok:
             data = resp.json().get('weather', {})
-            if data:
+            if data and 'temperature' in data:
                 return f"{data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
     except Exception:
         pass
-    return None
+    return "Weather unavailable"
 
 
 # --- Imports ---
