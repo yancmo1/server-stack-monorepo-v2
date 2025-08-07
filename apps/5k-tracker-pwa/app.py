@@ -4,6 +4,7 @@ import sys
 import uuid
 from datetime import datetime, timedelta
 import requests
+import math
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -713,254 +714,85 @@ def dashboard():
 @login_required
 def races():
     page = request.args.get('page', 1, type=int)
-    race_type = request.args.get('type', '')
-    
-    query = Race.query.filter_by(user_id=current_user.id)
-    
-    if race_type:
-        query = query.filter_by(race_type=race_type)
-    
-    races = query.order_by(Race.race_date.desc()).paginate(
-        page=page, per_page=10, error_out=False)
+    if page < 1:
+        page = 1
+    race_type = request.args.get('type', '').strip()
 
-    # Fetch and cache weather for each race
+    base_query = Race.query.filter_by(user_id=current_user.id)
+    if race_type:
+        base_query = base_query.filter_by(race_type=race_type)
+
+    per_page = 10
+    total = base_query.count()
+    items = (base_query
+             .order_by(Race.race_date.desc())
+             .offset((page - 1) * per_page)
+             .limit(per_page)
+             .all())
+
+    class SimplePagination:
+        def __init__(self, items, page, per_page, total):
+            self.items = items
+            self.page = page
+            self.per_page = per_page
+            self.total = total
+        @property
+        def pages(self):
+            return math.ceil(self.total / self.per_page) if self.per_page else 0
+        @property
+        def has_prev(self):
+            return self.page > 1
+        @property
+        def has_next(self):
+            return self.page < self.pages
+        @property
+        def prev_num(self):
+            return self.page - 1 if self.has_prev else None
+        @property
+        def next_num(self):
+            return self.page + 1 if self.has_next else None
+        def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=3):
+            last = 0
+            for num in range(1, self.pages + 1):
+                if (num <= left_edge or
+                    (num > self.page - left_current - 1 and num < self.page + right_current) or
+                    num > self.pages - right_edge):
+                    if last + 1 != num:
+                        yield None
+                    yield num
+                    last = num
+
+    races_pagination = SimplePagination(items, page, per_page, total)
+
+    # Fetch and cache weather for each race (lightweight, no external HTTP call loop if many races)
     race_weather = {}
-    for race in races.items:
-        start_weather, finish_weather = cache_race_weather(race)
-        race_weather[race.id] = {
-            'start': start_weather,
-            'finish': finish_weather
-        }
-    # Commit any new cached weather to DB
+    for race in items:
+        try:
+            start_weather, finish_weather = cache_race_weather(race)
+            race_weather[race.id] = {
+                'start': start_weather,
+                'finish': finish_weather
+            }
+        except Exception:
+            race_weather[race.id] = {'start': 'N/A', 'finish': 'N/A'}
     try:
         db.session.commit()
     except Exception:
         db.session.rollback()
 
-    # Define linkify_notes as a simple helper (can be improved later)
     def linkify_notes(notes):
         import re
-        url_pattern = r'(https?://\S+)'  # Simple URL regex
+        if not notes:
+            return ''
+        url_pattern = r'(https?://\S+)'
         return re.sub(url_pattern, r'<a href="\1" target="_blank">\1</a>', notes.replace('\n', '<br>'))
-    return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes, race_weather=race_weather, weather_icon=weather_icon)
 
-def parse_race_row(row, columns):
-    # Map columns to Race fields
-    data = {k: v.strip() for k, v in zip(columns, row)}
-    # Try to extract city/state
-    city = data.get('City', '')
-    state = ''
-    if ' ' in city:
-        parts = city.split()
-        if len(parts) > 1:
-            state = parts[-1]
-            city = ' '.join(parts[:-1])
-    # Parse finish time (or gun time)
-    finish_time = data.get('Finish Time') or data.get('Gun Time')
-    # Try to parse date if present (not in your sample, but future-proof)
-    race_date = datetime.utcnow().date()
-    # Build Race dict
-    return {
-        'race_name': 'Imported Race',
-        'race_type': '5K',
-        'race_date': race_date,
-        'race_time': '',
-        'finish_time': finish_time,
-        'location': f"{city}, {state}".strip(', '),
-        'weather': '',
-        'notes': '',
-        'bib': data.get('Bib Number', ''),
-        'age': data.get('Age', ''),
-        'gender_place': data.get('Gender Place', ''),
-        'ag_place': data.get('AG Place', ''),
-        'pace': data.get('Pace', ''),
-        'place': data.get('Place', ''),
-        'name': data.get('Name', ''),
-    }
-
-@app.route('/import_results', methods=['GET', 'POST'])
-@login_required
-def import_results():
-    imported = 0
-    errors = []
-    if request.method == 'POST':
-        text = request.form.get('results_text', '')
-        lines = [l for l in text.splitlines() if l.strip()]
-        if not lines or len(lines) < 2:
-            errors.append('No data found.')
-        else:
-            # Try to auto-detect delimiter and header
-            header = re.split(r'\s{2,}|\t|,', lines[0].strip())
-            for row in lines[1:]:
-                fields = re.split(r'\s{2,}|\t|,', row.strip())
-                if len(fields) < 4:
-                    errors.append(f'Row skipped (too few columns): {row}')
-                    continue
-                try:
-                    race_data = parse_race_row(fields, header)
-                    race = Race(
-                        user_id=current_user.id,
-                        race_name=race_data['race_name'],
-                        race_type=race_data['race_type'],
-                        race_date=race_data['race_date'],
-                        race_time=race_data['race_time'],
-                        finish_time=race_data['finish_time'],
-                        location=race_data['location'],
-                        weather=race_data['weather'],
-                        notes=race_data['notes']
-                    )
-                    db.session.add(race)
-                    imported += 1
-                except Exception as e:
-                    errors.append(f'Row error: {row} ({e})')
-            db.session.commit()
-            if imported:
-                flash(f"Imported {imported} races!", 'success')
-    return render_template('import_results.html', imported=imported if imported else None, errors=errors)
-
-@app.route('/admin')
-@login_required
-def admin():
-    """Admin dashboard to manage users"""
-    if not current_user.is_admin:
-        flash('Access denied. Admin privileges required.')
-        return redirect(url_for('dashboard'))
-    
-    # Get all users
-    users = User.query.order_by(User.id.desc()).all()
-    
-    # Get user statistics
-    total_users = len(users)
-    admin_users = len([u for u in users if u.is_admin])
-    total_races = Race.query.count()
-    
-    return render_template('admin_users.html', 
-                         users=users,
-                         total_users=total_users,
-                         admin_users=admin_users,
-                         total_races=total_races)
-
-@app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
-@login_required
-def admin_reset_password(user_id):
-    """Reset a user's password to a default value"""
-    if not current_user.is_admin:
-        flash('Access denied. Admin privileges required.')
-        return redirect(url_for('dashboard'))
-    
-    user = User.query.get_or_404(user_id)
-    if user.id == current_user.id:
-        flash('Cannot reset your own password from admin panel')
-        return redirect(url_for('admin'))
-    
-    # Generate a temporary password
-    import secrets
-    temp_password = secrets.token_urlsafe(8)
-    user.set_password(temp_password)
-    db.session.commit()
-    
-    flash(f'Password reset for {user.email}. New temporary password: {temp_password}')
-    return redirect(url_for('admin'))
-
-@app.route('/profile', methods=['GET', 'POST'])
-@login_required
-def profile():
-    if request.method == 'POST':
-        # Update profile info
-        first_name = request.form.get('first_name', '').strip()
-        last_name = request.form.get('last_name', '').strip()
-        email = request.form.get('email', '').strip()
-        changed = False
-        if first_name and first_name != current_user.first_name:
-            current_user.first_name = first_name
-            changed = True
-        if last_name and last_name != current_user.last_name:
-            current_user.last_name = last_name
-            changed = True
-        if email and email != current_user.email:
-            # Check for email conflict
-            if User.query.filter_by(email=email).first() and email != current_user.email:
-                flash('Email already in use by another account.', 'danger')
-                return render_template('profile.html')
-            current_user.email = email
-            changed = True
-        # Handle password change
-        current_password = request.form.get('current_password', '')
-        new_password = request.form.get('new_password', '')
-        confirm_password = request.form.get('confirm_password', '')
-        if current_password or new_password or confirm_password:
-            if not current_user.check_password(current_password):
-                flash('Current password is incorrect.', 'danger')
-                return render_template('profile.html')
-            if not new_password or not confirm_password:
-                flash('Please enter and confirm your new password.', 'danger')
-                return render_template('profile.html')
-            if new_password != confirm_password:
-                flash('New passwords do not match.', 'danger')
-                return render_template('profile.html')
-            if len(new_password) < 6:
-                flash('New password must be at least 6 characters.', 'danger')
-                return render_template('profile.html')
-            current_user.set_password(new_password)
-            changed = True
-            flash('Password updated successfully!', 'success')
-        if changed:
-            db.session.commit()
-            flash('Profile updated successfully!', 'success')
-        return render_template('profile.html')
-    return render_template('profile.html')
-
-def duplicate_races(from_username, to_username):
-    from_user = User.query.filter_by(username=from_username).first()
-    to_user = User.query.filter_by(username=to_username).first()
-    if not from_user or not to_user:
-        print("User not found.")
-        return
-    for race in Race.query.filter_by(user_id=from_user.id).all():
-        new_race = Race(
-            user_id=to_user.id,
-            race_name=race.race_name,
-            race_type=race.race_type,
-            race_date=race.race_date,
-            race_time=race.race_time,
-            finish_time=race.finish_time,
-            location=race.location,
-            weather=race.weather,
-            start_weather=race.start_weather,
-            finish_weather=race.finish_weather,
-            notes=race.notes
-        )
-        new_race.location = race.location
-        new_race.weather = race.weather
-        new_race.notes = race.notes
-        db.session.add(new_race)
-    db.session.commit()
-    print("Races duplicated. You can now edit times for your wife.")
-
-# Serve manifest.json for PWA
-@app.route('/manifest.json')
-def serve_manifest():
-    from flask import send_file
-    return send_file('manifest.json', mimetype='application/manifest+json')
-
-# Serve service worker for PWA
-@app.route('/sw.js')
-def serve_sw():
-    from flask import send_file
-    return send_file('sw.js', mimetype='application/javascript')
-
-
-# Robust catch-all route for all subpaths, including '' and '/'
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def catch_all(path):
-    import sys
-    print('Catch-all route hit:', repr(path), file=sys.stderr)
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return render_template('index.html')
-
-if __name__ == "__main__":
-    with app.app_context():
-        duplicate_races('yancmo', 'ambeees')
-    app.run(debug=True)
+    return render_template(
+        'races.html',
+        races=races_pagination,
+        selected_type=race_type,
+        linkify_notes=linkify_notes,
+        race_weather=race_weather,
+        weather_icon=weather_icon
+    )
+# ...existing code...
