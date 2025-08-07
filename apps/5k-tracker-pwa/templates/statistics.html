@@ -128,14 +128,13 @@
             <div class="card-body">
                 <div class="row">
                     {% for race_type, data in stats.items() %}
-                        {% if data.recent_races|length >= 2 %}
-                            <div class="col-md-6 mb-3">
+                        <div class="col-md-6 mb-3">
+                            {% if data.recent_races|length >= 2 %}
                                 <h6>{{ race_type }} Recent Trend</h6>
                                 <div class="progress mb-2" style="height: 25px;">
                                     {% set latest_time = data.recent_races[0].time_to_seconds() %}
                                     {% set previous_time = data.recent_races[1].time_to_seconds() %}
                                     {% set improvement = ((previous_time - latest_time) / previous_time * 100) if previous_time > 0 else 0 %}
-                                    
                                     {% if improvement > 0 %}
                                         <div class="progress-bar bg-success" style="width: {{ [(improvement * 2)|round, 100]|min }}%">
                                             Improved by {{ "%.1f"|format(improvement) }}%
@@ -153,8 +152,29 @@
                                 <small class="text-muted">
                                     Latest: {{ data.recent_races[0].finish_time }} vs Previous: {{ data.recent_races[1].finish_time }}
                                 </small>
-                            </div>
-                        {% endif %}
+                            {% endif %}
+                            {% if data.overall_trend is not none %}
+                                <h6 class="mt-3">{{ race_type }} Overall Trend</h6>
+                                <div class="progress mb-2" style="height: 25px;">
+                                    {% if data.overall_trend > 0 %}
+                                        <div class="progress-bar bg-success" style="width: {{ [(data.overall_trend * 2)|round, 100]|min }}%">
+                                            Improved by {{ "%.1f"|format(data.overall_trend) }}% overall
+                                        </div>
+                                    {% elif data.overall_trend < 0 %}
+                                        <div class="progress-bar bg-warning" style="width: {{ [(data.overall_trend * -2)|round, 100]|min }}%">
+                                            {{ "%.1f"|format(data.overall_trend * -1) }}% slower overall
+                                        </div>
+                                    {% else %}
+                                        <div class="progress-bar bg-secondary" style="width: 100%">
+                                            No change overall
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    First: {{ (data.recent_races|last).finish_time if data.recent_races|length > 0 else '' }} vs Most Recent: {{ data.recent_races[0].finish_time if data.recent_races|length > 0 else '' }}
+                                </small>
+                            {% endif %}
+                        </div>
                     {% endfor %}
                 </div>
                 

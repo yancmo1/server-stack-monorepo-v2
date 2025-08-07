@@ -486,11 +486,21 @@ def statistics():
     stats = {}
     for race_type, type_races in race_types.items():
         times = [r.time_to_seconds() for r in type_races]
+        sorted_races = sorted(type_races, key=lambda x: x.race_date)
+        first_race = sorted_races[0] if sorted_races else None
+        last_race = sorted_races[-1] if sorted_races else None
+        overall_trend = None
+        if first_race and last_race and first_race != last_race:
+            first_time = first_race.time_to_seconds()
+            last_time = last_race.time_to_seconds()
+            if first_time > 0:
+                overall_trend = ((first_time - last_time) / first_time) * 100
         stats[race_type] = {
             'count': len(type_races),
             'best_time': min(times) if times else 0,
             'average_time': sum(times) / len(times) if times else 0,
-            'recent_races': sorted(type_races, key=lambda x: x.race_date, reverse=True)[:5]
+            'recent_races': sorted(type_races, key=lambda x: x.race_date, reverse=True)[:5],
+            'overall_trend': overall_trend
         }
     return render_template('statistics.html', stats=stats)
 
