@@ -328,7 +328,20 @@ def index():
     print('SCRIPT_NAME:', request.environ.get('SCRIPT_NAME'), file=sys.stderr)
     print('HTTP_X_SCRIPT_NAME:', request.environ.get('HTTP_X_SCRIPT_NAME'), file=sys.stderr)
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        # Instead of auto-redirecting, show a welcome page with dashboard link
+        return '''
+        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
+            <h1>🏃‍♂️ 5K Race Tracker</h1>
+            <p>Welcome back, <strong>{email}</strong>!</p>
+            <a href="{dashboard_url}" style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block; margin: 10px;">📊 Go to Dashboard</a>
+            <br><br>
+            <a href="{logout_url}" style="color: #6c757d; text-decoration: none;">🚪 Logout</a>
+        </div>
+        '''.format(
+            email=current_user.email,
+            dashboard_url=url_for('dashboard'),
+            logout_url=url_for('logout')
+        )
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -384,8 +397,12 @@ def login():
             flash('Invalid email or password')
     return render_template('login.html')
 
-
-
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.')
+    return redirect(url_for('index'))
 
 @app.route('/add_race', methods=['GET', 'POST'])
 @login_required
