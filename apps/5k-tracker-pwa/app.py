@@ -1,3 +1,28 @@
+# ...existing code...
+
+# --- Imports ---
+import os
+import uuid
+from datetime import datetime, timedelta
+import requests
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+import re
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+app = Flask(__name__)
+app.config['APPLICATION_ROOT'] = '/tracker'
+app.config['PREFERRED_URL_SCHEME'] = 'https'
+app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', 'sqlite:///race_tracker.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
 # --- Jinja filter for hyperlinking URLs and line breaks in notes ---
 @app.template_filter('linkify_notes')
 def linkify_notes(text):
