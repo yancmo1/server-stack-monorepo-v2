@@ -404,6 +404,33 @@ def logout():
     flash('You have been logged out.')
     return redirect(url_for('index'))
 
+@app.route('/test-dashboard')
+def test_dashboard():
+    """Test endpoint to verify dashboard functionality without authentication"""
+    try:
+        # Get admin user for testing
+        admin_user = User.query.filter_by(email='admin@example.com').first()
+        if not admin_user:
+            return "Admin user not found", 404
+            
+        # Test the dashboard query
+        recent_races = db.session.query(Race).filter_by(user_id=admin_user.id).order_by(Race.race_date.desc()).limit(5).all()
+        
+        return f"""
+        <h1>Dashboard Test - SUCCESS!</h1>
+        <p>✅ Database connection: Working</p>
+        <p>✅ Race table access: Working</p>
+        <p>✅ Weather columns: Available</p>
+        <p>📊 Found {len(recent_races)} races for admin user</p>
+        <p>🔗 <a href="/tracker/">Back to main page</a></p>
+        """
+    except Exception as e:
+        return f"""
+        <h1>Dashboard Test - FAILED</h1>
+        <p>❌ Error: {str(e)}</p>
+        <p>🔗 <a href="/tracker/">Back to main page</a></p>
+        """, 500
+
 @app.route('/add_race', methods=['GET', 'POST'])
 @login_required
 def add_race():
