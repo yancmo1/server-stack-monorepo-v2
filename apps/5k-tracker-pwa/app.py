@@ -1,3 +1,33 @@
+# --- Helper to fetch weather for a race at finish time ---
+def get_race_weather(race):
+    """Fetch weather at finish time for a race."""
+    # Parse location
+    place = race.location or ''
+    # Parse finish datetime
+    try:
+        date = race.race_date
+        time_str = race.finish_time
+        # Accept formats like MM:SS, HH:MM:SS, etc.
+        time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
+        if len(time_parts) == 3:
+            dt = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
+        elif len(time_parts) == 2:
+            dt = datetime(date.year, date.month, date.day, 0, time_parts[0], time_parts[1])
+        else:
+            dt = datetime(date.year, date.month, date.day)
+        dt_str = dt.isoformat()
+    except Exception:
+        dt_str = f"{date.isoformat()}T12:00:00"
+    # Call internal weather API
+    try:
+        resp = requests.get(f"http://localhost:5555/api/weather", params={"place": place, "datetime": dt_str}, timeout=5)
+        if resp.ok:
+            data = resp.json().get('weather', {})
+            if data:
+                return f"{data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
+    except Exception:
+        pass
+    return None
 
 
 # --- Imports ---
@@ -762,8 +792,14 @@ def races():
     
     races = query.order_by(Race.race_date.desc()).paginate(
         page=page, per_page=10, error_out=False)
-    
-    return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes)
+
+    # Fetch weather for each race
+    race_weather = {}
+    for race in races.items:
+        weather = get_race_weather(race)
+        race_weather[race.id] = weather
+
+    return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes, race_weather=race_weather)
 
 def parse_race_row(row, columns):
     # Map columns to Race fields

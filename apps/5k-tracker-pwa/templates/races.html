@@ -90,10 +90,11 @@
                                             <i class="fas fa-map-marker-alt text-muted"></i> 
                                             {{ race.location }}
                                         </p>
-                                    {% endif %}                                    {% if race.weather %}
+                                    {% endif %}
+                                    {% if race_weather[race.id] %}
                                         <p class="mb-2">
-                                            <i class="fas fa-cloud text-muted"></i> 
-                                            {{ race.weather }}
+                                            <i class="fas fa-cloud text-muted"></i>
+                                            <strong>Weather at Finish:</strong> {{ race_weather[race.id] }}
                                         </p>
                                     {% endif %}
                                     {% if race.photos %}
