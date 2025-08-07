@@ -5,113 +5,22 @@ def weather_icon(weather_str):
     w = weather_str.lower()
     if "sun" in w or "clear" in w:
         return "fas fa-sun text-warning"
-    if "partly" in w and "cloud" in w:
-        return "fas fa-cloud-sun text-info"
-    if "cloud" in w:
-        return "fas fa-cloud text-secondary"
-    if "rain" in w:
-        return "fas fa-cloud-showers-heavy text-primary"
-    if "snow" in w:
-        return "fas fa-snowflake text-info"
-    return "fas fa-question-circle text-muted"
-# --- Helper to fetch weather for a race at finish time ---
-def get_race_weather(race):
-    """Fetch weather at finish time for a race."""
-    # Parse location
-    place = race.location or ''
-    # Parse finish datetime
-    try:
-        date = race.race_date
-        time_str = race.finish_time
-        # Accept formats like MM:SS, HH:MM:SS, etc.
-        time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
-        if len(time_parts) == 3:
-            dt = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
-        elif len(time_parts) == 2:
-            dt = datetime(date.year, date.month, date.day, 0, time_parts[0], time_parts[1])
-        else:
-            dt = datetime(date.year, date.month, date.day)
-        dt_str = dt.isoformat()
-    except Exception:
-        dt_str = f"{date.isoformat()}T12:00:00"
-    # Call internal weather API
-    try:
-        resp = requests.get(f"http://localhost:5555/api/weather", params={"place": place, "datetime": dt_str}, timeout=2)
-        if resp.ok:
-            data = resp.json().get('weather', {})
-            if data and 'temperature' in data:
-                return f"{data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
-    except Exception:
-        pass
-    return "Weather unavailable"
-
-
-# --- Imports ---
-import os
-import uuid
-from datetime import datetime, timedelta
-import requests
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-import re
-from werkzeug.middleware.proxy_fix import ProxyFix
-
-# --- Flask app creation and config ---
-app = Flask(__name__)
-app.config['APPLICATION_ROOT'] = '/tracker'
-app.config['PREFERRED_URL_SCHEME'] = 'https'
-app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', 'sqlite:///race_tracker.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
-# --- Function for hyperlinking URLs and line breaks in notes ---
-def linkify_notes(text):
-    """Convert URLs to clickable links and line breaks to <br> tags."""
-    if not text:
-        return ''
-    if not isinstance(text, str):
-        text = str(text)
-    try:
-        url_pattern = re.compile(r'(https?://[\w\-\.\?\=\&\#\/%]+)')
-        def replace_url(match):
-            url = match.group(0)
-            return f'<a href="{url}" target="_blank" rel="noopener">{url}</a>'
-        linked = url_pattern.sub(replace_url, text)
-        return linked.replace('\n', '<br>')
-    except Exception as e:
-        # If anything goes wrong, just return the text with line breaks
-        return str(text).replace('\n', '<br>')
-
-# Register the filter manually AND make it available as a global function
-app.jinja_env.filters['linkify_notes'] = linkify_notes
-app.jinja_env.globals['linkify_notes'] = linkify_notes
-
-def add_test_races():
-    """Add generic test races for the 'runner' user."""
-    with app.app_context():
-        runner = User.query.filter_by(username='runner').first()
-        if not runner:
-            print("Runner user not found. Run create_default_users() first.")
-            return
-        from random import randint, choice
-        race_types = ['5K', '10K', 'Half Marathon', 'Marathon']
-        locations = ['Tulsa, OK', 'Dallas, TX', 'Oklahoma City, OK', 'Austin, TX']
-        for i in range(1, 6):
+    # Example function to add test races for a runner
+    def add_test_races(runner, race_types, locations):
+        from random import choice, randint
+        from datetime import datetime
+        for i in range(10):
             race = Race(
                 user_id=runner.id,
-                race_name=f"Test Race {i}",
+                race_name=f"Test Race {i+1}",
                 race_type=choice(race_types),
                 race_date=datetime(2024, randint(1,12), randint(1,28)).date(),
                 race_time=f"0{randint(6,9)}:00",
                 finish_time=f"{randint(20,59)}:{randint(10,59)}",
                 location=choice(locations),
                 weather="Sunny, 70°F, wind 5 mph",
+                start_weather=None,
+                finish_weather=None,
                 notes=f"This is a test race entry number {i}."
             )
             db.session.add(race)
@@ -149,64 +58,7 @@ class PrefixMiddleware:
         script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
         path_info = environ.get('PATH_INFO', '')
         print(f"[PrefixMiddleware] BEFORE: script_name: {script_name}, path_info: {path_info}", file=sys.stderr)
-        if script_name:
-            environ['SCRIPT_NAME'] = script_name
-            if path_info.startswith(script_name):
-                environ['PATH_INFO'] = path_info[len(script_name):]
-            # If path_info is now empty or just '/', set to '/'
-            if environ['PATH_INFO'] in ('', None):
-                environ['PATH_INFO'] = '/'
-        print(f"[PrefixMiddleware] AFTER: SCRIPT_NAME: {environ.get('SCRIPT_NAME')}, PATH_INFO: {environ.get('PATH_INFO')}", file=sys.stderr)
-        return self.app(environ, start_response)
-
-# Ensure PrefixMiddleware is the first middleware
-app.wsgi_app = PrefixMiddleware(app.wsgi_app)
-
-# Now initialize extensions, blueprints, etc.
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-@app.route('/logout')
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-
-# --- Admin Routes ---
-@app.route('/admin')
-@login_required
-def admin_dashboard():
-    if not current_user.is_admin:
-        flash('Access denied. Admin privileges required.')
-        return redirect(url_for('dashboard'))
-    
-    users = User.query.all()
-    total_users = len(users)
-    total_races = db.session.query(Race).count()
-    return render_template('admin/dashboard.html', 
-                         users=users, 
-                         total_users=total_users, 
-                         total_races=total_races)
-
-@app.route('/admin/users')
-@login_required
-def admin_users():
-    if not current_user.is_admin:
-        flash('Access denied. Admin privileges required.')
-        return redirect(url_for('dashboard'))
-    
-    users = User.query.all()
-    return render_template('admin/users.html', users=users)
-
-@app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
-@login_required
-def admin_reset_password(user_id):
-    if not current_user.is_admin:
-        flash('Access denied. Admin privileges required.')
-        return redirect(url_for('dashboard'))
-    
-    user = User.query.get_or_404(user_id)
-    new_password = request.form['new_password']
+def reset_user_password(user, new_password):
     user.set_password(new_password)
     db.session.commit()
     flash(f'Password reset for {user.email}')
@@ -310,6 +162,16 @@ db = SQLAlchemy(app)
 
 # --- Models ---
 class User(UserMixin, db.Model):
+    def __init__(self, username=None, email=None, password_hash=None, first_name=None, last_name=None, is_admin=False, reset_token=None, reset_token_expiry=None, created_at=None):
+        self.username = username
+        self.email = email
+        self.password_hash = password_hash
+        self.first_name = first_name
+        self.last_name = last_name
+        self.is_admin = is_admin
+        self.reset_token = reset_token
+        self.reset_token_expiry = reset_token_expiry
+        self.created_at = created_at or datetime.utcnow()
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=True)  # Optional, email is primary
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -352,6 +214,19 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
 class Race(db.Model):
+    def __init__(self, user_id, race_name, race_type, race_date, race_time, finish_time, location=None, weather=None, start_weather=None, finish_weather=None, notes=None, created_at=None):
+        self.user_id = user_id
+        self.race_name = race_name
+        self.race_type = race_type
+        self.race_date = race_date
+        self.race_time = race_time
+        self.finish_time = finish_time
+        self.location = location
+        self.weather = weather
+        self.start_weather = start_weather
+        self.finish_weather = finish_weather
+        self.notes = notes
+        self.created_at = created_at or datetime.utcnow()
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     race_name = db.Column(db.String(200), nullable=False)
@@ -386,6 +261,12 @@ class Race(db.Model):
         return f'<Race {self.race_name} - {self.finish_time}>'
 
 class RacePhoto(db.Model):
+    def __init__(self, race_id, filename, original_filename, photo_type, caption=None):
+        self.race_id = race_id
+        self.filename = filename
+        self.original_filename = original_filename
+        self.photo_type = photo_type
+        self.caption = caption
     id = db.Column(db.Integer, primary_key=True)
     race_id = db.Column(db.Integer, db.ForeignKey('race.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
@@ -655,6 +536,10 @@ def cache_race_weather(race):
             dt_finish = datetime(date.year, date.month, date.day, 8, 0)
     except Exception:
         dt_finish = datetime(date.year, date.month, date.day, 8, 0)
+    # Ensure date is defined
+    date = getattr(race, 'race_date', None)
+    if date is None:
+        date = datetime.utcnow().date()
     # Cache start weather
     if not race.start_weather:
         race.start_weather = get_weather_for_datetime(place, dt_start)
@@ -662,56 +547,18 @@ def cache_race_weather(race):
     if not race.finish_weather:
         race.finish_weather = get_weather_for_datetime(place, dt_finish)
     return race.start_weather, race.finish_weather
-            if not data.get('results'):
-                return None
-            # If state provided, filter for state match (admin1)
-            if state:
-                for loc in data['results']:
-                    if 'admin1' in loc and (loc['admin1'].lower().startswith(state.lower()) or state.lower() in loc['admin1'].lower()):
-                        date = race.race_date
-                        try:
-                            time_str = race.race_time or "07:00"
-                            time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
-                            if len(time_parts) == 3:
-                                dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
-                            elif len(time_parts) == 2:
-                                dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
-                            else:
-                                dt_start = datetime(date.year, date.month, date.day, 7, 0)
-                        except Exception:
-                            dt_start = datetime(date.year, date.month, date.day, 7, 0)
-                        # Finish time
-                        try:
-                            time_str = race.finish_time or "08:00"
-                            time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
-                            if len(time_parts) == 3:
-                                dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
-                            elif len(time_parts) == 2:
-                                dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
-                            else:
-                                dt_finish = datetime(date.year, date.month, date.day, 8, 0)
-                        except Exception:
-                            dt_finish = datetime(date.year, date.month, date.day, 8, 0)
-                'latitude': lat,
-                'longitude': lon,
-                'start_date': date_str,
-                'end_date': date_str,
-                'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
-                'timezone': 'auto',
-                'temperature_unit': 'fahrenheit'
-            }
-        else:
-            weather_url = "https://api.open-meteo.com/v1/forecast"
-            params = {
-                'latitude': lat,
-                'longitude': lon,
-                'start_date': date_str,
-                'end_date': date_str,
-                'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
-                'timezone': 'auto',
-                'temperature_unit': 'fahrenheit'
-            }
-
+    try:
+        # Build weather API params
+        params = {
+            'latitude': lat,
+            'longitude': lon,
+            'start_date': date_str,
+            'end_date': date_str,
+            'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
+            'timezone': 'auto',
+            'temperature_unit': 'fahrenheit'
+        }
+        weather_url = "https://api.open-meteo.com/v1/forecast"
         weather_response = requests.get(weather_url, params=params, timeout=10)
         if not weather_response.ok:
             return jsonify({'error': 'Failed to fetch weather data'}), 400
