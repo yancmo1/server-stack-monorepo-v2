@@ -1,3 +1,19 @@
+# --- Helper to select weather icon ---
+def weather_icon(weather_str):
+    if not weather_str:
+        return "fas fa-question-circle text-muted"
+    w = weather_str.lower()
+    if "sun" in w or "clear" in w:
+        return "fas fa-sun text-warning"
+    if "partly" in w and "cloud" in w:
+        return "fas fa-cloud-sun text-info"
+    if "cloud" in w:
+        return "fas fa-cloud text-secondary"
+    if "rain" in w:
+        return "fas fa-cloud-showers-heavy text-primary"
+    if "snow" in w:
+        return "fas fa-snowflake text-info"
+    return "fas fa-question-circle text-muted"
 # --- Helper to fetch weather for a race at finish time ---
 def get_race_weather(race):
     """Fetch weather at finish time for a race."""
@@ -827,7 +843,7 @@ def races():
     except Exception:
         db.session.rollback()
 
-    return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes, race_weather=race_weather)
+    return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes, race_weather=race_weather, weather_icon=weather_icon)
 
 def parse_race_row(row, columns):
     # Map columns to Race fields
