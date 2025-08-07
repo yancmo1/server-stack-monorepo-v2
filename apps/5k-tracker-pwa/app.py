@@ -1,38 +1,4 @@
 
-# --- Imports ---
-import os
-import re
-from flask import Flask
-# ...other existing imports...
-
-# --- Flask app creation and config ---
-app = Flask(__name__)
-app.config['APPLICATION_ROOT'] = '/tracker'
-app.config['PREFERRED_URL_SCHEME'] = 'https'
-app.config['SECRET_KEY'] = os.environ.get('TRACKER_SECRET_KEY', 'changeme-please-set-TRACKER_SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', 'sqlite:///race_tracker.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
-# --- Jinja filter for hyperlinking URLs and line breaks in notes ---
-@app.template_filter('linkify_notes')
-def linkify_notes(text):
-    if not text:
-        return ''
-    if not isinstance(text, str):
-        text = str(text)
-    try:
-        url_pattern = re.compile(r'(https?://[\w\-\.\?\=\&\#\/%]+)')
-        def replace_url(match):
-            url = match.group(0)
-            return f'<a href="{url}" target="_blank" rel="noopener">{url}</a>'
-        linked = url_pattern.sub(replace_url, text)
-        return linked.replace('\n', '<br>')
-    except Exception as e:
-        # If anything goes wrong, just return the text with line breaks
-        return str(text).replace('\n', '<br>')
-# ...existing code...
 
 # --- Imports ---
 import os
@@ -48,6 +14,7 @@ from dotenv import load_dotenv
 import re
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+# --- Flask app creation and config ---
 app = Flask(__name__)
 app.config['APPLICATION_ROOT'] = '/tracker'
 app.config['PREFERRED_URL_SCHEME'] = 'https'
@@ -60,6 +27,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # --- Jinja filter for hyperlinking URLs and line breaks in notes ---
 @app.template_filter('linkify_notes')
 def linkify_notes(text):
+    print("[DEBUG] linkify_notes filter registered")
     if not text:
         return ''
     if not isinstance(text, str):
