@@ -1,3 +1,16 @@
+# --- Jinja filter for hyperlinking URLs and line breaks in notes ---
+@app.template_filter('linkify_notes')
+def linkify_notes(text):
+    if not text:
+        return ''
+    # Convert URLs to hyperlinks
+    url_pattern = re.compile(r'(https?://[\w\-\.\?\=\&\#\/%]+)')
+    def replace_url(match):
+        url = match.group(0)
+        return f'<a href="{url}" target="_blank" rel="noopener">{url}</a>'
+    linked = url_pattern.sub(replace_url, text)
+    # Convert newlines to <br>
+    return linked.replace('\n', '<br>')
 def add_test_races():
     """Add generic test races for the 'runner' user."""
     with app.app_context():
