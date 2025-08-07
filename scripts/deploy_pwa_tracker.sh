@@ -22,7 +22,7 @@ ssh yancmo@ubuntumac '
   cd /home/yancmo/apps/server-stack-monorepo-v2 && \
   git pull && \
   cd deploy && \
-  docker compose build pwa-tracker && \
+  docker compose build --no-cache pwa-tracker && \
   docker compose up -d --no-deps pwa-tracker
 '
 
