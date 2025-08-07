@@ -1,5 +1,6 @@
 # --- Imports ---
 import os
+import sys
 import uuid
 from datetime import datetime, timedelta
 import requests
@@ -369,27 +370,29 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    print(f"[LOGIN DEBUG] Method: {request.method}", file=sys.stderr)
     if request.method == 'POST':
+        print(f"[LOGIN DEBUG] Form data: {request.form}", file=sys.stderr)
         email = request.form['email']  # Changed from username to email
         password = request.form['password']
-        print(f"[LOGIN DEBUG] Login attempt for email: {email}")
+        print(f"[LOGIN DEBUG] Login attempt for email: {email}", file=sys.stderr)
         user = User.query.filter_by(email=email).first()  # Search by email
         if user:
-            print(f"[LOGIN DEBUG] User found: {user.email}, admin: {user.is_admin}")
+            print(f"[LOGIN DEBUG] User found: {user.email}, admin: {user.is_admin}", file=sys.stderr)
             if user.check_password(password):
-                print(f"[LOGIN DEBUG] Password correct for {email}")
+                print(f"[LOGIN DEBUG] Password correct for {email}", file=sys.stderr)
                 login_user(user)
-                print(f"[LOGIN DEBUG] User logged in, redirecting to dashboard")
+                print(f"[LOGIN DEBUG] User logged in, redirecting to dashboard", file=sys.stderr)
                 # Get the next URL if provided, otherwise go to dashboard
                 next_page = request.args.get('next')
                 if next_page:
                     return redirect(next_page)
                 return redirect(url_for('dashboard'))
             else:
-                print(f"[LOGIN DEBUG] Password incorrect for {email}")
+                print(f"[LOGIN DEBUG] Password incorrect for {email}", file=sys.stderr)
                 flash('Invalid email or password')
         else:
-            print(f"[LOGIN DEBUG] User not found for email: {email}")
+            print(f"[LOGIN DEBUG] User not found for email: {email}", file=sys.stderr)
             flash('Invalid email or password')
     return render_template('login.html')
 
