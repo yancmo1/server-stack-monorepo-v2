@@ -572,6 +572,38 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/api/weather')
+def api_weather():
+    """Weather API endpoint for getting weather data"""
+    place = request.args.get('place', '')
+    datetime_str = request.args.get('datetime', '')
+    
+    if not place or not datetime_str:
+        return jsonify({'error': 'Missing place or datetime parameter'}), 400
+    
+    try:
+        # Parse the datetime
+        dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+        
+        # Simple mock weather response for now
+        # In production, you'd integrate with a real weather API
+        mock_weather = {
+            'temperature': 72,
+            'wind_speed': 5,
+            'humidity': 60,
+            'weather_code': 0,
+            'description': 'Clear sky'
+        }
+        
+        return jsonify({
+            'weather': mock_weather,
+            'location': {'name': place}
+        })
+        
+    except ValueError as e:
+        return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Weather service error: {str(e)}'}), 500
+
 def get_weather_for_datetime(place, dt):
     """Fetch weather for a location and datetime string."""
     try:
@@ -616,60 +648,6 @@ def cache_race_weather(race):
     if not race.finish_weather:
         race.finish_weather = get_weather_for_datetime(place, dt_finish)
     return race.start_weather, race.finish_weather
-    try:
-        # Build weather API params
-        params = {
-            'latitude': lat,
-            'longitude': lon,
-            'start_date': date_str,
-            'end_date': date_str,
-            'hourly': 'temperature_2m,wind_speed_10m,weather_code,relative_humidity_2m',
-            'timezone': 'auto',
-            'temperature_unit': 'fahrenheit'
-        }
-        weather_url = "https://api.open-meteo.com/v1/forecast"
-        weather_response = requests.get(weather_url, params=params, timeout=10)
-        if not weather_response.ok:
-            return jsonify({'error': 'Failed to fetch weather data'}), 400
-        weather_data = weather_response.json()
-        if not weather_data.get('hourly'):
-            return jsonify({'error': 'No weather data available for this date'}), 400
-        hourly = weather_data['hourly']
-        # Find the closest hour to the requested time
-        if target_hour < len(hourly['temperature_2m']):
-            temperature = hourly['temperature_2m'][target_hour]
-            wind_speed = hourly['wind_speed_10m'][target_hour]
-            weather_code = hourly['weather_code'][target_hour]
-            humidity = hourly['relative_humidity_2m'][target_hour] if 'relative_humidity_2m' in hourly else None
-        else:
-            temperature = hourly['temperature_2m'][-1] if hourly['temperature_2m'] else None
-            wind_speed = hourly['wind_speed_10m'][-1] if hourly['wind_speed_10m'] else None
-            weather_code = hourly['weather_code'][-1] if hourly['weather_code'] else None
-            humidity = hourly['relative_humidity_2m'][-1] if 'relative_humidity_2m' in hourly and hourly['relative_humidity_2m'] else None
-        if temperature is None:
-            return jsonify({'error': 'No weather data available for this time'}), 400
-        return jsonify({
-            'weather': {
-                'temperature': round(temperature, 1),
-                'wind_speed': round(wind_speed, 1) if wind_speed else 0,
-                'humidity': round(humidity, 1) if humidity is not None else None,
-                'weather_code': weather_code,
-                'unit': 'F'
-            },
-            'location': {
-                'name': location['name'],
-                'country': location.get('country', ''),
-                'state': location.get('admin1', ''),
-                'latitude': lat,
-                'longitude': lon
-            }
-        })
-    except ValueError as e:
-        return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
-    except requests.RequestException as e:
-        return jsonify({'error': f'Weather service unavailable: {str(e)}'}), 500
-    except Exception as e:
-        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
 
 def init_db():
     """Initialize the database with tables"""
@@ -839,6 +817,50 @@ def import_results():
             if imported:
                 flash(f"Imported {imported} races!", 'success')
     return render_template('import_results.html', imported=imported if imported else None, errors=errors)
+
+@app.route('/admin')
+@login_required
+def admin():
+    """Admin dashboard to manage users"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    # Get all users
+    users = User.query.order_by(User.id.desc()).all()
+    
+    # Get user statistics
+    total_users = len(users)
+    admin_users = len([u for u in users if u.is_admin])
+    total_races = Race.query.count()
+    
+    return render_template('admin_users.html', 
+                         users=users,
+                         total_users=total_users,
+                         admin_users=admin_users,
+                         total_races=total_races)
+
+@app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
+@login_required
+def admin_reset_password(user_id):
+    """Reset a user's password to a default value"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('Cannot reset your own password from admin panel')
+        return redirect(url_for('admin'))
+    
+    # Generate a temporary password
+    import secrets
+    temp_password = secrets.token_urlsafe(8)
+    user.set_password(temp_password)
+    db.session.commit()
+    
+    flash(f'Password reset for {user.email}. New temporary password: {temp_password}')
+    return redirect(url_for('admin'))
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
