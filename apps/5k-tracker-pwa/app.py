@@ -5,27 +5,28 @@ def weather_icon(weather_str):
     w = weather_str.lower()
     if "sun" in w or "clear" in w:
         return "fas fa-sun text-warning"
-    # Example function to add test races for a runner
-    def add_test_races(runner, race_types, locations):
-        from random import choice, randint
-        from datetime import datetime
-        for i in range(10):
-            race = Race(
-                user_id=runner.id,
-                race_name=f"Test Race {i+1}",
-                race_type=choice(race_types),
-                race_date=datetime(2024, randint(1,12), randint(1,28)).date(),
-                race_time=f"0{randint(6,9)}:00",
-                finish_time=f"{randint(20,59)}:{randint(10,59)}",
-                location=choice(locations),
-                weather="Sunny, 70°F, wind 5 mph",
-                start_weather=None,
-                finish_weather=None,
-                notes=f"This is a test race entry number {i}."
-            )
-            db.session.add(race)
-        db.session.commit()
-        print("Test races added for runner.")
+
+# --- Top-level function to add test races for a runner ---
+def add_test_races(runner, race_types, locations):
+    from random import choice, randint
+    from datetime import datetime
+    for i in range(10):
+        race = Race(
+            user_id=runner.id,
+            race_name=f"Test Race {i+1}",
+            race_type=choice(race_types),
+            race_date=datetime(2024, randint(1,12), randint(1,28)).date(),
+            race_time=f"0{randint(6,9)}:00",
+            finish_time=f"{randint(20,59)}:{randint(10,59)}",
+            location=choice(locations),
+            weather="Sunny, 70°F, wind 5 mph",
+            start_weather=None,
+            finish_weather=None,
+            notes=f"This is a test race entry number {i}."
+        )
+        db.session.add(race)
+    db.session.commit()
+    print("Test races added for runner.")
 # --- Imports ---
 import os
 import uuid
@@ -187,7 +188,6 @@ class User(UserMixin, db.Model):
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_active = db.Column(db.Boolean, default=True)
     # Relationship to races
     races = db.relationship('Race', backref='runner', lazy=True, cascade='all, delete-orphan')
 
@@ -195,6 +195,8 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
+        if not isinstance(self.password_hash, str):
+            return False
         return check_password_hash(self.password_hash, password)
     
     def generate_reset_token(self):
@@ -517,34 +519,27 @@ def cache_race_weather(race):
     """Cache weather for start and finish times if missing."""
     place = race.location or ''
     # Start time
-    try:
-        date = race.race_date
-        time_str = race.race_time or "07:00"
-        time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
-        if len(time_parts) == 3:
-            dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
-        elif len(time_parts) == 2:
-            dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
-        else:
-            dt_start = datetime(date.year, date.month, date.day, 7, 0)
-    except Exception:
-        dt_start = datetime(date.year, date.month, date.day, 7, 0)
-    # Finish time
-    try:
-        time_str = race.finish_time or "08:00"
-        time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
-        if len(time_parts) == 3:
-            dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
-        elif len(time_parts) == 2:
-            dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
-        else:
-            dt_finish = datetime(date.year, date.month, date.day, 8, 0)
-    except Exception:
-        dt_finish = datetime(date.year, date.month, date.day, 8, 0)
-    # Ensure date is defined
     date = getattr(race, 'race_date', None)
     if date is None:
         date = datetime.utcnow().date()
+    # Start time
+    time_str = getattr(race, 'race_time', None) or "07:00"
+    time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
+    if len(time_parts) == 3:
+        dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
+    elif len(time_parts) == 2:
+        dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
+    else:
+        dt_start = datetime(date.year, date.month, date.day, 7, 0)
+    # Finish time
+    time_str = getattr(race, 'finish_time', None) or "08:00"
+    time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
+    if len(time_parts) == 3:
+        dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
+    elif len(time_parts) == 2:
+        dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
+    else:
+        dt_finish = datetime(date.year, date.month, date.day, 8, 0)
     # Cache start weather
     if not race.start_weather:
         race.start_weather = get_weather_for_datetime(place, dt_start)
@@ -695,6 +690,11 @@ def races():
     except Exception:
         db.session.rollback()
 
+    # Define linkify_notes as a simple helper (can be improved later)
+    def linkify_notes(notes):
+        import re
+        url_pattern = r'(https?://\S+)'  # Simple URL regex
+        return re.sub(url_pattern, r'<a href="\1" target="_blank">\1</a>', notes.replace('\n', '<br>'))
     return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes, race_weather=race_weather, weather_icon=weather_icon)
 
 def parse_race_row(row, columns):
