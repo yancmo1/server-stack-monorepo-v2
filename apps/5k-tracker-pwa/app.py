@@ -1,32 +1,3 @@
-# --- Helper to select weather icon ---
-def weather_icon(weather_str):
-    if not weather_str:
-        return "fas fa-question-circle text-muted"
-    w = weather_str.lower()
-    if "sun" in w or "clear" in w:
-        return "fas fa-sun text-warning"
-
-# --- Top-level function to add test races for a runner ---
-def add_test_races(runner, race_types, locations):
-    from random import choice, randint
-    from datetime import datetime
-    for i in range(10):
-        race = Race(
-            user_id=runner.id,
-            race_name=f"Test Race {i+1}",
-            race_type=choice(race_types),
-            race_date=datetime(2024, randint(1,12), randint(1,28)).date(),
-            race_time=f"0{randint(6,9)}:00",
-            finish_time=f"{randint(20,59)}:{randint(10,59)}",
-            location=choice(locations),
-            weather="Sunny, 70°F, wind 5 mph",
-            start_weather=None,
-            finish_weather=None,
-            notes=f"This is a test race entry number {i}."
-        )
-        db.session.add(race)
-    db.session.commit()
-    print("Test races added for runner.")
 # --- Imports ---
 import os
 import uuid
@@ -41,6 +12,27 @@ from dotenv import load_dotenv
 import re
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+# --- Helper to select weather icon ---
+def weather_icon(weather_str):
+    if not weather_str:
+        return "fas fa-question-circle text-muted"
+    w = weather_str.lower()
+    if "sun" in w or "clear" in w:
+        return "fas fa-sun text-warning"
+    elif "cloud" in w:
+        if "partly" in w or "some" in w:
+            return "fas fa-cloud-sun text-info"
+        else:
+            return "fas fa-cloud text-secondary"
+    elif "rain" in w or "shower" in w:
+        return "fas fa-cloud-rain text-primary"
+    elif "snow" in w:
+        return "fas fa-snowflake text-light"
+    elif "wind" in w:
+        return "fas fa-wind text-info"
+    else:
+        return "fas fa-question-circle text-muted"
+
 
 app = Flask(__name__)
 app.config['APPLICATION_ROOT'] = '/tracker'
@@ -54,6 +46,9 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # --- Flask-Login Manager ---
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
 
 # --- PrefixMiddleware for subpath support ---
 class PrefixMiddleware:
@@ -64,6 +59,19 @@ class PrefixMiddleware:
         script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
         path_info = environ.get('PATH_INFO', '')
         print(f"[PrefixMiddleware] BEFORE: script_name: {script_name}, path_info: {path_info}", file=sys.stderr)
+        
+        # Set the script name for Flask URL building
+        if script_name:
+            environ['SCRIPT_NAME'] = script_name
+            if path_info.startswith(script_name):
+                environ['PATH_INFO'] = path_info[len(script_name):]
+        
+        print(f"[PrefixMiddleware] AFTER: SCRIPT_NAME: {environ.get('SCRIPT_NAME', '')}, PATH_INFO: {environ.get('PATH_INFO', '')}", file=sys.stderr)
+        return self.app(environ, start_response)
+
+# Apply the middleware
+app.wsgi_app = PrefixMiddleware(app.wsgi_app)
+
 def reset_user_password(user, new_password):
     user.set_password(new_password)
     db.session.commit()
@@ -284,6 +292,28 @@ class RacePhoto(db.Model):
 
     def __repr__(self):
         return f'<RacePhoto {self.filename}>'
+
+# --- Top-level function to add test races for a runner ---
+def add_test_races(runner, race_types, locations):
+    from random import choice, randint
+    from datetime import datetime
+    for i in range(10):
+        race = Race(
+            user_id=runner.id,
+            race_name=f"Test Race {i+1}",
+            race_type=choice(race_types),
+            race_date=datetime(2024, randint(1,12), randint(1,28)).date(),
+            race_time=f"0{randint(6,9)}:00",
+            finish_time=f"{randint(20,59)}:{randint(10,59)}",
+            location=choice(locations),
+            weather="Sunny, 70°F, wind 5 mph",
+            start_weather=None,
+            finish_weather=None,
+            notes=f"This is a test race entry number {i}."
+        )
+        db.session.add(race)
+    db.session.commit()
+    print("Test races added for runner.")
 
 # --- Flask-Login user loader ---
 @login_manager.user_loader
@@ -642,7 +672,7 @@ def create_default_users():
 @login_required
 def dashboard():
     # Get user's recent races
-    recent_races = Race.query.filter_by(user_id=current_user.id).order_by(Race.race_date.desc()).limit(5).all()
+    recent_races = db.session.query(Race).filter_by(user_id=current_user.id).order_by(Race.race_date.desc()).limit(5).all()
     
     # Get personal records
     race_types = ['5K', '10K', 'Half Marathon', 'Marathon']
@@ -826,13 +856,19 @@ def duplicate_races(from_username, to_username):
         print("User not found.")
         return
     for race in Race.query.filter_by(user_id=from_user.id).all():
-        new_race = Race()
-        new_race.user_id = to_user.id
-        new_race.race_name = race.race_name
-        new_race.race_type = race.race_type
-        new_race.race_date = race.race_date
-        new_race.race_time = race.race_time
-        new_race.finish_time = race.finish_time
+        new_race = Race(
+            user_id=to_user.id,
+            race_name=race.race_name,
+            race_type=race.race_type,
+            race_date=race.race_date,
+            race_time=race.race_time,
+            finish_time=race.finish_time,
+            location=race.location,
+            weather=race.weather,
+            start_weather=race.start_weather,
+            finish_weather=race.finish_weather,
+            notes=race.notes
+        )
         new_race.location = race.location
         new_race.weather = race.weather
         new_race.notes = race.notes
