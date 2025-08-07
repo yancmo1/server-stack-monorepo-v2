@@ -24,10 +24,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# --- Jinja filter for hyperlinking URLs and line breaks in notes ---
-@app.template_filter('linkify_notes')
+# --- Function for hyperlinking URLs and line breaks in notes ---
 def linkify_notes(text):
-    print("[DEBUG] linkify_notes filter registered")
+    """Convert URLs to clickable links and line breaks to <br> tags."""
     if not text:
         return ''
     if not isinstance(text, str):
@@ -42,6 +41,11 @@ def linkify_notes(text):
     except Exception as e:
         # If anything goes wrong, just return the text with line breaks
         return str(text).replace('\n', '<br>')
+
+# Register the filter manually AND make it available as a global function
+app.jinja_env.filters['linkify_notes'] = linkify_notes
+app.jinja_env.globals['linkify_notes'] = linkify_notes
+
 def add_test_races():
     """Add generic test races for the 'runner' user."""
     with app.app_context():
@@ -759,7 +763,7 @@ def races():
     races = query.order_by(Race.race_date.desc()).paginate(
         page=page, per_page=10, error_out=False)
     
-    return render_template('races.html', races=races, selected_type=race_type)
+    return render_template('races.html', races=races, selected_type=race_type, linkify_notes=linkify_notes)
 
 def parse_race_row(row, columns):
     # Map columns to Race fields

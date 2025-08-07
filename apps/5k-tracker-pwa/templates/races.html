@@ -108,7 +108,7 @@
                             {% if race.notes %}
                                 <div class="mt-3">
                                     <strong>Notes:</strong>
-                                    <p class="text-muted">{{ race.notes | linkify_notes | safe }}</p>
+                                    <p class="text-muted">{{ linkify_notes(race.notes) | safe }}</p>
                                 </div>
                             {% endif %}
                             
