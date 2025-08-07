@@ -380,8 +380,11 @@ def login():
                 print(f"[LOGIN DEBUG] Password correct for {email}")
                 login_user(user)
                 print(f"[LOGIN DEBUG] User logged in, redirecting to dashboard")
-                # Use direct path to avoid URL generation issues
-                return redirect('/dashboard')
+                # Get the next URL if provided, otherwise go to dashboard
+                next_page = request.args.get('next')
+                if next_page:
+                    return redirect(next_page)
+                return redirect(url_for('dashboard'))
             else:
                 print(f"[LOGIN DEBUG] Password incorrect for {email}")
                 flash('Invalid email or password')
