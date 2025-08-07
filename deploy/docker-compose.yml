@@ -136,7 +136,7 @@ services:
 
   tracker:
     build:
-      context: ../apps/5k-tracker
+      context: ../apps/5k-tracker-pwa
       dockerfile: Dockerfile
     container_name: tracker
     ports:
