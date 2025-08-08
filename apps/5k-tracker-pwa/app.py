@@ -923,3 +923,24 @@ def races():
             race_weather={},
             weather_icon=weather_icon
         ), 200
+
+@app.route('/backfill_weather', methods=['POST'])
+@login_required
+def backfill_weather():
+    """Backfill weather for all of the current user's races."""
+    races = Race.query.filter_by(user_id=current_user.id).all()
+    updated = 0
+    for r in races:
+        try:
+            before_sw, before_fw = getattr(r, 'start_weather', None), getattr(r, 'finish_weather', None)
+            sw, fw = cache_race_weather(r)
+            if sw != before_sw or fw != before_fw:
+                updated += 1
+        except Exception:
+            continue
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    flash(f'Weather backfilled for {updated} race(s).')
+    return redirect(url_for('races'))
