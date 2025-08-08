@@ -1,6 +1,7 @@
 import requests
 import config
 from datetime import datetime
+from typing import Optional, Dict, Any, List
 
 def get_player_clan_history(player_tag: str):
     """
@@ -84,3 +85,47 @@ def get_current_cwl_war(clan_tag: str):
         return war_data
     except Exception:
         return None
+
+def get_cwl_group(clan_tag: str) -> Optional[Dict[str, Any]]:
+    """Return current CWL group data for a clan, or None."""
+    api_token = config.SUPERCELL_API_TOKEN
+    if not api_token:
+        return None
+    tag = clan_tag.replace('#', '%23') if clan_tag.startswith('#') else clan_tag
+    url = f"https://api.clashofclans.com/v1/clans/{tag}/currentwar/leaguegroup"
+    headers = {"Authorization": f"Bearer {api_token}"}
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        return resp.json()
+    except Exception:
+        return None
+
+def get_cwl_round_schedule(clan_tag: str) -> List[Dict[str, Any]]:
+    """Return list of wars with round numbers and times for the current group."""
+    group = get_cwl_group(clan_tag)
+    if not group:
+        return []
+    rounds = group.get('rounds', [])
+    schedule = []
+    api_token = config.SUPERCELL_API_TOKEN
+    headers = {"Authorization": f"Bearer {api_token}"}
+    for idx, rd in enumerate(rounds, 1):
+        for war_tag in rd.get('warTags', []) or []:
+            if war_tag and war_tag != '#0':
+                try:
+                    war_url = f"https://api.clashofclans.com/v1/clanwarleagues/wars/{war_tag.replace('#','%23')}"
+                    w = requests.get(war_url, headers=headers, timeout=10)
+                    if w.status_code == 200:
+                        wd = w.json()
+                        schedule.append({
+                            'round': idx,
+                            'war_tag': war_tag,
+                            'state': wd.get('state'),
+                            'startTime': wd.get('startTime'),
+                            'endTime': wd.get('endTime'),
+                        })
+                except Exception:
+                    continue
+    return schedule

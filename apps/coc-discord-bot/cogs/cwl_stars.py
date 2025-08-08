@@ -417,6 +417,12 @@ class CWLStarsCog(commands.Cog):
             updated_count = 0
             for tag, player_data in player_stars.items():
                 try:
+                    # Ensure a row exists for this player tag (create minimal if missing)
+                    try:
+                        database.ensure_player_exists_by_tag(tag, player_data.get('name'))
+                    except Exception as ensure_err:
+                        logger.warning(f"Could not ensure player exists for {tag}: {ensure_err}")
+
                     # Add new stars and missed attacks to existing totals
                     current_stars = current_cwl_data.get(tag, {}).get('cwl_stars', 0)
                     current_missed = current_cwl_data.get(tag, {}).get('missed_attacks', 0)
@@ -425,7 +431,7 @@ class CWLStarsCog(commands.Cog):
                     new_total_missed = current_missed + player_data['missed_attacks']
                     
                     # Update player's CWL data in database
-                    database.update_player_cwl_data(tag, new_total_stars, new_total_missed)
+                    database.update_player_cwl_data(tag, new_total_stars, new_total_missed, player_name=player_data.get('name'))
                     updated_count += 1
                     
                     logger.info(f"Updated {player_data['name']} ({tag}): "

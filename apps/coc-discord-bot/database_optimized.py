@@ -9,7 +9,7 @@ import time
 import logging
 from datetime import datetime, timedelta
 import platform
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, cast
 from performance_optimization import get_performance_optimizer, performance_decorator
 
 # Only support Postgres
@@ -99,6 +99,57 @@ def get_player_by_tag(tag: str) -> Optional[Dict[str, Any]]:
         """, (tag,))
         row = cur.fetchone()
         return dict(row) if row else None
+
+@performance_decorator("database.ensure_player_exists_by_tag")
+def ensure_player_exists_by_tag(tag: str, name: Optional[str] = None) -> Dict[str, Any]:
+    """Ensure a player row exists for the given tag; create a minimal record if missing.
+
+    Returns the player row as a dict (after ensuring it exists).
+    """
+    if not tag:
+        raise ValueError("Tag is required to ensure player exists")
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        # Check existing first
+        cur.execute("""
+            SELECT * FROM players 
+            WHERE LOWER(tag) = LOWER(%s) 
+            LIMIT 1
+        """, (tag,))
+        row = cur.fetchone()
+        if row:
+            # RealDictRow behaves like a dict; cast for type checker
+            return cast(Dict[str, Any], row)
+        # Insert minimal row
+        cur.execute(
+            """
+            INSERT INTO players (name, tag, bonus_eligibility, bonus_count, missed_attacks, cwl_stars)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING *
+            """,
+            (name or "Unknown", tag, True, 0, 0, 0)
+        )
+        new_row = cur.fetchone()
+        conn.commit()
+        if new_row:
+            return cast(Dict[str, Any], new_row)
+        # Fallback minimal structure
+        return {"tag": tag, "name": name or "Unknown", "cwl_stars": 0, "missed_attacks": 0}
+
+@performance_decorator("database.get_player_cwl_stats_by_tag")
+def get_player_cwl_stats_by_tag(tag: str) -> Optional[Dict[str, Any]]:
+    """Get only CWL-related stats for a player by tag."""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT tag, name, COALESCE(cwl_stars, 0) AS cwl_stars, COALESCE(missed_attacks, 0) AS missed_attacks
+            FROM players WHERE LOWER(tag) = LOWER(%s) LIMIT 1
+            """,
+            (tag,)
+        )
+        row = cur.fetchone()
+        return cast(Dict[str, Any], row) if row else None
 
 @performance_decorator("database.get_players_by_role")
 def get_players_by_role(role: str) -> List[Dict[str, Any]]:
@@ -225,7 +276,8 @@ def get_eligibility_summary() -> Dict[str, Any]:
             FROM players 
             WHERE last_bonus_date >= date('now', '-30 days')
         """)
-        recent_bonus_count = cur.fetchone()[0]
+        _row = cur.fetchone()
+        recent_bonus_count = _row[0] if _row else 0
         
         # Get players with notes
         cur.execute("""
@@ -233,7 +285,8 @@ def get_eligibility_summary() -> Dict[str, Any]:
             FROM players 
             WHERE notes IS NOT NULL AND notes != ''
         """)
-        noted_players_count = cur.fetchone()[0]
+        _row2 = cur.fetchone()
+        noted_players_count = _row2[0] if _row2 else 0
         
         return {
             'total_players': sum(eligibility_counts.values()),
@@ -612,7 +665,8 @@ def analyze_database_performance() -> Dict[str, Any]:
         table_stats = {}
         for table in tables:
             cur.execute(f"SELECT COUNT(*) FROM {table}")
-            count = cur.fetchone()[0]
+            _row = cur.fetchone()
+            count = _row[0] if _row else 0
             table_stats[table] = count
         
         # Index usage statistics
@@ -668,8 +722,7 @@ def mark_cwl_non_participants(player_tags):
     """Mark players as CWL non-participants by setting eligibility to 0"""
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        conn.execute("BEGIN TRANSACTION")
-        
+        cur.execute("BEGIN")
         try:
             for tag in player_tags:
                 cur.execute(
@@ -770,15 +823,13 @@ def reset_all_active_status():
     """Reset all players to active status for new CWL season (monthly reset)"""
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        
         # Get count of players that will be affected
         cur.execute("SELECT COUNT(*) FROM players WHERE inactive IS TRUE")
-        inactive_count = cur.fetchone()[0]
-        
+        _row = cur.fetchone()
+        inactive_count = _row[0] if _row else 0
         # Reset all players to active (inactive = FALSE)
         cur.execute("UPDATE players SET inactive = FALSE")
         conn.commit()
-        
         return inactive_count
 
 @performance_decorator("database.get_cwl_active_status_summary")
@@ -786,17 +837,16 @@ def get_cwl_active_status_summary():
     """Get summary of CWL active status for all players"""
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        
         # Get counts
         cur.execute("SELECT COUNT(*) FROM players WHERE (inactive IS FALSE OR inactive IS NULL)")
-        active_count = cur.fetchone()[0]
-        
+        _row = cur.fetchone()
+        active_count = _row[0] if _row else 0
         cur.execute("SELECT COUNT(*) FROM players WHERE inactive IS TRUE")
-        inactive_count = cur.fetchone()[0]
-        
+        _row2 = cur.fetchone()
+        inactive_count = _row2[0] if _row2 else 0
         cur.execute("SELECT COUNT(*) FROM players")
-        total_count = cur.fetchone()[0]
-        
+        _row3 = cur.fetchone()
+        total_count = _row3[0] if _row3 else 0
         return {
             'total_players': total_count,
             'active_players': active_count,
@@ -1257,13 +1307,20 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
         print(f"DEBUG: Executing query: {query}")
         cur.execute(query)
         
-        players_data = cur.fetchall()
-        print(f"DEBUG: Found {len(players_data)} players with CWL data")
-        
-        if players_data:
-            print(f"DEBUG: First player data structure: {players_data[0]}")
-            print(f"DEBUG: First player type: {type(players_data[0])}")
-            print(f"DEBUG: Length of first player tuple: {len(players_data[0]) if players_data[0] else 0}")
+        fetched_rows = cur.fetchall()
+        print(f"DEBUG: Found {len(fetched_rows)} players with CWL data")
+        # Normalize rows to dictionaries regardless of cursor type
+        cols = [desc[0] for desc in cur.description] if cur.description else []
+        players_data: List[Dict[str, Any]] = []
+        for r in fetched_rows:
+            if isinstance(r, dict):
+                players_data.append(dict(r))
+            else:
+                try:
+                    players_data.append(dict(zip(cols, r)))
+                except Exception:
+                    # Fallback to skip malformed row
+                    continue
         
         saved_count = 0
         
@@ -1271,37 +1328,31 @@ def save_cwl_season_snapshot(season_year=None, season_month=None):
         for i, player in enumerate(players_data):
             try:
                 print(f"DEBUG: Processing player {i+1}: {player}")
-                print(f"DEBUG: Player tuple length: {len(player)}")
-                if len(player) >= 4:
-                    # Access RealDictRow fields by name, not index
-                    name = player['name']
-                    tag = player['tag'] 
-                    stars = player['cwl_stars']
-                    missed = player['missed_attacks']
-                    print(f"DEBUG: Player data: name={name}, tag={tag}, stars={stars}, missed={missed}")
-                    cur.execute("""
-                        INSERT INTO cwl_history 
-                        (season_year, season_month, reset_date, player_name, player_tag, cwl_stars, missed_attacks)
-                        VALUES (%s, %s, NOW(), %s, %s, %s, %s)
-                    """, (season_year, season_month, name, tag, stars, missed))
-                    saved_count += 1
-                    print(f"DEBUG: Successfully saved player {name}")
-                else:
-                    print(f"DEBUG: Player tuple too short: {player}")
-                    raise Exception(f"Invalid player data structure: {player}")
+                name = player.get('name')
+                tag = player.get('tag')
+                stars = player.get('cwl_stars', 0) or 0
+                missed = player.get('missed_attacks', 0) or 0
+                print(f"DEBUG: Player data: name={name}, tag={tag}, stars={stars}, missed={missed}")
+                cur.execute("""
+                    INSERT INTO cwl_history 
+                    (season_year, season_month, reset_date, player_name, player_tag, cwl_stars, missed_attacks)
+                    VALUES (%s, %s, NOW(), %s, %s, %s, %s)
+                """, (season_year, season_month, name, tag, stars, missed))
+                saved_count += 1
+                print(f"DEBUG: Successfully saved player {name}")
             except Exception as insert_error:
                 print(f"DEBUG: Error saving player {i+1}: {insert_error}")
                 raise insert_error
         
-        print(f"DEBUG: About to commit with saved_count = {saved_count}")
-        conn.commit()
+    print(f"DEBUG: About to commit with saved_count = {saved_count}")
+    conn.commit()
         
-        print(f"DEBUG: Building return dict...")
-        total_stars = sum(p['cwl_stars'] for p in players_data) if players_data else 0
-        total_missed = sum(p['missed_attacks'] for p in players_data) if players_data else 0
-        print(f"DEBUG: total_stars={total_stars}, total_missed={total_missed}")
+    print(f"DEBUG: Building return dict...")
+    total_stars = sum(int(p.get('cwl_stars', 0) or 0) for p in players_data) if players_data else 0
+    total_missed = sum(int(p.get('missed_attacks', 0) or 0) for p in players_data) if players_data else 0
+    print(f"DEBUG: total_stars={total_stars}, total_missed={total_missed}")
         
-        return {
+    return {
             'season_year': season_year,
             'season_month': season_month,
             'players_saved': saved_count,
@@ -1443,17 +1494,66 @@ def update_player_cwl_stars(player_tag, total_stars):
         logger.info(f"Updated player {player_tag} CWL stars to {total_stars}")
 
 
-def update_player_cwl_data(player_tag, total_stars, missed_attacks):
-    """Update a player's CWL stars and missed attacks"""
+def _normalize_tag(tag: Optional[str]) -> Optional[str]:
+    if not tag:
+        return tag
+    t = tag.strip().upper()
+    if not t:
+        return None
+    if not t.startswith('#'):
+        t = '#' + t
+    return t
+
+def update_player_cwl_data(player_tag, total_stars, missed_attacks, player_name: Optional[str] = None):
+    """Update a player's CWL stars and missed attacks by tag (case-insensitive); fallback to name if tag not found."""
+    norm_tag = _normalize_tag(player_tag)
     with get_optimized_connection() as conn:
         cur = conn.cursor()
-        # Update both CWL stars and missed attacks
-        cur.execute("""
+        # Primary: update by tag (case-insensitive)
+        cur.execute(
+            """
             UPDATE players 
             SET cwl_stars = %s, missed_attacks = %s 
-            WHERE tag = %s
-        """, (total_stars, missed_attacks, player_tag))
-        logger.info(f"Updated player {player_tag}: {total_stars} CWL stars, {missed_attacks} missed attacks")
+            WHERE LOWER(tag) = LOWER(%s)
+            """,
+            (total_stars, missed_attacks, norm_tag)
+        )
+        if cur.rowcount == 0 and player_name:
+            # Fallback: try update by name
+            cur.execute(
+                """
+                UPDATE players 
+                SET cwl_stars = %s, missed_attacks = %s 
+                WHERE LOWER(name) = LOWER(%s)
+                """,
+                (total_stars, missed_attacks, player_name)
+            )
+        conn.commit()
+        logger.info(f"Updated player {norm_tag or player_name}: {total_stars} CWL stars, {missed_attacks} missed attacks")
+
+@performance_decorator("database.increment_player_missed_by_tag")
+def increment_player_missed_by_tag(tag: str, by: int = 1) -> int:
+    """Increment missed_attacks for a player by tag, returning new count."""
+    with get_optimized_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE players SET missed_attacks = COALESCE(missed_attacks, 0) + %s
+            WHERE LOWER(tag) = LOWER(%s)
+            RETURNING missed_attacks
+            """,
+            (by, tag)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            return 0
+        # RealDictRow mapping access
+        # Prefer positional index for portability
+        try:
+            return int(row[0])
+        except Exception:
+            return 0
 
 
 def reset_cwl_season_data():
@@ -1529,4 +1629,32 @@ def create_processed_wars_table():
             logger.info("Created/verified processed_wars table")
     except Exception as e:
         logger.error(f"Error creating processed_wars table: {e}")
+
+@performance_decorator("database.count_processed_wars")
+def count_processed_wars(season_id: Optional[str] = None) -> int:
+    """Return the number of processed wars, optionally filtered by season_id."""
+    try:
+        with get_optimized_connection() as conn:
+            cur = conn.cursor()
+            create_processed_wars_table()
+            if season_id:
+                cur.execute("SELECT COUNT(*) FROM processed_wars WHERE season_id = %s", (season_id,))
+            else:
+                cur.execute("SELECT COUNT(*) FROM processed_wars")
+            result = cur.fetchone()
+            if not result:
+                return 0
+            if isinstance(result, dict):
+                # count column name varies; get first value
+                try:
+                    return int(next(iter(result.values())))
+                except Exception:
+                    return 0
+            try:
+                return int(result[0])
+            except Exception:
+                return 0
+    except Exception as e:
+        logger.error(f"Error counting processed wars: {e}")
+        return 0
 

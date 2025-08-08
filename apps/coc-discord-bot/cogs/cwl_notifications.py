@@ -3,10 +3,10 @@ from discord.ext import tasks, commands
 from discord import app_commands
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
-from utils_supercell import get_current_cwl_war
+from utils_supercell import get_current_cwl_war, get_cwl_round_schedule
 import config
 
 ADMIN_DISCORD_ID = config.ADMIN_DISCORD_ID
@@ -85,6 +85,19 @@ class CWLNotifications(commands.Cog):
                     # Update stored stars
                     self.last_player_stars[tag] = total_stars
             
+            # Optional: near end-of-war on-deck alert (~30 minutes left)
+            try:
+                end_str = war_data.get('endTime')
+                if end_str and war_state == 'inWar':
+                    # CoC datetime format like 20250105T123456.000Z
+                    end_dt = datetime.strptime(end_str[:15], '%Y%m%dT%H%M%S').replace(tzinfo=timezone.utc)
+                    now = datetime.now(timezone.utc)
+                    remaining = (end_dt - now).total_seconds()
+                    if 0 < remaining < 30*60:  # last 30 minutes
+                        await self.send_on_deck_alert(war_data)
+            except Exception:
+                pass
+
             # Save cache after each poll
             save_cache({
                 "last_war_state": self.last_war_state,
@@ -104,7 +117,8 @@ class CWLNotifications(commands.Cog):
         if state == 'inWar':
             await channel.send(f"⚔️ A new CWL war has started! War tag: `{war_tag}`")
         elif state == 'warEnded':
-            await channel.send(f"✅ The current CWL war has ended! War tag: `{war_tag}`. Leaderboard will auto-update.")
+            # Post a concise war-ended summary
+            await self.post_war_end_summary()
         elif state == 'preparation':
             await channel.send(f"⏳ CWL war preparation day has begun. Get ready!")
 
@@ -122,6 +136,51 @@ class CWLNotifications(commands.Cog):
             await channel.send(f"⭐ **{name}** gained {stars_gained} stars! Total: {stars} stars")
         else:
             await channel.send(f"⭐ **{name}** earned a new star! Total: {stars} stars")
+
+    async def send_on_deck_alert(self, war_data):
+        channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
+        if not channel:
+            return
+        clan = war_data.get('clan', {})
+        members = clan.get('members', [])
+        pending = [m.get('name') for m in members if not m.get('attacks')]
+        if not pending:
+            return
+        names = ', '.join(pending[:10]) + ('…' if len(pending) > 10 else '')
+        await channel.send(f"📣 ON DECK: {names} — last 30 minutes window. Good luck! ⏳")
+
+    async def post_war_end_summary(self):
+        channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
+        if not channel:
+            return
+        # Build a simple summary from cached stars
+        if not self.last_player_stars:
+            await channel.send("✅ CWL war ended. Stars updated.")
+            return
+        # Sort by stars desc
+        sorted_players = sorted(self.last_player_stars.items(), key=lambda kv: kv[1], reverse=True)
+        top = sorted_players[:5]
+        lines = []
+        for tag, stars in top:
+            lines.append(f"• <{tag}> — {stars}⭐")
+        text = "\n".join(lines) if lines else "(no attacks recorded)"
+        await channel.send(f"✅ War ended — Top performers:\n{text}")
+
+    @discord.app_commands.command(name="cwl_schedule", description="Show current CWL round schedule")
+    async def cwl_schedule(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            clan_tag = config.CLAN_TAG or ""
+            schedule = get_cwl_round_schedule(clan_tag)
+            if not schedule:
+                await interaction.followup.send("No CWL schedule found.", ephemeral=True)
+                return
+            lines = []
+            for s in schedule:
+                lines.append(f"Round {s['round']}: {s.get('state','?')} — start {s.get('startTime','?')} end {s.get('endTime','?')}")
+            await interaction.followup.send("\n".join(lines)[:1800], ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"Error: {e}", ephemeral=True)
 
     @discord.app_commands.command(name="force_sync", description="Force sync all commands globally (admin only).")
     @commands.is_owner()
