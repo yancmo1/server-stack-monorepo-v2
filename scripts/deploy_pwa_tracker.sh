@@ -32,10 +32,18 @@ else
   echo "Committed and pushed to $BRANCH with message: $MSG"
 fi
 
-# SSH, pull, rebuild, and restart only pwa-tracker
+# SSH, pull (with auto-stash), rebuild, and restart only pwa-tracker
 ssh yancmo@ubuntumac '
+  set -e
   cd /home/yancmo/apps/server-stack-monorepo-v2 && \
-  git pull && \
+  BR=$(git rev-parse --abbrev-ref HEAD) && \
+  echo "Remote on branch: $BR" && \
+  # Auto-stash any local changes to avoid pull aborts
+  if ! git diff --quiet || ! git diff --cached --quiet; then \
+    echo "Stashing local changes before pull..."; \
+    git stash push -u -m "auto-stash before deploy $(date '+%Y-%m-%d %H:%M:%S')" || true; \
+  fi && \
+  git pull --rebase && \
   cd deploy && \
   docker compose build pwa-tracker && \
   docker compose up -d --no-deps pwa-tracker
