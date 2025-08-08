@@ -84,7 +84,7 @@
                                     </p>
                                     <p class="mb-2">
                                         <i class="fas fa-clock text-muted"></i>
-                                        <strong>Start: {{ race.race_time if race.race_time else 'N/A' }}</strong>
+                                            <strong>Start: {{ race.race_time.strftime('%I:%M %p') if race.race_time else 'N/A' }}</strong>
                                     </p>
                                     <p class="mb-2">
                                         <i class="fas fa-stopwatch text-muted"></i>
