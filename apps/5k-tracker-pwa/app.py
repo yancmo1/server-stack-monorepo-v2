@@ -188,34 +188,8 @@ class Race(db.Model):
     photos = db.relationship('RacePhoto', backref='race', lazy=True, cascade='all, delete-orphan')
 
     def time_to_seconds(self):
-        """Convert finish time to seconds (float, includes centiseconds) for comparison"""
-        try:
-            parts = [p.strip() for p in (self.finish_time or '').split(':') if p.strip() != '']
-            if not parts:
-                return 0.0
-            # Support mm:ss:cc (for 5K/10K), hh:mm:ss[:cc] for longer
-            if len(parts) == 4:
-                h, m, s, cs = map(int, parts)
-                return h * 3600 + m * 60 + s + (cs / 100.0)
-            if len(parts) == 3:
-                a, b, c = map(int, parts)
-                # Disambiguate using race_type: for 5K/10K, interpret as mm:ss:cc
-                if (self.race_type or '').strip() in ['5K', '10K'] and c <= 99:
-                    m, s, cs = a, b, c
-                    return m * 60 + s + (cs / 100.0)
-                # Otherwise treat as hh:mm:ss
-                h, m, s = a, b, c
-                return h * 3600 + m * 60 + s
-            if len(parts) == 2:
-                m, s = map(int, parts)
-                return m * 60 + s
-            if len(parts) == 1:
-                # Single number means minutes
-                m = int(parts[0])
-                return m * 60
-            return 0.0
-        except Exception:
-            return 0.0
+        """Convert finish time to seconds (float). Supports mm:ss.cc, mm:ss, hh:mm:ss(.cc), and 5K-only mm:ss:cc."""
+        return _parse_duration_seconds(self.finish_time or '', (self.race_type or '').strip())
 
     def __repr__(self):
         return f'<Race {self.race_name} - {self.finish_time}>'
@@ -751,35 +725,9 @@ def cache_race_weather(race):
         dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
     else:
         dt_start = datetime(date.year, date.month, date.day, 7, 0)
-    # Finish time (duration added to start) with support for centiseconds and 5K/10K mm:ss:cc
+    # Finish time (duration added to start) with support for decimals and 5K-only mm:ss:cc
     finish_str = (getattr(race, 'finish_time', None) or "00:45:00").strip()  # default 45m
-    from datetime import timedelta as _td
-    def _parse_finish_duration(r):
-        # Original stable version: supports mm:ss:cc for 5K/10K, hh:mm:ss[:cc] for longer
-        try:
-            parts = [p.strip() for p in finish_str.split(':') if p.strip() != '']
-            if not parts:
-                return _td(minutes=45)
-            if len(parts) == 4:
-                h, m, s, cs = map(int, parts)
-                return _td(hours=h, minutes=m, seconds=s, milliseconds=cs*10)
-            if len(parts) == 3:
-                a, b, c = map(int, parts)
-                if (r.race_type or '').strip() in ['5K', '10K'] and c <= 99:
-                    # mm:ss:cc
-                    return _td(minutes=a, seconds=b, milliseconds=c*10)
-                # hh:mm:ss
-                return _td(hours=a, minutes=b, seconds=c)
-            if len(parts) == 2:
-                m, s = map(int, parts)
-                return _td(minutes=m, seconds=s)
-            if len(parts) == 1:
-                m = int(parts[0])
-                return _td(minutes=m)
-            return _td(minutes=45)
-        except Exception:
-            return _td(minutes=45)
-    dur = _parse_finish_duration(race)
+    dur = _parse_duration_timedelta(finish_str, (getattr(race, 'race_type', None) or '').strip())
     dt_finish = dt_start + dur
     # Cache start/finish weather if missing or placeholder
     changed = False
@@ -796,6 +744,66 @@ def cache_race_weather(race):
         except Exception:
             db.session.rollback()
     return race.start_weather, race.finish_weather
+
+# --- Duration parsing helpers ---
+def _parse_duration_seconds(value: str, race_type: str) -> float:
+    """Parse a duration string into seconds (float).
+    Supports:
+      - mm:ss.cc (dot), mm:ss
+      - hh:mm:ss(.cc)
+      - 5K-only mm:ss:cc (colon centiseconds)
+      - single number = minutes
+    """
+    s = (value or '').strip()
+    if not s:
+        return 45 * 60.0
+    try:
+        parts = s.split(':')
+        # 3-part ambiguous: either hh:mm:ss(.cc) or (5K-only) mm:ss:cc
+        if len(parts) == 3:
+            a, b, c = parts[0].strip(), parts[1].strip(), parts[2].strip()
+            # If 5K and third is integer <= 99 and no decimals, treat as mm:ss:cc
+            if race_type == '5K' and ('.' not in b) and ('.' not in c) and b.isdigit() and c.isdigit() and int(c) <= 99:
+                mm = int(a)
+                ss = int(b)
+                cs = int(c)
+                return mm * 60.0 + ss + (cs / 100.0)
+            # Otherwise parse as hh:mm:s(.fraction)
+            hh = int(a) if a else 0
+            mm = int(b) if b else 0
+            sec = float(c) if c else 0.0
+            return hh * 3600.0 + mm * 60.0 + sec
+        # 2-part: mm:ss(.cc)
+        if len(parts) == 2:
+            mm = int(parts[0]) if parts[0] else 0
+            sec = float(parts[1]) if parts[1] else 0.0
+            return mm * 60.0 + sec
+        # 4-part: hh:mm:ss:cc (rare); treat last as centiseconds
+        if len(parts) == 4:
+            hh = int(parts[0])
+            mm = int(parts[1])
+            ss = int(parts[2])
+            cs = int(parts[3])
+            return hh * 3600.0 + mm * 60.0 + ss + (cs / 100.0)
+        # Single number = minutes
+        if len(parts) == 1:
+            return float(parts[0]) * 60.0
+    except Exception:
+        pass
+    # Fallback 45 min
+    return 45 * 60.0
+
+def _parse_duration_timedelta(value: str, race_type: str) -> timedelta:
+    secs = _parse_duration_seconds(value, race_type)
+    # Build timedelta with microsecond precision from float seconds
+    whole = int(secs)
+    frac = secs - whole
+    micros = int(round(frac * 1_000_000))
+    # Normalize rounding overflow (e.g., 59.999999 -> +1s)
+    if micros >= 1_000_000:
+        whole += 1
+        micros -= 1_000_000
+    return timedelta(seconds=whole, microseconds=micros)
 
 # --- Time formatting helper ---
 def format_race_time(race_type: str | None, time_str: str | None) -> str:
