@@ -13,6 +13,9 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import re
 from werkzeug.middleware.proxy_fix import ProxyFix
+import traceback
+from sqlalchemy import desc
+from typing import Any, cast
 
 # --- Helper to select weather icon ---
 def weather_icon(weather_str):
@@ -48,7 +51,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # --- Flask-Login Manager ---
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
@@ -415,7 +418,12 @@ def test_dashboard():
             return "Admin user not found", 404
             
         # Test the dashboard query
-        recent_races = db.session.query(Race).filter_by(user_id=admin_user.id).order_by(Race.race_date.desc()).limit(5).all()
+        race_date_col = getattr(Race, 'race_date')
+        recent_races = (db.session.query(Race)
+                        .filter_by(user_id=admin_user.id)
+                        .order_by(desc(race_date_col))
+                        .limit(5)
+                        .all())
         
         return f"""
         <h1>Dashboard Test - SUCCESS!</h1>
@@ -690,7 +698,12 @@ def create_default_users():
 @login_required
 def dashboard():
     # Get user's recent races
-    recent_races = db.session.query(Race).filter_by(user_id=current_user.id).order_by(Race.race_date.desc()).limit(5).all()
+    race_date_col = getattr(Race, 'race_date')
+    recent_races = (db.session.query(Race)
+                    .filter_by(user_id=current_user.id)
+                    .order_by(desc(race_date_col))
+                    .limit(5)
+                    .all())
     
     # Get personal records
     race_types = ['5K', '10K', 'Half Marathon', 'Marathon']
@@ -713,86 +726,138 @@ def dashboard():
 @app.route('/races')
 @login_required
 def races():
-    page = request.args.get('page', 1, type=int)
-    if page < 1:
-        page = 1
-    race_type = request.args.get('type', '').strip()
-
-    base_query = Race.query.filter_by(user_id=current_user.id)
-    if race_type:
-        base_query = base_query.filter_by(race_type=race_type)
-
-    per_page = 10
-    total = base_query.count()
-    items = (base_query
-             .order_by(Race.race_date.desc())
-             .offset((page - 1) * per_page)
-             .limit(per_page)
-             .all())
-
-    class SimplePagination:
-        def __init__(self, items, page, per_page, total):
-            self.items = items
-            self.page = page
-            self.per_page = per_page
-            self.total = total
-        @property
-        def pages(self):
-            return math.ceil(self.total / self.per_page) if self.per_page else 0
-        @property
-        def has_prev(self):
-            return self.page > 1
-        @property
-        def has_next(self):
-            return self.page < self.pages
-        @property
-        def prev_num(self):
-            return self.page - 1 if self.has_prev else None
-        @property
-        def next_num(self):
-            return self.page + 1 if self.has_next else None
-        def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=3):
-            last = 0
-            for num in range(1, self.pages + 1):
-                if (num <= left_edge or
-                    (num > self.page - left_current - 1 and num < self.page + right_current) or
-                    num > self.pages - right_edge):
-                    if last + 1 != num:
-                        yield None
-                    yield num
-                    last = num
-
-    races_pagination = SimplePagination(items, page, per_page, total)
-
-    # Fetch and cache weather for each race (lightweight, no external HTTP call loop if many races)
-    race_weather = {}
-    for race in items:
-        try:
-            start_weather, finish_weather = cache_race_weather(race)
-            race_weather[race.id] = {
-                'start': start_weather,
-                'finish': finish_weather
-            }
-        except Exception:
-            race_weather[race.id] = {'start': 'N/A', 'finish': 'N/A'}
     try:
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
+        page = request.args.get('page', 1, type=int)
+        if page < 1:
+            page = 1
+        race_type = request.args.get('type', '').strip()
 
-    def linkify_notes(notes):
-        import re
-        if not notes:
+        base_query = Race.query.filter_by(user_id=current_user.id)
+        if race_type:
+            base_query = base_query.filter_by(race_type=race_type)
+
+        per_page = 10
+        total = base_query.count()
+        race_date_col = getattr(Race, 'race_date')
+        items = (base_query
+                 .order_by(desc(race_date_col))
+                 .offset((page - 1) * per_page)
+                 .limit(per_page)
+                 .all())
+
+        class SimplePagination:
+            def __init__(self, items, page, per_page, total):
+                self.items = items
+                self.page = page
+                self.per_page = per_page
+                self.total = total
+            @property
+            def pages(self):
+                return math.ceil(self.total / self.per_page) if self.per_page else 0
+            @property
+            def has_prev(self):
+                return self.page > 1
+            @property
+            def has_next(self):
+                return self.page < self.pages
+            @property
+            def prev_num(self):
+                return self.page - 1 if self.has_prev else None
+            @property
+            def next_num(self):
+                return self.page + 1 if self.has_next else None
+            def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=3):
+                last = 0
+                for num in range(1, self.pages + 1):
+                    if (num <= left_edge or
+                        (num > self.page - left_current - 1 and num < self.page + right_current) or
+                        num > self.pages - right_edge):
+                        if last + 1 != num:
+                            yield None
+                        yield num
+                        last = num
+
+        races_pagination = SimplePagination(items, page, per_page, total)
+
+        # Fetch and cache weather for each race (safe/fail-closed)
+        race_weather = {}
+        for race in items:
+            try:
+                start_weather, finish_weather = cache_race_weather(race)
+                race_weather[race.id] = {
+                    'start': start_weather,
+                    'finish': finish_weather
+                }
+            except Exception:
+                race_weather[race.id] = {'start': 'N/A', 'finish': 'N/A'}
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        def _linkify_notes(notes):
+            import re
+            if not notes:
+                return ''
+            url_pattern = r'(https?://\S+)'
+            return re.sub(url_pattern, r'<a href="\1" target="_blank">\1</a>', notes.replace('\n', '<br>'))
+
+        return render_template(
+            'races.html',
+            races=races_pagination,
+            selected_type=race_type,
+            linkify_notes=_linkify_notes,
+            race_weather=race_weather,
+            weather_icon=weather_icon
+        )
+    except Exception as e:
+        # Log rich diagnostics to stderr for correlation
+        try:
+            print('[RACES_ERROR]',
+                  'user_id=', getattr(current_user, 'id', None),
+                  'email=', getattr(current_user, 'email', None),
+                  'cf_ray=', request.headers.get('cf-ray') or request.headers.get('Cf-Ray'),
+                  'ua=', request.headers.get('User-Agent'),
+                  'err=', repr(e),
+                  file=sys.stderr)
+            traceback.print_exc()
+        except Exception:
+            pass
+
+        # Fallback: render empty list to avoid 500 for user
+        class EmptyPagination:
+            def __init__(self):
+                self.items = []
+                self.page = 1
+                self.per_page = 10
+                self.total = 0
+            @property
+            def pages(self):
+                return 0
+            @property
+            def has_prev(self):
+                return False
+            @property
+            def has_next(self):
+                return False
+            @property
+            def prev_num(self):
+                return None
+            @property
+            def next_num(self):
+                return None
+            def iter_pages(self, *args, **kwargs):
+                return iter([])
+
+        def _linkify_notes_2(notes):
             return ''
-        url_pattern = r'(https?://\S+)'
-        return re.sub(url_pattern, r'<a href="\1" target="_blank">\1</a>', notes.replace('\n', '<br>'))
 
-    return render_template(
-        'races.html',
-        races=races_pagination,
-        selected_type=race_type,
-        linkify_notes=linkify_notes,
-        race_weather=race_weather,
-        weather_icon=weather_icon
-    )
-# ...existing code...
+        flash('There was an issue loading your races. Showing empty list while we investigate.', 'warning')
+        return render_template(
+            'races.html',
+            races=EmptyPagination(),
+            selected_type='',
+            linkify_notes=_linkify_notes_2,
+            race_weather={},
+            weather_icon=weather_icon
+        ), 200
