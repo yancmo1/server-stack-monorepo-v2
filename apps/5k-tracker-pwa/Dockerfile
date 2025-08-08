@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     netcat-openbsd \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -18,8 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Add wait-for-it.sh and init_and_run.sh and make them executable
-# RUN chmod +x wait-for-it.sh init_and_run.sh
+# Ensure startup scripts are executable
+RUN chmod +x wait-for-it.sh init_and_run.sh
 
 # Create non-root user for security
 RUN useradd -m -u 1000 racetracker
