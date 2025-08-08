@@ -134,42 +134,6 @@ services:
       retries: 3
       start_period: 40s
 
-  tracker:
-    build:
-      context: ../apps/5k-tracker-pwa
-      dockerfile: Dockerfile
-    container_name: tracker
-    ports:
-      - "5554:5554"
-    restart: unless-stopped
-    env_file:
-      - ../shared/config/.env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - FLASK_ENV=production
-      - TRACKER_DATABASE_URI=postgresql://racetracker:racetracker@db:5432/racetracker
-    volumes:
-      - tracker_uploads:/app/uploads
-      - ../shared/ssl:/app/ssl:ro
-    depends_on:
-      - db
-    networks:
-      - default
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-        reservations:
-          memory: 128M
-          cpus: '0.25'
-    healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5554/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
   pwa-tracker:
     build:
       context: ../apps/5k-tracker-pwa

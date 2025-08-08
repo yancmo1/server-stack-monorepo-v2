@@ -87,3 +87,7 @@
 4. Add more applications to your domain
 
 **Everything is production-ready and secure!** 🎉
+
+---
+
+Cleanup update (2025-08-08): Legacy setup docs and helper scripts have been moved into `archive/` for reference. Active runtime and deployment files remain in the app root.

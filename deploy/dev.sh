@@ -50,7 +50,7 @@ start_dev() {
     # Check critical ports
     echo "🔍 Checking ports..."
     check_port 5550 || exit 1  # Dashboard
-    check_port 5554 || exit 1  # Tracker
+    check_port 5555 || exit 1  # Tracker (PWA)
     check_port 5433 || exit 1  # Database
     
     echo "✅ All ports available"
@@ -67,7 +67,7 @@ start_dev() {
     echo ""
     echo "🎯 Development URLs:"
     echo "  Dashboard:      http://localhost:5550"
-    echo "  Tracker:        http://localhost:5554"
+    echo "  Tracker (PWA):  http://localhost:5555"
     echo "  Cruise Check:   http://localhost:5551"
     echo "  Clan Map:       http://localhost:5552"
     echo "  QSL Creator:    http://localhost:5553"

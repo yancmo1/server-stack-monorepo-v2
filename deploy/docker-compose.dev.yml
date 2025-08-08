@@ -34,23 +34,7 @@ services:
     restart: unless-stopped
 
   # 5K Tracker
-  tracker:
-    build:
-      context: ../apps/5k-tracker
-      dockerfile: Dockerfile
-    container_name: tracker-dev
-    ports:
-      - "5554:5554"
-    environment:
-      - FLASK_ENV=development
-      - PYTHONUNBUFFERED=1
-    volumes:
-      - tracker_uploads_dev:/app/uploads
-      - ../apps/5k-tracker:/app/source:ro
-      - ../shared/ssl:/app/ssl:ro
-    depends_on:
-      - db
-    restart: unless-stopped
+  # tracker (legacy) removed; use pwa-tracker instead
 
   # 5K Tracker PWA
   pwa-tracker:

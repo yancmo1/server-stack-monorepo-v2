@@ -8,19 +8,19 @@
   "background_color": "#317EFB",
   "icons": [
     {
-      "src": "/tracker/static/icons/icon_144x144.png",
+      "src": "/tracker/static/icons/5K_Tracker_Icon_1",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/tracker/static/icons/icon_192x192.png",
+      "src": "/tracker/static/icons/5K_Tracker_Icon_x2",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/tracker/static/icons/icon_512x512.png",
+      "src": "/tracker/static/icons/5K_Tracker_Icon_x3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

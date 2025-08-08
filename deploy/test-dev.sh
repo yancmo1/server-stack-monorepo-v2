@@ -66,7 +66,7 @@ docker compose -f docker-compose.dev.yml ps --format "table {{.Name}}\t{{.Status
 echo ""
 echo "🔍 Testing ports..."
 test_port "Dashboard" 5550
-test_port "Tracker" 5554
+test_port "Tracker (PWA)" 5555
 test_port "Cruise Check" 5551
 test_port "Clan Map" 5552
 test_port "QSL Creator" 5553
@@ -78,13 +78,13 @@ test_url "Dashboard" "http://localhost:5550"
 test_url "Dashboard Health" "http://localhost:5550/api/health"
 test_url "Dashboard API Apps" "http://localhost:5550/api/apps"
 test_url "Dashboard API System" "http://localhost:5550/api/system"
-test_url "Tracker" "http://localhost:5554"
-test_url "Tracker Health" "http://localhost:5554/health"
+test_url "Tracker (PWA)" "http://localhost:5555"
+test_url "Tracker (PWA) Health" "http://localhost:5555/health"
 
 echo ""
 echo "📋 Development URLs (if services are running):"
 echo "  Dashboard:      http://localhost:5550"
-echo "  Tracker:        http://localhost:5554"
+echo "  Tracker (PWA):  http://localhost:5555"
 echo "  Cruise Check:   http://localhost:5551"
 echo "  Clan Map:       http://localhost:5552"
 echo "  QSL Creator:    http://localhost:5553"
