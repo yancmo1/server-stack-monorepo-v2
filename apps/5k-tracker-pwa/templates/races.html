@@ -144,7 +144,7 @@
                                                         </div>
                                                         <div class="modal-footer">
                                                             <span class="badge bg-secondary">{{ photo.photo_type|title }}</span>
-                                                            <small class="text-muted">Uploaded {{ photo.uploaded_at.strftime('%m/%d/%Y') }}</small>
+                                                            <small class="text-muted">Uploaded {{ photo.uploaded_at.strftime('%m/%d/%Y') if photo.uploaded_at else '-' }}</small>
                                                         </div>
                                                     </div>
                                                 </div>
