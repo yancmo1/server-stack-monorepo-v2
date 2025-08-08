@@ -848,6 +848,37 @@ def format_race_time(race_type: str | None, time_str: str | None) -> str:
     # Other: if under 1h show MM:SS(:CC)
     return f"{m:02d}:{s:02d}" + (f":{cs:02d}" if cs else '')
 
+# --- Time-of-day formatting for start times (12-hour clock) ---
+def to_12hr_time(time_str: str | None) -> str:
+    """Convert 'HH:MM' or 'HH:MM:SS' string to 'HH:MM AM/PM'. Returns 'N/A' if blank."""
+    if not time_str:
+        return 'N/A'
+    try:
+        s = time_str.strip()
+        if not s:
+            return 'N/A'
+        parts = [p for p in s.split(':') if p != '']
+        if len(parts) < 2:
+            return 'N/A'
+        h = int(parts[0])
+        m = int(parts[1])
+        mer = 'AM'
+        if h == 0:
+            hh = 12
+            mer = 'AM'
+        elif 1 <= h <= 11:
+            hh = h
+            mer = 'AM'
+        elif h == 12:
+            hh = 12
+            mer = 'PM'
+        else:
+            hh = h - 12
+            mer = 'PM'
+        return f"{hh:02d}:{m:02d} {mer}"
+    except Exception:
+        return time_str or 'N/A'
+
 def init_db():
     """Initialize the database with tables"""
     with app.app_context():
@@ -923,7 +954,6 @@ def races():
             page = 1
         race_type = request.args.get('type', '').strip()
 
-        import sys
         base_query = Race.query.filter_by(user_id=current_user.id)
         if race_type:
             base_query = base_query.filter_by(race_type=race_type)
@@ -973,7 +1003,6 @@ def races():
         races_pagination = SimplePagination(items, page, per_page, total)
 
         # Fetch and cache weather for each race (robust: log errors, never break loop)
-        import sys
         race_weather = {}
         for race in items:
             try:
@@ -1005,7 +1034,8 @@ def races():
             linkify_notes=_linkify_notes,
             race_weather=race_weather,
             weather_icon=weather_icon,
-            format_time=format_race_time
+            format_time=format_race_time,
+            to_12hr=to_12hr_time
         )
     except Exception as e:
         # Log rich diagnostics to stderr for correlation
@@ -1057,7 +1087,8 @@ def races():
             linkify_notes=_linkify_notes_2,
             race_weather={},
             weather_icon=weather_icon,
-            format_time=format_race_time
+            format_time=format_race_time,
+            to_12hr=to_12hr_time
         ), 200
 
 @app.route('/backfill_weather', methods=['POST'])
