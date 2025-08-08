@@ -61,7 +61,11 @@ class PrefixMiddleware:
         self.app = app
     def __call__(self, environ, start_response):
         import sys
-        script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+        configured_root = app.config.get('APPLICATION_ROOT', '') or ''
+        header_script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+        script_name = header_script_name or configured_root or ''
+        if script_name and not script_name.startswith('/'):
+            script_name = '/' + script_name
         path_info = environ.get('PATH_INFO', '')
         print(f"[PrefixMiddleware] BEFORE: script_name: {script_name}, path_info: {path_info}", file=sys.stderr)
         
