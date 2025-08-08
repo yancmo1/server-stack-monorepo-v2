@@ -1,6 +1,6 @@
 {
-  "name": "Race Tracker PWA",
-  "short_name": "TrackerPWA",
+  "name": "5K Race Tracker PWA",
+  "short_name": "5K Tracker",
   "start_url": "/tracker/",
   "scope": "/tracker/",
   "display": "standalone",
