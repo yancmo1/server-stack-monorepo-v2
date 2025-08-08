@@ -107,7 +107,7 @@
                                         <strong>{{ race_type }}</strong><br>
                                         <small class="text-muted">{{ race.race_name }} - {{ race.race_date.strftime('%m/%d/%Y') }}</small>
                                     </div>
-                                    <span class="badge bg-success rounded-pill">{{ race.finish_time }}</span>
+                                    <span class="badge bg-success rounded-pill">{{ format_time(race.race_type, race.finish_time) }}</span>
                                 </div>
                             {% endfor %}
                         </div>
@@ -135,7 +135,7 @@
                                             <h6 class="mb-1">{{ race.race_name }}</h6>
                                             <p class="mb-1">
                                                 <span class="badge bg-secondary me-2">{{ race.race_type }}</span>
-                                                <strong>{{ race.finish_time }}</strong>
+                                                <strong>{{ format_time(race.race_type, race.finish_time) }}</strong>
                                             </p>
                                             <small class="text-muted">{{ race.race_date.strftime('%B %d, %Y') }}</small>
                                         </div>

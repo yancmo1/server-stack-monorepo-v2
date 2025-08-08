@@ -34,9 +34,9 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='{{ url_for('races') }}'">
+                    <a class="btn btn-outline-secondary" href="{{ url_for('races') }}">
                         <i class="fas fa-times"></i> Clear Filters
-                    </button>
+                    </a>
                 </div>
             </form>
         </div>
@@ -88,7 +88,7 @@
                                     </p>
                                     <p class="mb-2">
                                         <i class="fas fa-stopwatch text-muted"></i>
-                                        <strong>Finish: {{ race.finish_time }}</strong>
+                                        <strong>Finish: {{ format_time(race.race_type, race.finish_time) }}</strong>
                                     </p>
                                 </div>
                                 <div class="col-6">

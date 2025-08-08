@@ -183,18 +183,34 @@ class Race(db.Model):
     photos = db.relationship('RacePhoto', backref='race', lazy=True, cascade='all, delete-orphan')
 
     def time_to_seconds(self):
-        """Convert finish time to seconds for comparison"""
+        """Convert finish time to seconds (float, includes centiseconds) for comparison"""
         try:
-            time_parts = self.finish_time.split(':')
-            if len(time_parts) == 3:
-                hours, minutes, seconds = map(int, time_parts)
-                return hours * 3600 + minutes * 60 + seconds
-            elif len(time_parts) == 2:
-                minutes, seconds = map(int, time_parts)
-                return minutes * 60 + seconds
-            return 0
-        except:
-            return 0
+            parts = [p.strip() for p in (self.finish_time or '').split(':') if p.strip() != '']
+            if not parts:
+                return 0.0
+            # Support mm:ss:cc (for 5K/10K), hh:mm:ss[:cc] for longer
+            if len(parts) == 4:
+                h, m, s, cs = map(int, parts)
+                return h * 3600 + m * 60 + s + (cs / 100.0)
+            if len(parts) == 3:
+                a, b, c = map(int, parts)
+                # Disambiguate using race_type: for 5K/10K, interpret as mm:ss:cc
+                if (self.race_type or '').strip() in ['5K', '10K'] and c <= 99:
+                    m, s, cs = a, b, c
+                    return m * 60 + s + (cs / 100.0)
+                # Otherwise treat as hh:mm:ss
+                h, m, s = a, b, c
+                return h * 3600 + m * 60 + s
+            if len(parts) == 2:
+                m, s = map(int, parts)
+                return m * 60 + s
+            if len(parts) == 1:
+                # Single number means minutes
+                m = int(parts[0])
+                return m * 60
+            return 0.0
+        except Exception:
+            return 0.0
 
     def __repr__(self):
         return f'<Race {self.race_name} - {self.finish_time}>'
@@ -691,18 +707,34 @@ def cache_race_weather(race):
         dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
     else:
         dt_start = datetime(date.year, date.month, date.day, 7, 0)
-    # Finish time (duration added to start)
-    finish_str = getattr(race, 'finish_time', None) or "00:45:00"  # default 45m
-    fin_parts = [int(x) for x in finish_str.split(':') if x.isdigit()]
+    # Finish time (duration added to start) with support for centiseconds and 5K/10K mm:ss:cc
+    finish_str = (getattr(race, 'finish_time', None) or "00:45:00").strip()  # default 45m
     from datetime import timedelta as _td
-    if len(fin_parts) == 3:
-        dur = _td(hours=fin_parts[0], minutes=fin_parts[1], seconds=fin_parts[2])
-    elif len(fin_parts) == 2:
-        dur = _td(minutes=fin_parts[0], seconds=fin_parts[1])
-    elif len(fin_parts) == 1:
-        dur = _td(minutes=fin_parts[0])
-    else:
-        dur = _td(minutes=45)
+    def _parse_finish_duration(r):
+        try:
+            parts = [p.strip() for p in finish_str.split(':') if p.strip() != '']
+            if not parts:
+                return _td(minutes=45)
+            if len(parts) == 4:
+                h, m, s, cs = map(int, parts)
+                return _td(hours=h, minutes=m, seconds=s, milliseconds=cs*10)
+            if len(parts) == 3:
+                a, b, c = map(int, parts)
+                if (r.race_type or '').strip() in ['5K', '10K'] and c <= 99:
+                    # mm:ss:cc
+                    return _td(minutes=a, seconds=b, milliseconds=c*10)
+                # hh:mm:ss
+                return _td(hours=a, minutes=b, seconds=c)
+            if len(parts) == 2:
+                m, s = map(int, parts)
+                return _td(minutes=m, seconds=s)
+            if len(parts) == 1:
+                m = int(parts[0])
+                return _td(minutes=m)
+            return _td(minutes=45)
+        except Exception:
+            return _td(minutes=45)
+    dur = _parse_finish_duration(race)
     dt_finish = dt_start + dur
     # Cache start/finish weather if missing or placeholder
     changed = False
@@ -719,6 +751,57 @@ def cache_race_weather(race):
         except Exception:
             db.session.rollback()
     return race.start_weather, race.finish_weather
+
+# --- Time formatting helper ---
+def format_race_time(race_type: str | None, time_str: str | None) -> str:
+    """
+    Format finish time by race type.
+    - 5K/10K: MM:SS:CC (centiseconds, 00 if missing)
+    - Longer (Half, Marathon): HH:MM:SS (append :CC if provided)
+    - Other: choose MM:SS:CC if under 1 hour, else HH:MM:SS
+    Accepts inputs like mm:ss, mm:ss:cc, hh:mm:ss, hh:mm:ss:cc.
+    """
+    if not time_str:
+        return '—'
+    rt = (race_type or '').strip()
+    parts = [p.strip() for p in time_str.split(':') if p.strip() != '']
+    h = m = s = cs = 0
+    try:
+        if len(parts) == 4:
+            h, m, s, cs = map(int, parts)
+        elif len(parts) == 3:
+            a, b, c = map(int, parts)
+            if rt in ['5K', '10K'] and c <= 99:
+                m, s, cs = a, b, c
+            else:
+                h, m, s = a, b, c
+        elif len(parts) == 2:
+            m, s = map(int, parts)
+        elif len(parts) == 1:
+            m = int(parts[0])
+        # Normalize rollover
+        if cs >= 100:
+            s += cs // 100
+            cs = cs % 100
+        if s >= 60:
+            m += s // 60
+            s = s % 60
+        if m >= 60 and (rt not in ['5K', '10K']):
+            h += m // 60
+            m = m % 60
+    except Exception:
+        return time_str
+
+    if rt in ['5K', '10K']:
+        # Always MM:SS:CC (pad hours into minutes)
+        total_minutes = h * 60 + m
+        return f"{total_minutes:02d}:{s:02d}:{cs:02d}"
+    # Longer distances
+    if h > 0 or rt in ['Half Marathon', 'Marathon']:
+        base = f"{h:01d}:{m:02d}:{s:02d}"
+        return base + (f":{cs:02d}" if cs else '')
+    # Other: if under 1h show MM:SS(:CC)
+    return f"{m:02d}:{s:02d}" + (f":{cs:02d}" if cs else '')
 
 def init_db():
     """Initialize the database with tables"""
@@ -783,7 +866,8 @@ def dashboard():
     return render_template('dashboard.html', 
                          recent_races=recent_races,
                          personal_records=personal_records,
-                         total_races=total_races)
+                         total_races=total_races,
+                         format_time=format_race_time)
 
 @app.route('/races')
 @login_required
@@ -870,7 +954,8 @@ def races():
             selected_type=race_type,
             linkify_notes=_linkify_notes,
             race_weather=race_weather,
-            weather_icon=weather_icon
+            weather_icon=weather_icon,
+            format_time=format_race_time
         )
     except Exception as e:
         # Log rich diagnostics to stderr for correlation
@@ -921,7 +1006,8 @@ def races():
             selected_type='',
             linkify_notes=_linkify_notes_2,
             race_weather={},
-            weather_icon=weather_icon
+            weather_icon=weather_icon,
+            format_time=format_race_time
         ), 200
 
 @app.route('/backfill_weather', methods=['POST'])

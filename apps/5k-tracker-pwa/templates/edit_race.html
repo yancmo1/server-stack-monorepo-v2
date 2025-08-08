@@ -52,8 +52,8 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="finish_time" class="form-label">Finish Time (Elapsed Gun Time) *</label>
-                                    <input type="text" class="form-control" id="finish_time" name="finish_time" value="{{ race.finish_time }}" placeholder="e.g. 15:32:7 or 15:32:07" required pattern="^([0-9]{1,2}:)?[0-5]?[0-9]:[0-5][0-9](:[0-9]{1,2})?$" title="Format: MM:SS:0, MM:SS:00, HH:MM:SS, or MM:SS">
-                                    <div class="form-text"></div>
+                                    <input type="text" class="form-control" id="finish_time" name="finish_time" value="{{ race.finish_time }}" placeholder="5K/10K: MM:SS:CC, Longer: HH:MM:SS" required pattern="^((\d{1,2}):(\d{2}):(\d{2})(:(\d{1,2}))?|\d{1,2}:\d{2}|\d{1,2}:\d{2}:\d{1,2})$" title="5K/10K: MM:SS:CC, Longer: HH:MM:SS; CC optional">
+                                    <div class="form-text">Tip: For 5K/10K include centiseconds (MM:SS:CC). For Half/Marathon use HH:MM:SS.</div>
                                 </div>
                             </div>
                         </div>

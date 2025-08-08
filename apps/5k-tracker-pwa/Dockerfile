@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Add wait-for-it.sh and init_and_run.sh and make them executable
-RUN chmod +x wait-for-it.sh init_and_run.sh
+# RUN chmod +x wait-for-it.sh init_and_run.sh
 
 # Create non-root user for security
 RUN useradd -m -u 1000 racetracker
