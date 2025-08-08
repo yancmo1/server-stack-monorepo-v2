@@ -81,94 +81,6 @@ class PrefixMiddleware:
 # Apply the middleware
 app.wsgi_app = PrefixMiddleware(app.wsgi_app)
 
-def reset_user_password(user, new_password):
-    user.set_password(new_password)
-    db.session.commit()
-    flash(f'Password reset for {user.email}')
-    return redirect(url_for('admin_users'))
-
-@app.route('/admin/user/<int:user_id>/toggle_admin', methods=['POST'])
-@login_required
-def admin_toggle_admin(user_id):
-    if not current_user.is_admin:
-        flash('Access denied. Admin privileges required.')
-        return redirect(url_for('dashboard'))
-    
-    user = User.query.get_or_404(user_id)
-    if user.id == current_user.id:
-        flash('Cannot modify your own admin status')
-        return redirect(url_for('admin_users'))
-    
-    user.is_admin = not user.is_admin
-    db.session.commit()
-    status = 'granted' if user.is_admin else 'revoked'
-    flash(f'Admin privileges {status} for {user.email}')
-    return redirect(url_for('admin_users'))
-
-@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
-@login_required
-def admin_delete_user(user_id):
-    if not current_user.is_admin:
-        flash('Access denied. Admin privileges required.')
-        return redirect(url_for('dashboard'))
-    
-    user = User.query.get_or_404(user_id)
-    if user.id == current_user.id:
-        flash('Cannot delete your own account')
-        return redirect(url_for('admin_users'))
-    
-    # Delete user and associated races (cascade handles this)
-    db.session.delete(user)
-    db.session.commit()
-    flash(f'User {user.email} deleted successfully')
-    return redirect(url_for('admin_users'))
-
-# --- Password Reset Routes ---
-@app.route('/forgot_password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = request.form['email']
-        user = User.query.filter_by(email=email).first()
-        
-        if user:
-            token = user.generate_reset_token()
-            db.session.commit()
-            
-            # In a real app, you'd send an email here
-            # For now, we'll just show the reset link
-            reset_url = url_for('reset_password', token=token, _external=True)
-            flash(f'Password reset link: {reset_url}')
-        else:
-            flash('If that email is registered, you will receive a reset link.')
-        
-        return redirect(url_for('login'))
-    
-    return render_template('forgot_password.html')
-
-@app.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    user = User.query.filter_by(reset_token=token).first()
-    
-    if not user or not user.verify_reset_token(token):
-        flash('Invalid or expired reset token')
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-        
-        if password != confirm_password:
-            flash('Passwords do not match')
-            return render_template('reset_password.html', token=token)
-        
-        user.set_password(password)
-        user.clear_reset_token()
-        db.session.commit()
-        flash('Password reset successfully')
-        return redirect(url_for('login'))
-    
-    return render_template('reset_password.html', token=token)
-
 
 # --- Ensure upload directory exists ---
 try:
@@ -329,6 +241,105 @@ def add_test_races(runner, race_types, locations):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# --- Admin Routes ---
+@app.route('/admin')
+@login_required
+def admin_users():
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    users = User.query.all()
+    return render_template('admin_users.html', users=users)
+
+def reset_user_password(user, new_password):
+    user.set_password(new_password)
+    db.session.commit()
+    flash(f'Password reset for {user.email}')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/toggle_admin', methods=['POST'])
+@login_required
+def admin_toggle_admin(user_id):
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('Cannot modify your own admin status')
+        return redirect(url_for('admin_users'))
+    
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    status = 'granted' if user.is_admin else 'revoked'
+    flash(f'Admin privileges {status} for {user.email}')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('Cannot delete your own account')
+        return redirect(url_for('admin_users'))
+    
+    # Delete user and associated races (cascade handles this)
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User {user.email} deleted successfully')
+    return redirect(url_for('admin_users'))
+
+# --- Password Reset Routes ---
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            token = user.generate_reset_token()
+            db.session.commit()
+            
+            # In a real app, you'd send an email here
+            # For now, we'll just show the reset link
+            reset_url = url_for('reset_password', token=token, _external=True)
+            flash(f'Password reset link: {reset_url}')
+        else:
+            flash('If that email is registered, you will receive a reset link.')
+        
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    user = User.query.filter_by(reset_token=token).first()
+    
+    if not user or not user.verify_reset_token(token):
+        flash('Invalid or expired reset token')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        if password != confirm_password:
+            flash('Passwords do not match')
+            return render_template('reset_password.html', token=token)
+        
+        user.set_password(password)
+        user.clear_reset_token()
+        db.session.commit()
+        flash('Password reset successfully')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', token=token)
+
 # --- Routes ---
 @app.route('/')
 def index():
@@ -404,6 +415,11 @@ def login():
         else:
             flash('Invalid email or password')
     return render_template('login.html')
+
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')
 
 @app.route('/logout')
 @login_required
