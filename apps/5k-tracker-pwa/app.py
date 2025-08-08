@@ -923,6 +923,7 @@ def races():
             page = 1
         race_type = request.args.get('type', '').strip()
 
+        import sys
         base_query = Race.query.filter_by(user_id=current_user.id)
         if race_type:
             base_query = base_query.filter_by(race_type=race_type)
@@ -935,6 +936,7 @@ def races():
                  .offset((page - 1) * per_page)
                  .limit(per_page)
                  .all())
+        print(f'[RACES_DIAG] user_id={getattr(current_user, "id", None)} total={total} items={len(items)}', file=sys.stderr)
 
         class SimplePagination:
             def __init__(self, items, page, per_page, total):
