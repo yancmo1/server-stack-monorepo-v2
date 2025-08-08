@@ -30,7 +30,7 @@ class CWLGroup(app_commands.Group):
         """Fetch CWL stars from the API and update database"""
         cog = self.bot.get_cog('CWLStarsCog')
         if cog:
-            await cog.fetch_cwl_stars(interaction)
+            await cog.fetch_cwl_stars.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Stars cog not loaded.", ephemeral=True)
 
@@ -39,7 +39,7 @@ class CWLGroup(app_commands.Group):
         """Show CWL stars leaderboard"""
         cog = self.bot.get_cog('CWLStarsCog')
         if cog:
-            await cog.cwl_leaderboard(interaction)
+            await cog.cwl_leaderboard.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Stars cog not loaded.", ephemeral=True)
 
@@ -48,7 +48,7 @@ class CWLGroup(app_commands.Group):
         """Show CWL round schedule"""
         cog = self.bot.get_cog('CWLNotifications')
         if cog:
-            await cog.cwl_schedule(interaction)
+            await cog.cwl_schedule.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Notifications cog not loaded.", ephemeral=True)
 
@@ -57,7 +57,7 @@ class CWLGroup(app_commands.Group):
         """View CWL history"""
         cog = self.bot.get_cog('CWLCog')
         if cog:
-            await cog.cwl_history(interaction, season_year=season_year, season_month=season_month, player=player_name)
+            await cog.cwl_history.__wrapped__(cog, interaction, season_year=season_year, season_month=season_month, player=player_name)
         else:
             await interaction.response.send_message("❌ CWL cog not loaded.", ephemeral=True)
 
@@ -69,7 +69,7 @@ class CWLGroup(app_commands.Group):
             return
         cog = self.bot.get_cog('CWLStarsCog')
         if cog:
-            await cog.debug_cwl_api(interaction)
+            await cog.debug_cwl_api.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Stars cog not loaded.", ephemeral=True)
 
@@ -81,7 +81,7 @@ class CWLGroup(app_commands.Group):
             return
         cog = self.bot.get_cog('CWLStarsCog')
         if cog:
-            await cog.clear_cwl_data(interaction)
+            await cog.clear_cwl_data.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Stars cog not loaded.", ephemeral=True)
 
@@ -93,7 +93,7 @@ class CWLGroup(app_commands.Group):
             return
         cog = self.bot.get_cog('CWLStarsCog')
         if cog:
-            await cog.reset_processed_wars(interaction)
+            await cog.reset_processed_wars.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Stars cog not loaded.", ephemeral=True)
 
@@ -105,7 +105,7 @@ class CWLGroup(app_commands.Group):
             return
         cog = self.bot.get_cog('CWLNotifications')
         if cog:
-            await cog.reset_cwl_cache(interaction)
+            await cog.reset_cwl_cache.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Notifications cog not loaded.", ephemeral=True)
 
@@ -117,7 +117,7 @@ class CWLGroup(app_commands.Group):
             return
         cog = self.bot.get_cog('CWLNotifications')
         if cog:
-            await cog.sync_cwl_commands(interaction)
+            await cog.sync_cwl_commands.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Notifications cog not loaded.", ephemeral=True)
 
@@ -126,7 +126,7 @@ class CWLGroup(app_commands.Group):
         """Test CWL system"""
         cog = self.bot.get_cog('CWLNotifications')
         if cog:
-            await cog.cwl_test(interaction)
+            await cog.cwl_test.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Notifications cog not loaded.", ephemeral=True)
 
@@ -135,7 +135,7 @@ class CWLGroup(app_commands.Group):
         """Send a test notification"""
         cog = self.bot.get_cog('CWLNotifications')
         if cog:
-            await cog.test_cwl_notification(interaction)
+            await cog.test_cwl_notification.__wrapped__(cog, interaction)
         else:
             await interaction.response.send_message("❌ CWL Notifications cog not loaded.", ephemeral=True)
 
