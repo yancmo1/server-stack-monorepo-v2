@@ -50,6 +50,11 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('TRACKER_DATABASE_URI', '
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+# Secure/persistent session settings
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_SECURE'] = True
 
 # --- Flask-Login Manager ---
 login_manager = LoginManager()
@@ -269,12 +274,50 @@ def admin_users():
         return redirect(url_for('dashboard'))
     
     users = User.query.all()
-    return render_template('admin_users.html', users=users)
+    # Provide summary metrics expected by the template
+    total_users = User.query.count()
+    admin_users_count = User.query.filter_by(is_admin=True).count()
+    total_races = Race.query.count()
+    return render_template(
+        'admin_users.html',
+        users=users,
+        total_users=total_users,
+        admin_users=admin_users_count,
+        total_races=total_races
+    )
 
 def reset_user_password(user, new_password):
     user.set_password(new_password)
     db.session.commit()
     flash(f'Password reset for {user.email}')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
+@login_required
+def admin_reset_password(user_id):
+    """Admin-only: reset a user's password to a temporary random value."""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.')
+        return redirect(url_for('dashboard'))
+
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('Cannot reset your own password from admin panel')
+        return redirect(url_for('admin_users'))
+
+    import secrets, string
+    alphabet = string.ascii_letters + string.digits
+    temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+    user.set_password(temp_password)
+    try:
+        # Clear any outstanding reset token
+        if hasattr(user, 'clear_reset_token'):
+            user.clear_reset_token()
+        db.session.commit()
+        flash(f'Temporary password for {user.email}: {temp_password}')
+    except Exception:
+        db.session.rollback()
+        flash('Failed to reset password due to a server error.', 'danger')
     return redirect(url_for('admin_users'))
 
 @app.route('/admin/user/<int:user_id>/toggle_admin', methods=['POST'])
@@ -424,9 +467,10 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        remember = bool(request.form.get('remember'))
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
-            login_user(user)
+            login_user(user, remember=remember)
             next_page = request.args.get('next')
             if next_page:
                 return redirect(next_page)
