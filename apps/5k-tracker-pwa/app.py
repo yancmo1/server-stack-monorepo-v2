@@ -754,30 +754,49 @@ def cache_race_weather(race):
     # Finish time (duration added to start) with support for centiseconds and 5K/10K mm:ss:cc
     finish_str = (getattr(race, 'finish_time', None) or "00:45:00").strip()  # default 45m
     from datetime import timedelta as _td
-    def _parse_finish_duration(r):
-        try:
-            parts = [p.strip() for p in finish_str.split(':') if p.strip() != '']
-            if not parts:
+        def _parse_finish_duration(r):
+            """
+            Robustly parse finish time for weather calculation.
+            - 5K: MM:SS.cc or MM:SS or MM:SS:cc
+            - Others: HH:MM:SS, MM:SS, MM:SS.cc
+            """
+            try:
+                # Accept formats like 48:20.2, 47:28, 02:19:22
+                time_str = finish_str
+                # If seconds have a decimal, split it out
+                if '.' in time_str:
+                    main, frac = time_str.split('.', 1)
+                    parts = [p.strip() for p in main.split(':') if p.strip() != '']
+                    cs = int(frac.ljust(2, '0')[:2])  # pad/truncate to 2 digits
+                else:
+                    parts = [p.strip() for p in time_str.split(':') if p.strip() != '']
+                    cs = 0
+                # 5K: MM:SS.cc or MM:SS
+                if (r.race_type or '').strip() == '5K':
+                    if len(parts) == 2:
+                        m, s = map(int, parts)
+                        return _td(minutes=m, seconds=s, milliseconds=cs*10)
+                    elif len(parts) == 3:
+                        m, s, cc = map(int, parts)
+                        return _td(minutes=m, seconds=s, milliseconds=cc*10)
+                    elif len(parts) == 1:
+                        m = int(parts[0])
+                        return _td(minutes=m)
+                    else:
+                        return _td(minutes=45)
+                # Other races: HH:MM:SS, MM:SS, MM:SS.cc
+                if len(parts) == 3:
+                    h, m, s = map(int, parts)
+                    return _td(hours=h, minutes=m, seconds=s, milliseconds=cs*10)
+                elif len(parts) == 2:
+                    m, s = map(int, parts)
+                    return _td(minutes=m, seconds=s, milliseconds=cs*10)
+                elif len(parts) == 1:
+                    m = int(parts[0])
+                    return _td(minutes=m)
                 return _td(minutes=45)
-            if len(parts) == 4:
-                h, m, s, cs = map(int, parts)
-                return _td(hours=h, minutes=m, seconds=s, milliseconds=cs*10)
-            if len(parts) == 3:
-                a, b, c = map(int, parts)
-                if (r.race_type or '').strip() in ['5K', '10K'] and c <= 99:
-                    # mm:ss:cc
-                    return _td(minutes=a, seconds=b, milliseconds=c*10)
-                # hh:mm:ss
-                return _td(hours=a, minutes=b, seconds=c)
-            if len(parts) == 2:
-                m, s = map(int, parts)
-                return _td(minutes=m, seconds=s)
-            if len(parts) == 1:
-                m = int(parts[0])
-                return _td(minutes=m)
-            return _td(minutes=45)
-        except Exception:
-            return _td(minutes=45)
+            except Exception:
+                return _td(minutes=45)
     dur = _parse_finish_duration(race)
     dt_finish = dt_start + dur
     # Cache start/finish weather if missing or placeholder
