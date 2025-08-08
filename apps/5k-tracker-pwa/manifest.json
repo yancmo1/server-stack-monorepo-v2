@@ -8,22 +8,37 @@
   "background_color": "#317EFB",
   "icons": [
     {
-      "src": "/tracker/static/icons/5K_Tracker_Icon_1",
+      "src": "/tracker/static/icons/5K_Tracker_Icon_1.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/tracker/static/icons/5K_Tracker_Icon_x2",
+      "src": "/tracker/static/icons/5K_Tracker_Icon_x2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/tracker/static/icons/5K_Tracker_Icon_x3",
+      "src": "/tracker/static/icons/5K_Tracker_Icon_3x.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/tracker/static/icons/icon_144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/tracker/static/icons/icon_192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/tracker/static/icons/icon_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }
