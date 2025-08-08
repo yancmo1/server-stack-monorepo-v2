@@ -691,15 +691,19 @@ def cache_race_weather(race):
         dt_start = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
     else:
         dt_start = datetime(date.year, date.month, date.day, 7, 0)
-    # Finish time
-    time_str = getattr(race, 'finish_time', None) or "08:00"
-    time_parts = [int(x) for x in time_str.split(':') if x.isdigit()]
-    if len(time_parts) == 3:
-        dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1], time_parts[2])
-    elif len(time_parts) == 2:
-        dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
+    # Finish time (duration added to start)
+    finish_str = getattr(race, 'finish_time', None) or "00:45:00"  # default 45m
+    fin_parts = [int(x) for x in finish_str.split(':') if x.isdigit()]
+    from datetime import timedelta as _td
+    if len(fin_parts) == 3:
+        dur = _td(hours=fin_parts[0], minutes=fin_parts[1], seconds=fin_parts[2])
+    elif len(fin_parts) == 2:
+        dur = _td(minutes=fin_parts[0], seconds=fin_parts[1])
+    elif len(fin_parts) == 1:
+        dur = _td(minutes=fin_parts[0])
     else:
-        dt_finish = datetime(date.year, date.month, date.day, 8, 0)
+        dur = _td(minutes=45)
+    dt_finish = dt_start + dur
     # Cache start/finish weather if missing or placeholder
     changed = False
     if _is_missing_weather(getattr(race, 'start_weather', None)):
