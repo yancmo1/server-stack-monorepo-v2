@@ -709,8 +709,8 @@ def _is_missing_weather(value: str | None) -> bool:
     v = value.strip().lower()
     return v == '' or v == 'n/a' or v.startswith('weather unavailable')
 
-def cache_race_weather(race):
-    """Cache weather for start and finish times if missing."""
+def cache_race_weather(race, force: bool = False):
+    """Cache weather for start and finish times; overwrite if force=True or values are missing."""
     place = race.location or ''
     # Start time
     date = getattr(race, 'race_date', None)
@@ -731,10 +731,10 @@ def cache_race_weather(race):
     dt_finish = dt_start + dur
     # Cache start/finish weather if missing or placeholder
     changed = False
-    if _is_missing_weather(getattr(race, 'start_weather', None)):
+    if force or _is_missing_weather(getattr(race, 'start_weather', None)):
         race.start_weather = get_weather_for_datetime(place, dt_start)
         changed = True
-    if _is_missing_weather(getattr(race, 'finish_weather', None)):
+    if force or _is_missing_weather(getattr(race, 'finish_weather', None)):
         race.finish_weather = get_weather_for_datetime(place, dt_finish)
         changed = True
     if changed:
@@ -1100,11 +1100,17 @@ def races():
 def backfill_weather():
     """Backfill weather for all of the current user's races."""
     races = Race.query.filter_by(user_id=current_user.id).all()
+    # Support forcing via form or query param
+    def _truthy(v: str | None) -> bool:
+        if not v:
+            return False
+        return v.lower() in ('1', 'true', 'yes', 'on')
+    force = _truthy(request.args.get('force')) or _truthy(request.form.get('force'))
     updated = 0
     for r in races:
         try:
             before_sw, before_fw = getattr(r, 'start_weather', None), getattr(r, 'finish_weather', None)
-            sw, fw = cache_race_weather(r)
+            sw, fw = cache_race_weather(r, force=force)
             if sw != before_sw or fw != before_fw:
                 updated += 1
         except Exception:

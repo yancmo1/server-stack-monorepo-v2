@@ -26,6 +26,12 @@
                     <i class="fas fa-cloud-sun"></i> Refresh Weather
                 </button>
             </form>
+            <form method="POST" action="{{ url_for('backfill_weather', force=1) }}" onsubmit="return confirm('Force re-poll weather for all races? This will overwrite cached values.')">
+                <input type="hidden" name="force" value="1" />
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="fas fa-redo"></i> Force Refresh Weather
+                </button>
+            </form>
         </div>
     </div>
 
