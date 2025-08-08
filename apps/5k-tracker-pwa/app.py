@@ -22,6 +22,9 @@ def weather_icon(weather_str):
     if not weather_str:
         return "fas fa-question-circle text-muted"
     w = weather_str.lower()
+    # Strip leading descriptor prefix like "clear sky:" if present
+    if ':' in w:
+        w = w.split(':', 1)[0].strip()
     if "sun" in w or "clear" in w:
         return "fas fa-sun text-warning"
     elif "cloud" in w:
@@ -655,11 +658,19 @@ def api_weather():
 def get_weather_for_datetime(place, dt):
     """Fetch weather for a location and datetime string."""
     try:
-        resp = requests.get(f"http://localhost:5555/api/weather", params={"place": place, "datetime": dt.isoformat()}, timeout=2)
+        # Call the app's own weather endpoint with subpath so middleware routes correctly
+        resp = requests.get(
+            "http://localhost:5555/tracker/api/weather",
+            params={"place": place, "datetime": dt.isoformat()},
+            timeout=2
+        )
         if resp.ok:
-            data = resp.json().get('weather', {})
+            payload = resp.json()
+            data = payload.get('weather', {})
             if data and 'temperature' in data:
-                return f"{data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
+                desc = data.get('description') or ''
+                # Include description so icon helper can render Sunny/Cloudy/etc.
+                return f"{desc or 'Weather'}: {data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
     except Exception:
         pass
     return "Weather unavailable"
@@ -689,12 +700,20 @@ def cache_race_weather(race):
         dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
     else:
         dt_finish = datetime(date.year, date.month, date.day, 8, 0)
-    # Cache start weather
+    # Cache start/finish weather if missing
+    changed = False
     if not race.start_weather:
         race.start_weather = get_weather_for_datetime(place, dt_start)
-    # Cache finish weather
+        changed = True
     if not race.finish_weather:
         race.finish_weather = get_weather_for_datetime(place, dt_finish)
+        changed = True
+    if changed:
+        try:
+            db.session.add(race)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     return race.start_weather, race.finish_weather
 
 def init_db():
