@@ -1110,14 +1110,24 @@ def backfill_weather():
     for r in races:
         try:
             before_sw, before_fw = getattr(r, 'start_weather', None), getattr(r, 'finish_weather', None)
+            if force:
+                # Explicitly clear cached values to ensure reset semantics
+                r.start_weather = None
+                r.finish_weather = None
             sw, fw = cache_race_weather(r, force=force)
-            if sw != before_sw or fw != before_fw:
-                updated += 1
+            if force:
+                updated += 1  # Count all processed when forcing
+            else:
+                if sw != before_sw or fw != before_fw:
+                    updated += 1
         except Exception:
             continue
     try:
         db.session.commit()
     except Exception:
         db.session.rollback()
-    flash(f'Weather backfilled for {updated} race(s).')
+    if force:
+        flash(f'Weather forced refresh for {len(races)} race(s).')
+    else:
+        flash(f'Weather backfilled for {updated} race(s).')
     return redirect(url_for('races'))
