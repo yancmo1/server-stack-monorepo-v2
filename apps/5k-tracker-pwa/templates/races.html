@@ -4,6 +4,17 @@
 
 {% block content %}
 <div class="container mt-4">
+    {% if total_count is not none %}
+    <div class="alert alert-light py-1 mb-3" role="alert" style="font-size: 0.9rem;">
+        <span class="text-muted">User:</span> {{ user_email or 'unknown' }}
+        <span class="mx-2">•</span>
+        <span class="text-muted">Total races:</span> {{ total_count }}
+        {% if selected_type %}
+            <span class="mx-2">•</span>
+            <span class="text-muted">Filter:</span> {{ selected_type }}
+        {% endif %}
+    </div>
+    {% endif %}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-list"></i> My Races</h2>
         <div class="d-flex gap-2">

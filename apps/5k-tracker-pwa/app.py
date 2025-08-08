@@ -1035,7 +1035,9 @@ def races():
             race_weather=race_weather,
             weather_icon=weather_icon,
             format_time=format_race_time,
-            to_12hr=to_12hr_time
+            to_12hr=to_12hr_time,
+            total_count=total,
+            user_email=getattr(current_user, 'email', '')
         )
     except Exception as e:
         # Log rich diagnostics to stderr for correlation
@@ -1088,7 +1090,9 @@ def races():
             race_weather={},
             weather_icon=weather_icon,
             format_time=format_race_time,
-            to_12hr=to_12hr_time
+            to_12hr=to_12hr_time,
+            total_count=0,
+            user_email=getattr(current_user, 'email', '')
         ), 200
 
 @app.route('/backfill_weather', methods=['POST'])
