@@ -635,42 +635,36 @@ def api_weather():
         # Parse the datetime
         dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
         
-        # Simple mock weather response for now
-        # In production, you'd integrate with a real weather API
-        mock_weather = {
-            'temperature': 72,
-            'wind_speed': 5,
-            'humidity': 60,
-            'weather_code': 0,
-            'description': 'Clear sky'
-        }
-        
-        return jsonify({
-            'weather': mock_weather,
-            'location': {'name': place}
-        })
-        
+        # Use centralized mock for consistency
+        weather = _mock_weather_for(place, dt)
+        return jsonify({'weather': weather, 'location': {'name': place}})
+         
     except ValueError as e:
         return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'error': f'Weather service error: {str(e)}'}), 500
 
+def _mock_weather_for(place: str, dt: datetime) -> dict:
+    """Centralized mock weather generator (replace with real API later)."""
+    # Optionally vary slightly by hour to feel dynamic
+    hour = getattr(dt, 'hour', 7) or 7
+    base_temp = 68 + ((hour - 7) % 6) * 2
+    return {
+        'temperature': base_temp,
+        'wind_speed': 5,
+        'humidity': 60,
+        'weather_code': 0,
+        'description': 'Clear sky'
+    }
+
 def get_weather_for_datetime(place, dt):
     """Fetch weather for a location and datetime string."""
+    # Avoid HTTP self-calls; use internal helper for reliability and speed
     try:
-        # Call the app's own weather endpoint with subpath so middleware routes correctly
-        resp = requests.get(
-            "http://localhost:5555/tracker/api/weather",
-            params={"place": place, "datetime": dt.isoformat()},
-            timeout=2
-        )
-        if resp.ok:
-            payload = resp.json()
-            data = payload.get('weather', {})
-            if data and 'temperature' in data:
-                desc = data.get('description') or ''
-                # Include description so icon helper can render Sunny/Cloudy/etc.
-                return f"{desc or 'Weather'}: {data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
+        data = _mock_weather_for(place, dt)
+        if data and 'temperature' in data:
+            desc = data.get('description') or ''
+            return f"{desc or 'Weather'}: {data.get('temperature', '?')}°F, wind {data.get('wind_speed', '?')} mph, humidity {data.get('humidity', '?')}%"
     except Exception:
         pass
     return "Weather unavailable"
