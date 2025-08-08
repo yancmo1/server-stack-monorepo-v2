@@ -669,6 +669,12 @@ def get_weather_for_datetime(place, dt):
         pass
     return "Weather unavailable"
 
+def _is_missing_weather(value: str | None) -> bool:
+    if not value:
+        return True
+    v = value.strip().lower()
+    return v == '' or v == 'n/a' or v.startswith('weather unavailable')
+
 def cache_race_weather(race):
     """Cache weather for start and finish times if missing."""
     place = race.location or ''
@@ -694,12 +700,12 @@ def cache_race_weather(race):
         dt_finish = datetime(date.year, date.month, date.day, time_parts[0], time_parts[1])
     else:
         dt_finish = datetime(date.year, date.month, date.day, 8, 0)
-    # Cache start/finish weather if missing
+    # Cache start/finish weather if missing or placeholder
     changed = False
-    if not race.start_weather:
+    if _is_missing_weather(getattr(race, 'start_weather', None)):
         race.start_weather = get_weather_for_datetime(place, dt_start)
         changed = True
-    if not race.finish_weather:
+    if _is_missing_weather(getattr(race, 'finish_weather', None)):
         race.finish_weather = get_weather_for_datetime(place, dt_finish)
         changed = True
     if changed:
