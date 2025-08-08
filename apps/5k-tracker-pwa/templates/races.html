@@ -43,9 +43,9 @@
                     <div class="card h-100">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">{{ race.race_name }}</h5>
-                                    <p class="mb-2">
-                                        <span class="badge bg-primary">{{ race.race_type }}</span>
-                                    </p>
+                            <p class="mb-2">
+                                <span class="badge bg-primary">{{ race.race_type }}</span>
+                            </p>
 
                             <div class="dropdown">
                                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
@@ -72,44 +72,45 @@
                             <div class="row">
                                 <div class="col-6">
                                     <p class="mb-2">
-                                        <i class="fas fa-calendar text-muted"></i> 
-                                        {{ race.race_date.strftime('%B %d, %Y') }}
+                                        <i class="fas fa-calendar text-muted"></i>
+                                        {{ race.race_date.strftime('%B %d, %Y') if race.race_date else 'Unknown date' }}
                                     </p>
                                     <p class="mb-2">
-                                        <i class="fas fa-clock text-muted"></i> 
+                                        <i class="fas fa-clock text-muted"></i>
                                         <strong>Start: {{ race.race_time if race.race_time else 'N/A' }}</strong>
                                     </p>
                                     <p class="mb-2">
-                                        <i class="fas fa-stopwatch text-muted"></i> 
+                                        <i class="fas fa-stopwatch text-muted"></i>
                                         <strong>Finish: {{ race.finish_time }}</strong>
                                     </p>
                                 </div>
                                 <div class="col-6">
                                     {% if race.location %}
                                         <p class="mb-2">
-                                            <i class="fas fa-map-marker-alt text-muted"></i> 
+                                            <i class="fas fa-map-marker-alt text-muted"></i>
                                             {{ race.location }}
                                         </p>
                                     {% endif %}
-                                    {% if race_weather[race.id] %}
+                                    {% set wr = race_weather.get(race.id) %}
+                                    {% if wr %}
                                         <p class="mb-2">
-                                            <i class="{{ weather_icon(race_weather[race.id]['start']) }}"></i>
-                                            <strong>Weather at Start:</strong> {{ race_weather[race.id]['start'] }}
+                                            <i class="{{ weather_icon(wr.get('start')) }}"></i>
+                                            <strong>Weather at Start:</strong> {{ wr.get('start', 'N/A') }}
                                         </p>
                                         <p class="mb-2">
-                                            <i class="{{ weather_icon(race_weather[race.id]['finish']) }}"></i>
-                                            <strong>Weather at Finish:</strong> {{ race_weather[race.id]['finish'] }}
+                                            <i class="{{ weather_icon(wr.get('finish')) }}"></i>
+                                            <strong>Weather at Finish:</strong> {{ wr.get('finish', 'N/A') }}
                                         </p>
                                     {% endif %}
                                     {% if race.photos %}
                                         <p class="mb-2">
-                                            <i class="fas fa-camera text-success"></i> 
+                                            <i class="fas fa-camera text-success"></i>
                                             {{ race.photos|length }} photo{{ 's' if race.photos|length != 1 else '' }}
                                         </p>
                                     {% endif %}
                                 </div>
                             </div>
-                            
+
                             {% if race.notes %}
                                 <div class="mt-3">
                                     <strong>Notes:</strong>
@@ -159,7 +160,7 @@
                             {% endif %}
                         </div>
                         <div class="card-footer text-muted">
-                            <small>Added {{ race.created_at.strftime('%m/%d/%Y at %I:%M %p') }}</small>
+                            <small>Added {{ race.created_at.strftime('%m/%d/%Y at %I:%M %p') if race.created_at else '-' }}</small>
                         </div>
                     </div>
                 </div>
