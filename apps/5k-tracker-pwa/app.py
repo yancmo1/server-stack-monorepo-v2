@@ -755,43 +755,25 @@ def cache_race_weather(race):
     finish_str = (getattr(race, 'finish_time', None) or "00:45:00").strip()  # default 45m
     from datetime import timedelta as _td
     def _parse_finish_duration(r):
-        """
-        Robustly parse finish time for weather calculation.
-        - 5K: MM:SS.cc or MM:SS or MM:SS:cc
-        - Others: HH:MM:SS, MM:SS, MM:SS.cc
-        """
+        # Original stable version: supports mm:ss:cc for 5K/10K, hh:mm:ss[:cc] for longer
         try:
-            # Accept formats like 48:20.2, 47:28, 02:19:22
-            time_str = finish_str
-            # If seconds have a decimal, split it out
-            if '.' in time_str:
-                main, frac = time_str.split('.', 1)
-                parts = [p.strip() for p in main.split(':') if p.strip() != '']
-                cs = int(frac.ljust(2, '0')[:2])  # pad/truncate to 2 digits
-            else:
-                parts = [p.strip() for p in time_str.split(':') if p.strip() != '']
-                cs = 0
-            # 5K: MM:SS.cc or MM:SS
-            if (r.race_type or '').strip() == '5K':
-                if len(parts) == 2:
-                    m, s = map(int, parts)
-                    return _td(minutes=m, seconds=s, milliseconds=cs*10)
-                elif len(parts) == 3:
-                    m, s, cc = map(int, parts)
-                    return _td(minutes=m, seconds=s, milliseconds=cc*10)
-                elif len(parts) == 1:
-                    m = int(parts[0])
-                    return _td(minutes=m)
-                else:
-                    return _td(minutes=45)
-            # Other races: HH:MM:SS, MM:SS, MM:SS.cc
-            if len(parts) == 3:
-                h, m, s = map(int, parts)
+            parts = [p.strip() for p in finish_str.split(':') if p.strip() != '']
+            if not parts:
+                return _td(minutes=45)
+            if len(parts) == 4:
+                h, m, s, cs = map(int, parts)
                 return _td(hours=h, minutes=m, seconds=s, milliseconds=cs*10)
-            elif len(parts) == 2:
+            if len(parts) == 3:
+                a, b, c = map(int, parts)
+                if (r.race_type or '').strip() in ['5K', '10K'] and c <= 99:
+                    # mm:ss:cc
+                    return _td(minutes=a, seconds=b, milliseconds=c*10)
+                # hh:mm:ss
+                return _td(hours=a, minutes=b, seconds=c)
+            if len(parts) == 2:
                 m, s = map(int, parts)
-                return _td(minutes=m, seconds=s, milliseconds=cs*10)
-            elif len(parts) == 1:
+                return _td(minutes=m, seconds=s)
+            if len(parts) == 1:
                 m = int(parts[0])
                 return _td(minutes=m)
             return _td(minutes=45)
@@ -988,7 +970,8 @@ def races():
 
         races_pagination = SimplePagination(items, page, per_page, total)
 
-        # Fetch and cache weather for each race (safe/fail-closed)
+        # Fetch and cache weather for each race (robust: log errors, never break loop)
+        import sys
         race_weather = {}
         for race in items:
             try:
@@ -997,11 +980,13 @@ def races():
                     'start': start_weather,
                     'finish': finish_weather
                 }
-            except Exception:
+            except Exception as e:
+                print(f'[RACE_WEATHER_ERROR] race_id={getattr(race, "id", None)} finish_time={getattr(race, "finish_time", None)} error={e}', file=sys.stderr)
                 race_weather[race.id] = {'start': 'N/A', 'finish': 'N/A'}
         try:
             db.session.commit()
-        except Exception:
+        except Exception as e:
+            print(f'[DB_COMMIT_ERROR] {e}', file=sys.stderr)
             db.session.rollback()
 
         def _linkify_notes(notes):
