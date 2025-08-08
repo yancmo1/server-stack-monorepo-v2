@@ -57,7 +57,7 @@
                             <div class="dropdown">
                                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
                                         data-bs-toggle="dropdown">
-                                    <b>Edit</b><i class="fas fa-ellipsis-v"></i>
+                                    <b>Edit </b><i class="fas fa-ellipsis-v"></i>
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ url_for('edit_race', race_id=race.id) }}">
@@ -84,7 +84,7 @@
                                     </p>
                                     <p class="mb-2">
                                         <i class="fas fa-clock text-muted"></i>
-                                        <strong>Start: {{ race.race_time if race.race_time else 'N/A' }}</strong>
+                                        <strong>Start: {{ race.race_time("%I:%M %p") if race.race_time("%I:%M %p") else 'N/A' }}</strong>
                                     </p>
                                     <p class="mb-2">
                                         <i class="fas fa-stopwatch text-muted"></i>
@@ -102,11 +102,11 @@
                                     {% if wr %}
                                         <p class="mb-2">
                                             <i class="{{ weather_icon(wr.get('start')) }}"></i>
-                                            <strong>Weather at Start:</strong> {{ wr.get('start', 'N/A') }}
+                                            <strong>Start Weather:</strong> {{ wr.get('start', 'N/A') }}
                                         </p>
                                         <p class="mb-2">
                                             <i class="{{ weather_icon(wr.get('finish')) }}"></i>
-                                            <strong>Weather at Finish:</strong> {{ wr.get('finish', 'N/A') }}
+                                            <strong>Finish Weather:</strong> {{ wr.get('finish', 'N/A') }}
                                         </p>
                                     {% endif %}
                                     {% if race.photos %}
