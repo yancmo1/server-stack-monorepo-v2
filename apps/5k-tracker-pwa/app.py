@@ -808,53 +808,45 @@ def _parse_duration_timedelta(value: str, race_type: str) -> timedelta:
 # --- Time formatting helper ---
 def format_race_time(race_type: str | None, time_str: str | None) -> str:
     """
-    Format finish time by race type.
-    - 5K/10K: MM:SS:CC (centiseconds, 00 if missing)
-    - Longer (Half, Marathon): HH:MM:SS (append :CC if provided)
-    - Other: choose MM:SS:CC if under 1 hour, else HH:MM:SS
-    Accepts inputs like mm:ss, mm:ss:cc, hh:mm:ss, hh:mm:ss:cc.
+    Display finish time by rules:
+    - 5K ONLY: MM:SS.cc (two-digit centiseconds). Always show .cc; use .00 if missing.
+    - Others: show HH:MM:SS if >=1h; otherwise MM:SS. Include .cc only if provided in input.
+    Accepts inputs: mm:ss(.cc), hh:mm:ss(.cc), and (5K-only) mm:ss:cc.
     """
     if not time_str:
         return '—'
     rt = (race_type or '').strip()
-    parts = [p.strip() for p in time_str.split(':') if p.strip() != '']
-    h = m = s = cs = 0
-    try:
-        if len(parts) == 4:
-            h, m, s, cs = map(int, parts)
-        elif len(parts) == 3:
-            a, b, c = map(int, parts)
-            if rt in ['5K', '10K'] and c <= 99:
-                m, s, cs = a, b, c
-            else:
-                h, m, s = a, b, c
-        elif len(parts) == 2:
-            m, s = map(int, parts)
-        elif len(parts) == 1:
-            m = int(parts[0])
-        # Normalize rollover
-        if cs >= 100:
-            s += cs // 100
-            cs = cs % 100
-        if s >= 60:
-            m += s // 60
-            s = s % 60
-        if m >= 60 and (rt not in ['5K', '10K']):
-            h += m // 60
-            m = m % 60
-    except Exception:
-        return time_str
+    s_raw = time_str.strip()
+    had_dot = '.' in s_raw
+    secs = _parse_duration_seconds(s_raw, rt)
 
-    if rt in ['5K', '10K']:
-        # Always MM:SS:CC (pad hours into minutes)
+    # Convert float seconds to h/m/s/centi
+    h = int(secs // 3600)
+    rem = secs - h * 3600
+    m = int(rem // 60)
+    s = int(rem - m * 60)
+    cs = int(round((secs - int(secs)) * 100))
+    if cs == 100:
+        cs = 0
+        s += 1
+    if s >= 60:
+        s -= 60
+        m += 1
+    if m >= 60:
+        m -= 60
+        h += 1
+
+    if rt == '5K':
         total_minutes = h * 60 + m
-        return f"{total_minutes:02d}:{s:02d}:{cs:02d}"
-    # Longer distances
-    if h > 0 or rt in ['Half Marathon', 'Marathon']:
-        base = f"{h:01d}:{m:02d}:{s:02d}"
-        return base + (f":{cs:02d}" if cs else '')
-    # Other: if under 1h show MM:SS(:CC)
-    return f"{m:02d}:{s:02d}" + (f":{cs:02d}" if cs else '')
+        return f"{total_minutes:02d}:{s:02d}.{cs:02d}"
+
+    # Non-5K
+    if h > 0:
+        base = f"{h:d}:{m:02d}:{s:02d}"
+        return base + (f".{cs:02d}" if (had_dot and cs) else '')
+    # Under 1 hour
+    base = f"{m:02d}:{s:02d}"
+    return base + (f".{cs:02d}" if (had_dot and cs) else '')
 
 # --- Time-of-day formatting for start times (12-hour clock) ---
 def to_12hr_time(time_str: str | None) -> str:
