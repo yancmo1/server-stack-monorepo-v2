@@ -532,6 +532,25 @@ def delete_race(race_id):
 def uploaded_file(filename):
     return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], 'photos'), filename)
 
+# --- PWA assets: manifest and service worker ---
+@app.route('/manifest.json')
+def serve_manifest():
+    # Serve the web app manifest used in base.html
+    root_dir = os.path.dirname(__file__)
+    resp = send_from_directory(root_dir, 'manifest.json', mimetype='application/manifest+json')
+    # Avoid stale manifests during active development
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+@app.route('/sw.js')
+def serve_sw():
+    # Service worker for PWA
+    root_dir = os.path.dirname(__file__)
+    resp = send_from_directory(root_dir, 'sw.js', mimetype='application/javascript')
+    resp.headers['Cache-Control'] = 'no-cache'
+    # Ensure the SW can control the subpath
+    resp.headers['Service-Worker-Allowed'] = app.config.get('APPLICATION_ROOT', '/') or '/'
+    return resp
 
 @app.route('/statistics')
 @login_required
