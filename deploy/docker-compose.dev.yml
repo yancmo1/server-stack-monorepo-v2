@@ -86,9 +86,23 @@ services:
     environment:
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
+      # Point to local cocstack dev database
+      - POSTGRES_DB=cocstack
+      - POSTGRES_USER=cocuser
+      - POSTGRES_PASSWORD=devpassword
+      - POSTGRES_HOST=cocstack-db-dev
+      - POSTGRES_PORT=5432
+      # Dev secrets (override as needed)
+      - CLANMAP_SECRET_KEY=dev-secret-key
+      - CLANMAP_ADMIN_PASSWORD=devpass
     volumes:
-      - ../apps/clan-map:/app/source:ro
+      # Mount source directly over /app so code edits reflect immediately
+      - ../apps/clan-map:/app
       - ../shared/ssl:/app/ssl:ro
+    # Enable code auto-reload for development
+    command: ["gunicorn", "--reload", "--bind", "0.0.0.0:5552", "--workers", "2", "--timeout", "30", "app:app"]
+    depends_on:
+      - cocstack-db-dev
     restart: unless-stopped
 
   # QSL Card Creator
@@ -113,8 +127,25 @@ services:
   # Use production deployment for bot testing and development
   # Commands: ./deploy.sh bot
 
+  # Local cocstack database for clan-map development
+  cocstack-db-dev:
+    image: postgres:15
+    container_name: cocstack-db-dev
+    environment:
+      POSTGRES_DB: cocstack
+      POSTGRES_USER: cocuser
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5445:5432"
+    volumes:
+      - cocstack_pgdata_dev:/var/lib/postgresql/data
+      # Optional: seed initial data on first run from repo dump (if present)
+      - ../cocstack_dump.sql:/docker-entrypoint-initdb.d/01_cocstack_dump.sql:ro
+    restart: unless-stopped
+
 volumes:
   tracker_pgdata_dev:
+  cocstack_pgdata_dev:
   tracker_uploads_dev:
   cruise_data_dev:
   cruise_logs_dev:
