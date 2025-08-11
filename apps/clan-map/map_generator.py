@@ -72,23 +72,17 @@ def generate_map(clan_data=None, output_file="static/folium_map.html"):
         name = member.get('name', 'Unknown')
         location = member.get('location', 'Unknown')
         role = member.get('role', 'Member')
-        favorite_troop = member.get('favorite_troop', '')
-        
         # Count roles
         role_counts[role] = role_counts.get(role, 0) + 1
-        
         # Skip if no valid location
         if location == 'Unknown' or not location:
             continue
-            
         # Get coordinates
         lat = member.get('latitude')
         lon = member.get('longitude')
-
         # Geocode if no coordinates stored
         if lat is None or lon is None:
             lat, lon = geocode_location(location)
-
         if lat is not None and lon is not None:
             # Coerce to floats if they are strings
             try:
@@ -98,22 +92,18 @@ def generate_map(clan_data=None, output_file="static/folium_map.html"):
                 # Skip invalid coordinates
                 continue
             located_members += 1
-
             # Get role info
             role_info = get_role_icon_and_emoji(role)
-
-            # Create popup content with emoji
+            # Create popup content with emoji (no favorite troop)
             popup_content = f"""
-            <div style="font-family: Arial, sans-serif; min-width: 200px;">
-                <h4 style="margin: 5px 0; color: {get_role_color(role)};">
+            <div style=\"font-family: Arial, sans-serif; min-width: 200px;\">
+                <h4 style=\"margin: 5px 0; color: {get_role_color(role)};\">
                     {role_info['emoji']} {name}
                 </h4>
-                <p style="margin: 3px 0;"><strong>Role:</strong> {role}</p>
-                <p style="margin: 3px 0;"><strong>Location:</strong> {location}</p>
-                {f'<p style="margin: 3px 0;"><strong>Favorite Troop:</strong> {favorite_troop}</p>' if favorite_troop else ''}
+                <p style=\"margin: 3px 0;\"><strong>Role:</strong> {role}</p>
+                <p style=\"margin: 3px 0;\"><strong>Location:</strong> {location}</p>
             </div>
             """
-
             # Add marker with role-based styling
             folium.Marker(
                 location=[lat, lon],

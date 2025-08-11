@@ -49,7 +49,7 @@ def load_clan_data():
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT name, role, location, latitude, longitude, favorite_troop, location_updated
+            SELECT name, role, location, latitude, longitude, location_updated
             FROM players 
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name
@@ -59,7 +59,7 @@ def load_clan_data():
         
         clan_data = []
         for row in rows:
-            name, role, location, latitude, longitude, favorite_troop, updated = row
+            name, role, location, latitude, longitude, updated = row
             player = {
                 'name': name,
                 'role': role or 'Member',
@@ -68,8 +68,6 @@ def load_clan_data():
             if latitude is not None and longitude is not None:
                 player['latitude'] = latitude
                 player['longitude'] = longitude
-            if favorite_troop:
-                player['favorite_troop'] = favorite_troop
             if updated:
                 player['updated_at'] = updated
             clan_data.append(player)
@@ -95,16 +93,15 @@ def save_clan_data(data):
             location = player.get('location', 'Unknown')
             latitude = player.get('latitude')
             longitude = player.get('longitude')
-            favorite_troop = player.get('favorite_troop')
             updated_at = player.get('updated_at', datetime.now().isoformat())
             
             # Update existing player
             cursor.execute("""
                 UPDATE players SET 
                     role = %s, location = %s, latitude = %s, longitude = %s, 
-                    favorite_troop = %s, location_updated = %s
+                    location_updated = %s
                 WHERE name = %s
-            """, (role, location, latitude, longitude, favorite_troop, updated_at, name))
+            """, (role, location, latitude, longitude, updated_at, name))
         
         conn.commit()
         conn.close()
@@ -181,25 +178,23 @@ def submit_form():
 def submit_location():
     name = request.form.get('name', '').strip()
     location = request.form.get('location', '').strip()
-    favorite_troop = request.form.get('favorite_troop', '').strip()
-    
     if not name or not location:
         flash('Name and location are required!', 'error')
         return redirect(url_for('submit_form'))
-    
+
     # Load current clan data
     clan_data = load_clan_data()
-    
+
     # Check if player already exists in data
     existing_player = None
     for i, player in enumerate(clan_data):
         if player['name'].lower() == name.lower():
             existing_player = i
             break
-    
+
     # Geocode the location
     lat, lon = geocode_location(location)
-    
+
     # Get player info from bot database
     role = 'Member'  # default
     conn = get_bot_db_connection()
@@ -210,7 +205,7 @@ def submit_location():
         if result and result[0]:
             role = result[0]
         conn.close()
-    
+
     # Create player data
     player_data = {
         'name': name,
@@ -218,10 +213,9 @@ def submit_location():
         'latitude': lat,
         'longitude': lon,
         'role': role,
-        'favorite_troop': favorite_troop,
         'updated_at': datetime.now().isoformat()
     }
-    
+
     # Update or add player
     if existing_player is not None:
         clan_data[existing_player] = player_data
@@ -229,16 +223,16 @@ def submit_location():
     else:
         clan_data.append(player_data)
         flash(f'Location added for {name}!', 'success')
-    
+
     # Save updated data
     save_clan_data(clan_data)
-    
+
     # Generate updated map image
     try:
         generate_simple_map_image()
     except Exception as e:
         print(f"Error generating map image after submission: {e}")
-    
+
     return redirect(url_for('submit_form'))
 
 @app.route("/api/players")
@@ -273,7 +267,7 @@ def admin_reset_location(name):
         cursor.execute("""
             UPDATE players SET 
                 location = 'Unknown', latitude = NULL, longitude = NULL, 
-                favorite_troop = NULL, location_updated = NULL
+                location_updated = NULL
             WHERE name = %s
         """, (name,))
         
@@ -290,8 +284,6 @@ def admin_reset_location(name):
                         del player['latitude']
                     if 'longitude' in player:
                         del player['longitude']
-                    if 'favorite_troop' in player:
-                        del player['favorite_troop']
                     if 'updated_at' in player:
                         del player['updated_at']
                     break
