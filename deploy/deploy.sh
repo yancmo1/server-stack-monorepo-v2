@@ -22,6 +22,7 @@ show_help() {
     echo "  tracker           Deploy only tracker"
     echo "  dashboard         Deploy only dashboard"
     echo "  bot               Deploy only coc-discord-bot"
+    echo "  bot-nocache       Rebuild bot without cache and restart"
     echo "  no-bot           Deploy all except coc-discord-bot"
     echo ""
     echo "Examples:"
@@ -80,6 +81,10 @@ deploy_to_server() {
         elif [ "$service" = "bot" ]; then
             echo "Deploying coc-discord-bot only..."
             docker compose up -d --build coc-discord-bot
+        elif [ "$service" = "bot-nocache" ]; then
+            echo "Rebuilding coc-discord-bot without cache and restarting..."
+            docker compose build --no-cache coc-discord-bot
+            docker compose up -d --no-deps --force-recreate coc-discord-bot
         elif [ "$service" = "all" ] || [ -z "$service" ]; then
             echo "Deploying all services..."
             docker compose down
@@ -109,7 +114,7 @@ case "${1:-all}" in
         commit_and_push "$2"
         deploy_to_server "all"
         ;;
-    tracker|dashboard|clan-map|cruise-price-check|qsl-card-creator|bot)
+    tracker|dashboard|clan-map|cruise-price-check|qsl-card-creator|bot|bot-nocache)
         commit_and_push "$2"
         deploy_to_server "$1"
         ;;

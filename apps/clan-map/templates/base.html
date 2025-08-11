@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Clan Map{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <style>
+    :root {
+      --brand-blue: #1502cb;
+      --brand-red: #b22833;
+      --ink: #1f2937;
+      --subtle: #6b7280;
+      --bg: #0f172a;
+    }
+    body { background: #0b1020; color: #e5e7eb; }
+    .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+    .content { flex: 1 1 auto; padding-bottom: 40px; }
+    .page-header { padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 16px; }
+    .card-clean { background: #0f162e; border: 1px solid rgba(255,255,255,.06); border-radius: 14px; }
+    .card-clean .card-header { border-bottom: 1px solid rgba(255,255,255,.06); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,0)); }
+    .btn-brand { background: var(--brand-blue); color: #fff; border: none; }
+    .btn-brand:hover { background: #0f01a3; color: #fff; }
+    .tag { display:inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.08); }
+    .muted { color: #94a3b8; }
+    .table thead th { background: rgba(255,255,255,.06); color: #cbd5e1; border: 0; }
+    .table tbody td { border-top-color: rgba(255,255,255,.06); vertical-align: middle; }
+  </style>
+  {% block head %}{% endblock %}
+  <link rel="icon" href="/clan-map/static/images/clash_shield.png">
+</head>
+<body>
+  <div class="app-shell">
+    {% include '_navbar.html' %}
+    <main class="content">
+      <div class="container">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+    <footer class="py-3 text-center text-muted" style="border-top:1px solid rgba(255,255,255,.06)">
+      <small>Clan Map • privacy-friendly locations • <a href="/clan-map/submit" class="link-light">add yours</a></small>
+    </footer>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -79,38 +79,58 @@ def load_clan_data():
         return []
 
 def save_clan_data(data):
-    """Save clan data to bot database"""
+    """Deprecated: bulk writer intentionally disabled to avoid accidental wipes."""
+    try:
+        # No-op by design. Use update_player_in_db for targeted updates.
+        return True
+    except Exception:
+        return False
+
+def update_player_in_db(name: str, *, role: str | None = None, location: str | None = None,
+                        latitude: float | None = None, longitude: float | None = None,
+                        updated_at: datetime | None = None) -> bool:
+    """Update a single player's fields safely without touching others.
+
+    Only provided fields are updated. Returns True if a row was updated.
+    """
     conn = get_bot_db_connection()
     if not conn:
-        print("Failed to connect to database for saving")
+        print("Failed to connect to database for update")
         return False
-    
     try:
         cursor = conn.cursor()
-        updated_rows = 0
-        for player in data:
-            name = player['name']
-            role = player.get('role', 'Member')
-            location = player.get('location', 'Unknown')
-            latitude = player.get('latitude')
-            longitude = player.get('longitude')
-            updated_at = player.get('updated_at', datetime.now())
-            
-            # Update existing player
-            cursor.execute("""
-                UPDATE players SET 
-                    role = %s, location = %s, latitude = %s, longitude = %s, 
-                    location_updated = %s
-                WHERE name = %s
-            """, (role, location, latitude, longitude, updated_at, name))
-            updated_rows += cursor.rowcount
-        
-        if updated_rows:
+        sets = []
+        values = []
+        if role is not None:
+            sets.append("role = %s")
+            values.append(role)
+        if location is not None:
+            sets.append("location = %s")
+            values.append(location)
+        if latitude is not None:
+            sets.append("latitude = %s")
+            values.append(latitude)
+        if longitude is not None:
+            sets.append("longitude = %s")
+            values.append(longitude)
+        if updated_at is not None:
+            sets.append("location_updated = %s")
+            values.append(updated_at)
+
+        if not sets:
+            conn.close()
+            return False
+
+        sql = f"UPDATE players SET {', '.join(sets)} WHERE name = %s"
+        values.append(name)
+        cursor.execute(sql, tuple(values))
+        changed = cursor.rowcount
+        if changed:
             conn.commit()
         conn.close()
-        return True
+        return changed > 0
     except Exception as e:
-        print(f"Error saving clan data: {e}")
+        print(f"Error updating player {name}: {e}")
         conn.close()
         return False
 
@@ -197,16 +217,6 @@ def submit_location():
         flash('Name and location are required!', 'error')
         return redirect(url_for('submit_form'))
 
-    # Load current clan data
-    clan_data = load_clan_data()
-
-    # Check if player already exists in data
-    existing_player = None
-    for i, player in enumerate(clan_data):
-        if player['name'].lower() == name.lower():
-            existing_player = i
-            break
-
     # Geocode the location
     lat, lon = geocode_location(location)
     # Validate geocoding; if failed, don't save misleading success
@@ -232,26 +242,19 @@ def submit_location():
             role = result[0]
         conn.close()
 
-    # Create player data
-    player_data = {
-        'name': name,
-        'location': location,
-        'latitude': lat,
-        'longitude': lon,
-        'role': role,
-    'updated_at': datetime.now()
-    }
-
-    # Update or add player
-    if existing_player is not None:
-        clan_data[existing_player] = player_data
-        flash(f'Location updated for {name}!', 'success')
+    # Update player directly in DB without touching others
+    save_ok = update_player_in_db(
+        name,
+        role=role,
+        location=location,
+        latitude=lat,
+        longitude=lon,
+        updated_at=datetime.now()
+    )
+    if save_ok:
+        flash(f'Location saved for {name}!', 'success')
     else:
-        clan_data.append(player_data)
-        flash(f'Location added for {name}!', 'success')
-
-    # Save updated data
-    save_ok = save_clan_data(clan_data)
+        flash(f'Could not update location for {name}.', 'error')
 
     # Regenerate folium map and preview image so the map updates immediately
     try:
@@ -307,19 +310,6 @@ def admin_reset_location(name):
             conn.commit()
             conn.close()
             
-            # Update clan_data.json as well
-            clan_data = load_clan_data()
-            for player in clan_data:
-                if player['name'].lower() == name.lower():
-                    player['location'] = 'Unknown'
-                    if 'latitude' in player:
-                        del player['latitude']
-                    if 'longitude' in player:
-                        del player['longitude']
-                    if 'updated_at' in player:
-                        del player['updated_at']
-                    break
-            save_clan_data(clan_data)
             # Regenerate map to reflect reset
             regenerate_map_html()
             
@@ -353,13 +343,6 @@ def admin_set_role(name, role):
             conn.commit()
             conn.close()
             
-            # Update clan_data.json as well
-            clan_data = load_clan_data()
-            for player in clan_data:
-                if player['name'].lower() == name.lower():
-                    player['role'] = role
-                    break
-            save_clan_data(clan_data)
             # Regenerate map to reflect role color/icon changes
             regenerate_map_html()
             
@@ -711,6 +694,39 @@ app.add_url_rule('/clan-map/admin/logout', endpoint='admin_logout_prefixed', vie
 @app.route('/clan-map/static/<path:filename>')
 def prefixed_static(filename):
     return send_from_directory('static', filename)
+
+@app.route('/admin/repair-geocodes')
+def admin_repair_geocodes():
+    """Admin tool: Geocode players missing coordinates and regenerate map"""
+    if not session.get('is_admin'):
+        flash('Admin login required', 'error')
+        return redirect(url_for('admin_login'))
+    try:
+        conn = get_bot_db_connection()
+        if not conn:
+            flash('Database connection failed', 'error')
+            return redirect(url_for('members_list'))
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT name, COALESCE(location, '') as location
+            FROM players
+            WHERE (latitude IS NULL OR longitude IS NULL)
+              AND location IS NOT NULL AND location <> 'Unknown'
+        """)
+        rows = cursor.fetchall()
+        fixed = 0
+        for name, loc in rows:
+            lat, lon = geocode_location(loc)
+            if lat is not None and lon is not None:
+                if update_player_in_db(name, location=loc, latitude=float(lat), longitude=float(lon), updated_at=datetime.now()):
+                    fixed += 1
+        conn.close()
+        regenerate_map_html()
+        flash(f"Repair complete. Pins fixed: {fixed}", 'success')
+    except Exception as e:
+        print(f"Repair error: {e}")
+        flash('Repair failed. See logs.', 'error')
+    return redirect(url_for('members_list'))
 
 if __name__ == "__main__":
     import os
