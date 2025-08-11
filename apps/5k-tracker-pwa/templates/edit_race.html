@@ -138,6 +138,52 @@
 {% block scripts %}
 {{ super() }}
 <script>
+// Clipboard Paste Support for Images
+photoList.addEventListener('paste', function(event) {
+    if (photoCount >= maxPhotos) return;
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+                // AJAX upload pasted image
+                const raceId = window.location.pathname.match(/edit_race\/(\d+)/);
+                if (!raceId) {
+                    alert('Could not determine race ID for photo upload.');
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('photo', file);
+                formData.append('photo_type', 'other'); // Default type
+                formData.append('caption', ''); // Default caption
+                fetch(`/api/upload_photo/${raceId[1]}`, {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        photoCount++;
+                        const row = createPhotoRow(photoCount);
+                        photoList.appendChild(row);
+                        // Set preview to uploaded image URL
+                        const previewImg = row.querySelector(`#photo_preview${photoCount}`);
+                        previewImg.src = data.photo.url;
+                        previewImg.style.display = 'block';
+                        if (photoCount >= maxPhotos) addPhotoBtn.disabled = true;
+                    } else {
+                        alert('Photo upload failed: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    alert('Photo upload error: ' + err);
+                });
+            }
+        }
+    }
+});
+
 // Dynamic photo upload logic for edit race page
 let photoCount = 0;
 const maxPhotos = 10;

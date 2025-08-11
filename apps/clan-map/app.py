@@ -728,6 +728,42 @@ def admin_repair_geocodes():
         flash('Repair failed. See logs.', 'error')
     return redirect(url_for('members_list'))
 
+# --- Development Utilities (dev-only routes) ---
+if os.getenv('FLASK_ENV') == 'development':
+    @app.route('/dev/regen-map')
+    def dev_regen_map():
+        """Force regenerate folium map & preview image (development only)."""
+        try:
+            # Remove existing cached HTML to ensure a fresh build path executes in index()
+            map_file = 'static/folium_map.html'
+            removed = False
+            if os.path.exists(map_file):
+                os.remove(map_file)
+                removed = True
+            regen_ok = regenerate_map_html()
+            img_ok = generate_simple_map_image()
+            return jsonify({
+                "status": "ok",
+                "removed_old": removed,
+                "regenerated_html": regen_ok,
+                "snapshot_updated": img_ok,
+                "timestamp": datetime.now().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"status": "error", "error": str(e)}), 500
+
+    @app.route('/dev/info')
+    def dev_info():
+        """Quick status info for development diagnostics."""
+        return jsonify({
+            "env": os.getenv('FLASK_ENV'),
+            "has_map_html": os.path.exists('static/folium_map.html'),
+            "has_snapshot": os.path.exists('static/images/map_snapshot.png'),
+            "db_host": POSTGRES_HOST,
+            "db_name": POSTGRES_DB,
+            "time": datetime.now().isoformat()
+        })
+
 if __name__ == "__main__":
     import os
     ssl_cert = '/app/ssl/dev.crt'
