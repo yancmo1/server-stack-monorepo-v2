@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
 from map_generator import generate_map
 import json
 import os
@@ -87,13 +87,14 @@ def save_clan_data(data):
     
     try:
         cursor = conn.cursor()
+        updated_rows = 0
         for player in data:
             name = player['name']
             role = player.get('role', 'Member')
             location = player.get('location', 'Unknown')
             latitude = player.get('latitude')
             longitude = player.get('longitude')
-            updated_at = player.get('updated_at', datetime.now().isoformat())
+            updated_at = player.get('updated_at', datetime.now())
             
             # Update existing player
             cursor.execute("""
@@ -102,8 +103,10 @@ def save_clan_data(data):
                     location_updated = %s
                 WHERE name = %s
             """, (role, location, latitude, longitude, updated_at, name))
+            updated_rows += cursor.rowcount
         
-        conn.commit()
+        if updated_rows:
+            conn.commit()
         conn.close()
         return True
     except Exception as e:
@@ -136,6 +139,18 @@ def geocode_location(location):
     except Exception as e:
         print(f"OpenStreetMap geocoding error: {e}")
     return None, None
+
+
+def regenerate_map_html():
+    """Regenerate the folium map HTML from current database contents"""
+    try:
+        map_path = "static/folium_map.html"
+        clan_data = load_clan_data()
+        generate_map(clan_data, output_file=map_path)
+        return True
+    except Exception as e:
+        print(f"Error regenerating folium map HTML: {e}")
+        return False
 
 @app.route("/")
 def index():
@@ -194,6 +209,17 @@ def submit_location():
 
     # Geocode the location
     lat, lon = geocode_location(location)
+    # Validate geocoding; if failed, don't save misleading success
+    if lat is None or lon is None:
+        flash('Could not find that location. Please try a more specific city/region (e.g., "Austin, TX" or "London, UK").', 'error')
+        return redirect(url_for('submit_form'))
+    # Coerce to float to prevent type issues
+    try:
+        lat = float(lat)
+        lon = float(lon)
+    except (TypeError, ValueError):
+        flash('Invalid coordinates returned from geocoding. Please try again.', 'error')
+        return redirect(url_for('submit_form'))
 
     # Get player info from bot database
     role = 'Member'  # default
@@ -213,7 +239,7 @@ def submit_location():
         'latitude': lat,
         'longitude': lon,
         'role': role,
-        'updated_at': datetime.now().isoformat()
+    'updated_at': datetime.now()
     }
 
     # Update or add player
@@ -225,11 +251,13 @@ def submit_location():
         flash(f'Location added for {name}!', 'success')
 
     # Save updated data
-    save_clan_data(clan_data)
+    save_ok = save_clan_data(clan_data)
 
-    # Generate updated map image
+    # Regenerate folium map and preview image so the map updates immediately
     try:
-        generate_simple_map_image()
+        if save_ok:
+            regenerate_map_html()
+            generate_simple_map_image()
     except Exception as e:
         print(f"Error generating map image after submission: {e}")
 
@@ -260,6 +288,10 @@ def members_list():
 @app.route("/admin/reset/<name>")
 def admin_reset_location(name):
     """Reset a player's location (admin function)"""
+    # Require admin
+    if not session.get('is_admin'):
+        flash('Admin login required', 'error')
+        return redirect(url_for('admin_login'))
     # Update in database
     conn = get_bot_db_connection()
     if conn:
@@ -288,6 +320,8 @@ def admin_reset_location(name):
                         del player['updated_at']
                     break
             save_clan_data(clan_data)
+            # Regenerate map to reflect reset
+            regenerate_map_html()
             
             flash(f'Reset location for {name}', 'success')
         else:
@@ -301,6 +335,10 @@ def admin_reset_location(name):
 @app.route("/admin/set_role/<name>/<role>")
 def admin_set_role(name, role):
     """Set a player's role manually (admin function)"""
+    # Require admin
+    if not session.get('is_admin'):
+        flash('Admin login required', 'error')
+        return redirect(url_for('admin_login'))
     valid_roles = ['Leader', 'Co-Leader', 'Elder', 'Member']
     if role not in valid_roles:
         flash(f'Invalid role. Must be one of: {", ".join(valid_roles)}', 'error')
@@ -322,6 +360,8 @@ def admin_set_role(name, role):
                     player['role'] = role
                     break
             save_clan_data(clan_data)
+            # Regenerate map to reflect role color/icon changes
+            regenerate_map_html()
             
             flash(f'Set {name} role to {role}', 'success')
         else:
@@ -345,6 +385,39 @@ def get_role_emoji(role):
 
 # Make the function available in templates
 app.jinja_env.globals.update(get_role_emoji=get_role_emoji)
+
+@app.context_processor
+def inject_is_admin():
+    """Make is_admin available to all templates"""
+    return {"is_admin": bool(session.get('is_admin'))}
+
+# --- Simple Admin Auth ---
+def is_valid_admin(password: str) -> bool:
+    expected = os.environ.get('CLANMAP_ADMIN_PASSWORD')
+    if expected:
+        return password == expected
+    # Fallback weak default only if env not set; recommend setting env in production
+    return password == 'letmein'
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        if is_valid_admin(password):
+            session['is_admin'] = True
+            flash('Logged in as admin', 'success')
+            # Return to members list by default
+            return redirect(url_for('members_list'))
+        else:
+            flash('Invalid admin password', 'error')
+            return redirect(url_for('admin_login'))
+    return render_template('login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    flash('Logged out', 'success')
+    return redirect(url_for('index'))
 
 def generate_simple_map_image():
     """Generate a simple map preview image using Pillow"""
@@ -631,6 +704,8 @@ app.add_url_rule('/clan-map/api/players', endpoint='api_players_prefixed', view_
 app.add_url_rule('/clan-map/members', endpoint='members_list_prefixed', view_func=members_list)
 app.add_url_rule('/clan-map/admin/reset/<name>', endpoint='admin_reset_location_prefixed', view_func=admin_reset_location)
 app.add_url_rule('/clan-map/admin/set_role/<name>/<role>', endpoint='admin_set_role_prefixed', view_func=admin_set_role)
+app.add_url_rule('/clan-map/admin/login', endpoint='admin_login_prefixed', view_func=admin_login, methods=['GET', 'POST'])
+app.add_url_rule('/clan-map/admin/logout', endpoint='admin_logout_prefixed', view_func=admin_logout)
 
 # Static passthrough for prefix
 @app.route('/clan-map/static/<path:filename>')
