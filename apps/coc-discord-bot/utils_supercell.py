@@ -3,6 +3,22 @@ import config
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
+def get_player_profile(player_tag: str) -> Optional[Dict[str, Any]]:
+    """Fetch full player profile from Supercell API."""
+    api_token = config.SUPERCELL_API_TOKEN
+    if not api_token or not player_tag:
+        return None
+    tag = player_tag.replace('#', '%23') if player_tag.startswith('#') else player_tag
+    url = f"https://api.clashofclans.com/v1/players/{tag}"
+    headers = {"Authorization": f"Bearer {api_token}"}
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        return resp.json()
+    except Exception:
+        return None
+
 def get_player_clan_history(player_tag: str):
     """
     Fetch the last 5 clans and days in each for a player from the Supercell API.

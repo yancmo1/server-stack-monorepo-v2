@@ -96,7 +96,7 @@
             <div class="col-md-8 col-lg-6">
                 <div class="card">
                     <div class="card-header text-white">
-                        <img src="/static/images/clash_shield.png" alt="Clash Shield" class="clash-shield">
+                        <img src="/clan-map/static/images/clash_shield.png" alt="Clash Shield" class="clash-shield">
                         <h2 class="mb-0">Submit Your Location</h2>
                         <p class="mb-0">Help us build our clan map!</p>
                     </div>
@@ -123,13 +123,13 @@
                                 </div>
                                 <div class="card-body p-3">
                                     <div class="text-center mb-3">
-                                        <img src="/static/images/map_snapshot.png" 
+                                        <img src="/clan-map/static/images/map_snapshot.png" 
                                              alt="Clan Map Snapshot" 
                                              class="img-fluid rounded shadow"
                                              style="max-height: 300px; border: 2px solid #dee2e6;">
                                     </div>
                                     <div class="text-center">
-                                        <a href="/" class="btn btn-primary">
+                                        <a href="/clan-map/" class="btn btn-primary">
                                             🗺️ View Full Interactive Map
                                         </a>
                                     </div>
@@ -164,7 +164,7 @@
                                         {% endif %}
                                     </div>
                                     <div class="text-center mt-2">
-                                        <a href="/" class="btn btn-sm" style="background: linear-gradient(45deg, #667eea, #764ba2); color: white;">
+                                        <a href="/clan-map/" class="btn btn-sm" style="background: linear-gradient(45deg, #667eea, #764ba2); color: white;">
                                             🗺️ View Full Interactive Map
                                         </a>
                                     </div>
@@ -173,7 +173,7 @@
                         </div>
                         {% endif %}
 
-                        <form method="POST">
+                        <form method="POST" action="/clan-map/submit">
                             <div class="mb-3">
                                 <label for="nameSelect" class="form-label">
                                     <strong>👤 Clash Name</strong>
@@ -235,7 +235,7 @@
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     🗺️ Add Me to the Map!
                                 </button>
-                                <a href="/" class="btn btn-secondary">
+                                <a href="/clan-map/" class="btn btn-secondary">
                                     ← Back to Map
                                 </a>
                             </div>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from map_generator import generate_map
 import json
 import os
@@ -629,6 +629,21 @@ def create_placeholder_snapshot(output_path, pinned_members):
 @app.route('/clan-map/health')
 def clan_map_health():
     return jsonify({"service": "clan-map", "status": "healthy", "timestamp": datetime.now().isoformat()})
+
+# Prefix-compatible routes so the app also responds under /clan-map/ when proxied
+app.add_url_rule('/clan-map/', endpoint='index_prefixed', view_func=index)
+app.add_url_rule('/clan-map', endpoint='index_prefixed_noslash', view_func=lambda: redirect('/clan-map/'))
+app.add_url_rule('/clan-map/submit', endpoint='submit_form_prefixed', view_func=submit_form)
+app.add_url_rule('/clan-map/submit', endpoint='submit_location_prefixed', view_func=submit_location, methods=['POST'])
+app.add_url_rule('/clan-map/api/players', endpoint='api_players_prefixed', view_func=api_players)
+app.add_url_rule('/clan-map/members', endpoint='members_list_prefixed', view_func=members_list)
+app.add_url_rule('/clan-map/admin/reset/<name>', endpoint='admin_reset_location_prefixed', view_func=admin_reset_location)
+app.add_url_rule('/clan-map/admin/set_role/<name>/<role>', endpoint='admin_set_role_prefixed', view_func=admin_set_role)
+
+# Static passthrough for prefix
+@app.route('/clan-map/static/<path:filename>')
+def prefixed_static(filename):
+    return send_from_directory('static', filename)
 
 if __name__ == "__main__":
     import os

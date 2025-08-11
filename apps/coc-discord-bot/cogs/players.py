@@ -9,7 +9,7 @@ import config
 import database_optimized as database
 from config import is_leader_or_admin
 from utils import has_any_role_id, is_admin, is_admin_leader_co_leader, is_newbie, format_last_bonus, days_ago
-from utils_supercell import get_player_clan_history
+from utils_supercell import get_player_clan_history, get_player_profile
 
 MAX_MESSAGE_CHUNK_LENGTH = 1900
 
@@ -20,22 +20,7 @@ class PlayersCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(
-        name="list_players",
-        description="List All Players  Admin, Leader, Co-Leader",
-    )
-    @app_commands.check(is_admin_leader_co_leader)
-    @app_commands.guilds(discord.Object(id=config.GUILD_ID))
-    @app_commands.describe(
-        sort_by="Sort players by this field",
-    )
-    async def list_players(
-        self,
-        interaction: discord.Interaction,
-        sort_by: Optional[str] = "name",
-    ):
-        await interaction.response.defer(ephemeral=True)
-        players = database.get_player_data()
+    # list_players defined later with full implementation
 
     @app_commands.command(
         name="record_missed",
@@ -53,10 +38,21 @@ class PlayersCog(commands.Cog):
                 f"Player `{player_name}` not found.", ephemeral=True
             )
             return
-        database.update_player_missed_attacks(player_name)
-        await interaction.response.send_message(
-            f"Recorded a missed attack for `{player_name}`."
-        )
+        tag = player.get("tag")
+        if not tag:
+            await interaction.response.send_message(
+                f"Player `{player_name}` has no tag on file; cannot record missed attack.", ephemeral=True
+            )
+            return
+        try:
+            new_count = database.increment_player_missed_by_tag(tag, by=1)
+            await interaction.response.send_message(
+                f"Recorded a missed attack for `{player_name}`. Total missed: {new_count}"
+            )
+        except Exception as e:
+            await interaction.response.send_message(
+                f"Failed to record missed attack: {e}", ephemeral=True
+            )
 
     @record_missed_attack.autocomplete("player_name")
     async def autocomplete_player_name(
@@ -80,35 +76,111 @@ class PlayersCog(commands.Cog):
                 f"Player `{player_name}` not found.", ephemeral=True
             )
             return
-        # Compose the response in the requested format
-        lines = []
-        lines.append(f"Who is {player.get('name', player_name)}?")
-        # Role
-        if player.get('role'):
-            lines.append(str(player['role']))
-        # Join Date
-        if player.get('join_date'):
-            lines.append(f"Join Date: {player['join_date']}")
-        # Notes
-        if player.get('notes'):
-            lines.append(f"Notes: {player['notes']}")
-        # Last 5 Clans & Average stay (from Supercell API)
-        lines.append("Last 5 Clans & Days in Each (from Supercell API):")
-        last_clans = []
+
+        await interaction.response.defer()
+
+        name = player.get('name', player_name)
+        tag = player.get('tag', '')
+        clean_tag = tag.replace('#','') if tag else ''
+        cos_url = f"https://www.clashofstats.com/players/{name}-{clean_tag}" if clean_tag else None
+
+        profile = get_player_profile(tag) if tag else None
+
+        # Top line: Name (link to COS)
+        title_name = f"[{name} {tag}]({cos_url})" if cos_url else f"{name} {tag or ''}"
+        embed = discord.Embed(title=f"Who is {name}?", color=discord.Color.gold())
+        embed.add_field(name="Player", value=title_name, inline=False)
+
+        # Role, League, TH with weapon
+        role = player.get('role') or 'Member'
+        league = profile.get('league', {}).get('name') if profile else None
+        town_hall = profile.get('townHallLevel') if profile else None
+        th_weapon = profile.get('townHallWeaponLevel') if profile else None
+        line2 = f"{role}"
+        if league:
+            line2 += f" | {league}"
+        if town_hall:
+            line2 += f" | TH{town_hall}{' (Weapon '+str(th_weapon)+')' if th_weapon else ''}"
+        embed.add_field(name="Role · League · Town Hall", value=line2, inline=False)
+
+        # Heroes current|max
+        def hero_level(name_key: str):
+            if not profile:
+                return None, None
+            for h in profile.get('heroes', []) or []:
+                if h.get('name') == name_key:
+                    return h.get('level'), h.get('maxLevel')
+            return None, None
+        hero_names = ["Barbarian King","Archer Queen","Grand Warden","Royal Champion","Battle Machine"]
+        hero_lines = []
+        for hn in hero_names:
+            cur, mx = hero_level(hn)
+            if cur is not None:
+                emoji = {
+                    "Barbarian King":"🛡️",
+                    "Archer Queen":"🏹",
+                    "Grand Warden":"🧙",
+                    "Royal Champion":"🏇",
+                    "Battle Machine":"🤖",
+                }.get(hn, "⭐")
+                hero_lines.append(f"{emoji} {hn}: {cur}{'|'+str(mx) if mx else ''}")
+        if hero_lines:
+            embed.add_field(name="Heroes (current|max)", value=" | ".join(hero_lines), inline=False)
+
+        # Progress metrics (counts based on profiles arrays lengths)
+        def count_progress(key: str):
+            if not profile:
+                return None
+            items = profile.get(key, []) or []
+            maxed = sum(1 for it in items if it.get('level') == it.get('maxLevel'))
+            return maxed, len(items)
+        heroes_prog = (sum(1 for h in (profile.get('heroes', []) or []) if h.get('level')==h.get('maxLevel')), len(profile.get('heroes', []) or [])) if profile else (None,None)
+        troops_prog = count_progress('troops')
+        spells_prog = count_progress('spells')
+        def fmt_prog(t):
+            if not t or t[0] is None:
+                return "N/A"
+            cur, total = t
+            pct = int((cur/total)*100) if total else 0
+            color = "🟩" if pct>=80 else ("🟨" if pct>=50 else "🟥")
+            return f"{color} {cur}/{total} ({pct}%)"
+        pm_lines = []
+        pm_lines.append(f"Heroes: {fmt_prog(heroes_prog)}")
+        if troops_prog:
+            pm_lines.append(f"Troops: {fmt_prog(troops_prog)}")
+        if spells_prog:
+            pm_lines.append(f"Spells: {fmt_prog(spells_prog)}")
+        embed.add_field(name="Progress", value=" | ".join(pm_lines), inline=False)
+
+        # XP and War Stars
+        xp = profile.get('expLevel') if profile else player.get('xp_level')
+        stars = profile.get('warStars') if profile else player.get('war_stars')
+        embed.add_field(name="XP · War Stars", value=f"{xp or 'N/A'} · {stars or 'N/A'}", inline=False)
+
+        # Notes and Join Date
+        notes = player.get('notes')
+        join_date = player.get('join_date')
+        footer_bits = []
+        if join_date:
+            footer_bits.append(f"Joined: {join_date}")
+        if notes:
+            footer_bits.append(f"Notes: {notes}")
+        if footer_bits:
+            embed.set_footer(text=" | ".join(footer_bits))
+
+        # Last 5 clans and avg days
         avg_days = 0
-        tag = player.get('tag')
-        if tag:
-            history = get_player_clan_history(tag)
-            if history:
-                last_clans = [f"{c['clan_name']} ({c['join_date']} - {c['leave_date']}) — {c['days_in_clan']} days" for c in history]
-                days_list = [c['days_in_clan'] for c in history if c['days_in_clan'] > 0]
-                if days_list:
-                    avg_days = sum(days_list) // len(days_list)
-        if last_clans:
-            lines.extend(last_clans)
+        history = get_player_clan_history(tag) if tag else []
+        if history:
+            days_list = [c['days_in_clan'] for c in history if c['days_in_clan'] > 0]
+            if days_list:
+                avg_days = sum(days_list) // len(days_list)
+            hist_lines = [f"• {c['clan_name']} — {c['days_in_clan']} days ({c['join_date']} → {c['leave_date']})" for c in history]
+            embed.add_field(name="Last 5 Clans", value="\n".join(hist_lines), inline=False)
         if avg_days:
-            lines.append(f"Avg Days/Clan: {avg_days}")
-        await interaction.response.send_message("\n".join(lines))
+            embed.add_field(name="Avg Days/Clan", value=str(avg_days), inline=True)
+
+        await interaction.followup.send(embed=embed)
 
     @who_is.autocomplete("player_name")
     async def autocomplete_who_is(

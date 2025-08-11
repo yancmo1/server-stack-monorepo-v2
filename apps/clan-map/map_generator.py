@@ -2,6 +2,7 @@ import folium
 import requests
 import os
 import googlemaps
+from typing import Any
 
 def get_role_color(role):
     """Return color based on player role"""
@@ -30,7 +31,7 @@ def geocode_location(location):
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     if api_key:
         try:
-            gmaps = googlemaps.Client(key=api_key)
+            gmaps: Any = googlemaps.Client(key=api_key)
             geocode_result = gmaps.geocode(location)
             if geocode_result:
                 lat = geocode_result[0]['geometry']['location']['lat']
@@ -83,17 +84,24 @@ def generate_map(clan_data=None, output_file="static/folium_map.html"):
         # Get coordinates
         lat = member.get('latitude')
         lon = member.get('longitude')
-        
+
         # Geocode if no coordinates stored
         if lat is None or lon is None:
             lat, lon = geocode_location(location)
-            
+
         if lat is not None and lon is not None:
+            # Coerce to floats if they are strings
+            try:
+                lat = float(lat)
+                lon = float(lon)
+            except (TypeError, ValueError):
+                # Skip invalid coordinates
+                continue
             located_members += 1
-            
+
             # Get role info
             role_info = get_role_icon_and_emoji(role)
-            
+
             # Create popup content with emoji
             popup_content = f"""
             <div style="font-family: Arial, sans-serif; min-width: 200px;">
@@ -105,7 +113,7 @@ def generate_map(clan_data=None, output_file="static/folium_map.html"):
                 {f'<p style="margin: 3px 0;"><strong>Favorite Troop:</strong> {favorite_troop}</p>' if favorite_troop else ''}
             </div>
             """
-            
+
             # Add marker with role-based styling
             folium.Marker(
                 location=[lat, lon],

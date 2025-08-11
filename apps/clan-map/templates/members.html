@@ -64,7 +64,7 @@
                         <h2 class="mb-0">👥 Clan Members</h2>
                         <p class="mb-0">Track our clan's global presence</p>
                     </div>
-                    <img src="/static/images/clash_shield.png" alt="Clash Shield" width="50" height="50">
+                    <img src="/clan-map/static/images/clash_shield.png" alt="Clash Shield" width="50" height="50">
                 </div>
             </div>
             <div class="card-body">
@@ -96,7 +96,6 @@
                                 <th>Name</th>
                                 <th>Role</th>
                                 <th>Location</th>
-                                <th>Favorite Troop</th>
                                 <th>Status</th>
                                 <th>Admin</th>
                             </tr>
@@ -123,13 +122,6 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if player.favorite_troop %}
-                                        {{ player.favorite_troop }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
                                     {% if player.latitude and player.longitude %}
                                         <span class="badge bg-success">Located</span>
                                     {% else %}
@@ -139,17 +131,17 @@
                                 <td>
                                     <div class="btn-group-vertical btn-group-sm" role="group">
                                         {% if player.latitude and player.longitude %}
-                                            <a href="/admin/reset/{{ player.name }}" class="btn btn-outline-warning btn-sm" 
+                                            <a href="/clan-map/admin/reset/{{ player.name }}" class="btn btn-outline-warning btn-sm" 
                                                onclick="return confirm('Reset location for {{ player.name }}?')">🔄</a>
                                         {% endif %}
                                         <div class="dropdown">
                                             <button class="btn btn-outline-info btn-sm dropdown-toggle" type="button" 
                                                     data-bs-toggle="dropdown">⚙️</button>
                                             <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Leader">⭐ Leader</a></li>
-                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Co-Leader">👑 Co-Leader</a></li>
-                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Elder">🛡️ Elder</a></li>
-                                                <li><a class="dropdown-item" href="/admin/set_role/{{ player.name }}/Member">👤 Member</a></li>
+                                                <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Leader">⭐ Leader</a></li>
+                                                <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Co-Leader">👑 Co-Leader</a></li>
+                                                <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Elder">🛡️ Elder</a></li>
+                                                <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Member">👤 Member</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -164,7 +156,7 @@
                 <div class="alert alert-info mt-3">
                     <h5>🎯 Help Us Complete the Map!</h5>
                     <p class="mb-2">We're still missing locations for some clan members. If you see your name with "Unknown" status, please submit your location!</p>
-                    <a href="/submit" class="btn btn-primary">📍 Submit Your Location</a>
+                    <a href="/clan-map/submit" class="btn btn-primary">📍 Submit Your Location</a>
                 </div>
                 {% endif %}
             </div>

@@ -4,7 +4,7 @@
 
 set -e
 
-REMOTE=${1:-youruser@yourserver}
+REMOTE=${1:-yancmo@ubuntumac}
 LOCAL_CONF="$(dirname "$0")/../deploy/nginx/yancmo.xyz.conf"
 REMOTE_CONF="/etc/nginx/sites-available/yancmo.xyz.conf"
 

@@ -28,8 +28,11 @@ if [ -z "$POSTGRES_DB" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD"
   exit 1
 fi
 
-# Apply the schema as superuser to avoid role issues
+# Apply the schema as superuser to avoid role issues (postgres or racetracker)
 APPLY_USER="postgres"
+if ! docker exec -i "$container" psql -U "$APPLY_USER" -d "$POSTGRES_DB" -c "SELECT 1;" >/dev/null 2>&1; then
+  APPLY_USER="racetracker"
+fi
 cat init_schema_postgres.sql | docker exec -i "$container" psql -U "$APPLY_USER" -d "$POSTGRES_DB"
 
 echo "Schema migration complete!"

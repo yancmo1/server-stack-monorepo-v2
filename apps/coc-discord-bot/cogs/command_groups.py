@@ -185,3 +185,12 @@ class CommandGroupsCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(CommandGroupsCog(bot))
+    # Force a guild sync to ensure group commands register promptly
+    try:
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+    except Exception as e:
+        logger.warning(f"Guild sync failed in command_groups setup: {e}. Falling back to global sync.")
+        try:
+            await bot.tree.sync()
+        except Exception as e2:
+            logger.error(f"Global sync also failed: {e2}")
