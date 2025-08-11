@@ -16,8 +16,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: cocstack
-      POSTGRES_USER: racetracker
-      POSTGRES_PASSWORD: racetracker
+      POSTGRES_USER: cocuser
+      POSTGRES_PASSWORD: yourpassword
     volumes:
       - cocstack_pgdata:/var/lib/postgresql/data
 
@@ -97,7 +97,7 @@ services:
           memory: 128M
           cpus: '0.25'
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5552/health')"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5552/clan-map/health')"]
       interval: 30s
       timeout: 10s
       retries: 3

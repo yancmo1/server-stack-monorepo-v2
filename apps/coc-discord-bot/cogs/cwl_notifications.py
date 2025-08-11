@@ -5,6 +5,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 import json
+from typing import Optional
 import os
 from utils_supercell import get_current_cwl_war, get_cwl_round_schedule
 import config
@@ -18,7 +19,11 @@ def load_cache():
         with open(CACHE_PATH, "r") as f:
             return json.load(f)
     except Exception:
-        return {"last_war_state": None, "last_player_stars": {}}
+        return {
+            "last_war_state": None,
+            "last_player_stars": {},
+            "on_deck_sent": {}
+        }
 
 def save_cache(cache):
     try:
@@ -27,18 +32,48 @@ def save_cache(cache):
     except Exception as e:
         logger.error(f"Failed to save CWL notification cache: {e}")
 
+from database_optimized import get_optimized_connection as _db_conn
+
 class CWLNotifications(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         cache = load_cache()
         self.last_war_state = cache.get("last_war_state")
         self.last_player_stars = cache.get("last_player_stars", {})
+        # Track which ON DECK intervals have been announced per warTag, e.g., {"#WAR123": [60,30,15]}
+        self.on_deck_sent = cache.get("on_deck_sent", {})
         self.cwl_polling_task.start()
+
+    def _get_discord_ids_for_coc(self, tag: str, name: Optional[str] = None):
+        ids = set()
+        try:
+            with _db_conn() as conn:
+                cur = conn.cursor()
+                for key in [tag, name]:
+                    if not key:
+                        continue
+                    try:
+                        cur.execute(
+                            "SELECT discord_id FROM discord_coc_links WHERE LOWER(coc_name_or_tag) = LOWER(%s)",
+                            (key,),
+                        )
+                        rows = cur.fetchall() or []
+                        for r in rows:
+                            # r is likely a tuple; first column is discord_id
+                            try:
+                                ids.add(str(r[0]))
+                            except Exception:
+                                continue
+                    except Exception:
+                        continue
+        except Exception:
+            return []
+        return list(ids)
 
     async def cog_unload(self):
         self.cwl_polling_task.cancel()
 
-    @tasks.loop(seconds=45)
+    @tasks.loop(minutes=5)
     async def cwl_polling_task(self):
         await self.bot.wait_until_ready()
         try:
@@ -58,7 +93,8 @@ class CWLNotifications(commands.Cog):
             # Only send war state notification if state actually changed AND we have a previous state
             if war_state != self.last_war_state and self.last_war_state is not None:
                 logger.info(f"War state changed from {self.last_war_state} to {war_state}")
-                await self.send_war_state_notification(war_state, war_tag)
+                # Delay state change announcements by 5 minutes to reduce instant pings
+                asyncio.create_task(self.delayed_war_state_notification(war_state, war_tag, delay_seconds=300))
             elif self.last_war_state is None:
                 logger.info(f"Initial war state detected: {war_state} (no notification sent)")
             
@@ -93,15 +129,23 @@ class CWLNotifications(commands.Cog):
                     end_dt = datetime.strptime(end_str[:15], '%Y%m%dT%H%M%S').replace(tzinfo=timezone.utc)
                     now = datetime.now(timezone.utc)
                     remaining = (end_dt - now).total_seconds()
-                    if 0 < remaining < 30*60:  # last 30 minutes
-                        await self.send_on_deck_alert(war_data)
+                    # Send ON DECK reminders at 60, 30, and 15 minutes remaining (only once each per war)
+                    remaining_minutes = int(remaining // 60)
+                    for threshold in (60, 30, 15):
+                        if remaining_minutes <= threshold and remaining_minutes >= 0:
+                            sent_set = set(self.on_deck_sent.get(war_tag, []))
+                            if threshold not in sent_set:
+                                await self.send_on_deck_alert(war_data, threshold)
+                                sent_set.add(threshold)
+                                self.on_deck_sent[war_tag] = sorted(list(sent_set))
             except Exception:
                 pass
 
             # Save cache after each poll
             save_cache({
                 "last_war_state": self.last_war_state,
-                "last_player_stars": self.last_player_stars
+                "last_player_stars": self.last_player_stars,
+                "on_deck_sent": self.on_deck_sent
             })
             
         except Exception as e:
@@ -109,6 +153,23 @@ class CWLNotifications(commands.Cog):
             import traceback
             logger.error(traceback.format_exc())
 
+    async def delayed_war_state_notification(self, state, war_tag, delay_seconds: int = 300):
+        try:
+            await asyncio.sleep(delay_seconds)
+        except Exception:
+            pass
+        channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
+        if not channel:
+            logger.warning("CWL rewards channel not found!")
+            return
+        if state == 'inWar':
+            await channel.send(f"⚔️ A new CWL war has started! War tag: `{war_tag}`")
+        elif state == 'warEnded':
+            await self.post_war_end_summary()
+        elif state == 'preparation':
+            await channel.send(f"⏳ CWL war preparation day has begun. Get ready!")
+
+    # Backwards-compat alias (in case other cogs call it)
     async def send_war_state_notification(self, state, war_tag):
         channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
         if not channel:
@@ -132,12 +193,24 @@ class CWLNotifications(commands.Cog):
         
         if stars >= 8 and prev_stars < 8:
             await channel.send(f"🌟 **{name}** has reached **8+ stars** ({stars} total) in CWL! Consider subbing if needed.")
+            # Attempt to DM the linked Discord user if we have a mapping
+            try:
+                discord_ids = self._get_discord_ids_for_coc(tag, name)
+                for did in discord_ids:
+                    try:
+                        user = await self.bot.fetch_user(int(did))
+                        if user:
+                            await user.send(f"🌟 Congrats! You hit **{stars}** stars in CWL. Keep it up!")
+                    except Exception:
+                        continue
+            except Exception as dm_err:
+                logger.warning(f"Could not DM for 8+ stars: {dm_err}")
         elif stars_gained > 1:
             await channel.send(f"⭐ **{name}** gained {stars_gained} stars! Total: {stars} stars")
         else:
             await channel.send(f"⭐ **{name}** earned a new star! Total: {stars} stars")
 
-    async def send_on_deck_alert(self, war_data):
+    async def send_on_deck_alert(self, war_data, threshold_minutes: int):
         channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
         if not channel:
             return
@@ -147,7 +220,13 @@ class CWLNotifications(commands.Cog):
         if not pending:
             return
         names = ', '.join(pending[:10]) + ('…' if len(pending) > 10 else '')
-        await channel.send(f"📣 ON DECK: {names} — last 30 minutes window. Good luck! ⏳")
+        if threshold_minutes == 60:
+            msg = f"⏰ Awaiting CWL Attack - 1 hour remaining - {names}"
+        elif threshold_minutes == 30:
+            msg = f"⏳ Awaiting CWL Attack - 30 minutes remaining - {names}"
+        else:
+            msg = f"🚨 Awaiting CWL Attack - Final 15 minutes - {names}"
+        await channel.send(f"📣 {msg}")
 
     async def post_war_end_summary(self):
         channel = self.bot.get_channel(config.CWL_REWARDS_CHANNEL_ID)
@@ -302,11 +381,13 @@ class CWLNotifications(commands.Cog):
             # Reset the cache
             self.last_war_state = None
             self.last_player_stars = {}
+            self.on_deck_sent = {}
             
             # Save empty cache
             save_cache({
                 "last_war_state": None,
-                "last_player_stars": {}
+                "last_player_stars": {},
+                "on_deck_sent": {}
             })
             
             await interaction.followup.send(

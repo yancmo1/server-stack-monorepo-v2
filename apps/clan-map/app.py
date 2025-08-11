@@ -3,12 +3,12 @@ from map_generator import generate_map
 import json
 import os
 from datetime import datetime
+from typing import Any
 import requests
 import subprocess
 import tempfile
 import googlemaps
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 # Load .env from central config
 from dotenv import load_dotenv
@@ -21,7 +21,6 @@ app.secret_key = os.environ.get('CLANMAP_SECRET_KEY', 'changeme-please-set-CLANM
 POSTGRES_DB = os.getenv("POSTGRES_DB", "cocstack")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "cocuser")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
 
@@ -33,8 +32,7 @@ def get_bot_db_connection():
             user=POSTGRES_USER,
             password=POSTGRES_PASSWORD,
             host=POSTGRES_HOST,
-            port=POSTGRES_PORT,
-            cursor_factory=RealDictCursor
+            port=POSTGRES_PORT
         )
         return conn
     except Exception as e:
@@ -121,7 +119,7 @@ def geocode_location(location):
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     if api_key:
         try:
-            gmaps = googlemaps.Client(key=api_key)
+            gmaps: Any = googlemaps.Client(key=api_key)
             geocode_result = gmaps.geocode(location)
             if geocode_result:
                 lat = geocode_result[0]['geometry']['location']['lat']

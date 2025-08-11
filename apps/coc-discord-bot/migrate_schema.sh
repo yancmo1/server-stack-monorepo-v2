@@ -3,16 +3,24 @@
 
 set -e
 
-# Find the running Postgres container
-container=$(docker ps --format '{{.Names}}' | grep postgres)
+# Find the cocstack-db Postgres container (fallback to any postgres container)
+container=$(docker ps --format '{{.Names}}' | grep -E '^cocstack-db$' || true)
+if [ -z "$container" ]; then
+  container=$(docker ps --format '{{.Names}}' | grep postgres | head -n1)
+fi
 if [ -z "$container" ]; then
   echo "No running Postgres container found!"
   exit 1
 fi
 
 
-# Read DB credentials from ~/config/.env
-export $(grep -E '^POSTGRES_' "$HOME/config/.env" | xargs)
+# Read DB credentials from repo shared env if available, else fallback to $HOME/config/.env
+ENV_FILE="$(cd "$(dirname "$0")"/../../.. && pwd)/shared/config/.env"
+if [ -f "$ENV_FILE" ]; then
+  export $(grep -E '^POSTGRES_' "$ENV_FILE" | xargs)
+else
+  export $(grep -E '^POSTGRES_' "$HOME/config/.env" | xargs)
+fi
 
 
 if [ -z "$POSTGRES_DB" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ]; then

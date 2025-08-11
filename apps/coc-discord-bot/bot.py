@@ -69,6 +69,7 @@ COGS = [
     "cogs.cwl_stars", 
     "cogs.notifications",
     "cogs.cwl_notifications",  # CWL notification polling and commands
+    "cogs.new_member_watcher",  # New member join announcements
     # "cogs.rolesync",
     "cogs.command_groups",
     # "cogs.error_monitoring",
