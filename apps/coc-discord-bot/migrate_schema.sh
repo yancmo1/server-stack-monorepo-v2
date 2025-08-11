@@ -28,7 +28,8 @@ if [ -z "$POSTGRES_DB" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD"
   exit 1
 fi
 
-# Apply the schema
-cat init_schema_postgres.sql | docker exec -i "$container" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+# Apply the schema as superuser to avoid role issues
+APPLY_USER="postgres"
+cat init_schema_postgres.sql | docker exec -i "$container" psql -U "$APPLY_USER" -d "$POSTGRES_DB"
 
 echo "Schema migration complete!"
