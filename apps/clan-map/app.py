@@ -371,8 +371,8 @@ app.jinja_env.globals.update(get_role_emoji=get_role_emoji)
 
 @app.context_processor
 def inject_is_admin():
-    """Make is_admin available to all templates"""
-    return {"is_admin": bool(session.get('is_admin'))}
+    """Make is_admin + selected utilities available to all templates"""
+    return {"is_admin": bool(session.get('is_admin')), "os": os}
 
 # --- Simple Admin Auth ---
 def is_valid_admin(password: str) -> bool:
@@ -389,8 +389,8 @@ def admin_login():
         if is_valid_admin(password):
             session['is_admin'] = True
             flash('Logged in as admin', 'success')
-            # Return to members list by default
-            return redirect(url_for('members_list'))
+            # Send to admin portal after login
+            return redirect(url_for('admin_portal'))
         else:
             flash('Invalid admin password', 'error')
             return redirect(url_for('admin_login'))
@@ -401,6 +401,13 @@ def admin_logout():
     session.pop('is_admin', None)
     flash('Logged out', 'success')
     return redirect(url_for('index'))
+
+@app.route('/admin')
+def admin_portal():
+    """Landing portal for admin tools."""
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    return render_template('admin_portal.html')
 
 def generate_simple_map_image():
     """Generate a simple map preview image using Pillow"""
@@ -689,6 +696,7 @@ app.add_url_rule('/clan-map/admin/reset/<name>', endpoint='admin_reset_location_
 app.add_url_rule('/clan-map/admin/set_role/<name>/<role>', endpoint='admin_set_role_prefixed', view_func=admin_set_role)
 app.add_url_rule('/clan-map/admin/login', endpoint='admin_login_prefixed', view_func=admin_login, methods=['GET', 'POST'])
 app.add_url_rule('/clan-map/admin/logout', endpoint='admin_logout_prefixed', view_func=admin_logout)
+app.add_url_rule('/clan-map/admin', endpoint='admin_portal_prefixed', view_func=admin_portal)
 
 # Static passthrough for prefix
 @app.route('/clan-map/static/<path:filename>')

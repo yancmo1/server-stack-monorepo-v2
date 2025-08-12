@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}Members • Clan Map{% endblock %}
 {% block content %}
-    <div class="page-header d-flex align-items-center justify-content-between">
+    <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div>
             <h1 class="h3 mb-0">Members</h1>
             <div class="muted">{{ pinned_members|length }} located • {{ unpinned_members|length }} unknown • total {{ total_members }}</div>
         </div>
         <a href="/clan-map/submit" class="btn btn-brand btn-sm">Add your location</a>
     </div>
-    <div class="card-clean">
-        <div class="card-body">
+    <div class="card-clean mt-2">
+        <div class="card-body pt-3 pb-4">
             <div class="table-responsive">
                 <table class="table align-middle table-hover text-white">
                     <thead>

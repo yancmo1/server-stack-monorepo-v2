@@ -1,33 +1,21 @@
 <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background: #0f162e; border-bottom:1px solid rgba(255,255,255,.06)">
-  <div class="container">
+  <div class="container px-3 px-md-4">
     <a class="navbar-brand d-flex align-items-center" href="/clan-map/">
-      <img src="/clan-map/static/images/clash_shield.png" alt="Clash Shield" width="72" height="72" class="me-2">
-      <h2 class="mb-0">Clan Map</h2>
+  <img src="/clan-map/static/images/clash_shield.png" alt="Clash Shield" class="me-2">
+  <h2 class="mb-0 fw-semibold">Adults 30+ Clan Map</h2>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto align-items-lg-center">
-        <li class="nav-item">
-         <h4></h4><a class="nav-link fw-bold" href="/clan-map/">🗺️ Map</a></h4>
-        </li>
-         <div class="d-flex gap-3">
-            <a href="/clan-map/submit" class="btn btn-lg btn-brand">📍 Add your location</a>
-            <a href="/clan-map/members" class="btn btn-lg btn-outline-light">👥 Members</a>
-        </div>
-
-        <li class="nav-item ms-lg-3">
-          <a class="btn btn-sm" href="https://discord.gg/f94ywHf" target="_blank" rel="noopener" style="background-color:#b22833;color:#fff;font-weight:600;">
-            Join Discord
-          </a>
-        </li>
-        <li class="nav-item ms-lg-3">
-          {% if is_admin %}
-            <a class="btn btn-outline-light btn-sm" href="/clan-map/admin/logout">Logout</a>
-          {% else %}
-            <a class="btn btn-outline-light btn-sm" href="/clan-map/admin/login">Admin</a>
-          {% endif %}
+      <ul class="navbar-nav ms-auto align-items-lg-center w-100">
+        <li class="nav-item w-100">
+          <div class="d-flex flex-wrap gap-2 justify-content-end w-100">
+            <a href="/clan-map/" class="btn btn-info btn-sm">Map</a>
+            <a href="/clan-map/submit" class="btn btn-brand btn-sm">Add your location</a>
+            <a href="/clan-map/members" class="btn btn-success btn-sm">Members</a>
+            <a class="btn btn-danger btn-sm" href="https://discord.gg/f94ywHf" target="_blank" rel="noopener">Join Discord</a>
+          </div>
         </li>
       </ul>
     </div>
