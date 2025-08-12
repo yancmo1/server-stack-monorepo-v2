@@ -500,76 +500,74 @@ def test_dashboard():
 @app.route('/add_race', methods=['GET', 'POST'])
 @login_required
 def add_race():
-    if request.method == 'POST':
-        race = Race(
-            user_id=current_user.id,
-            race_name=request.form['race_name'],
-            race_type=request.form['race_type'],
-            race_date=datetime.strptime(request.form['race_date'], '%Y-%m-%d').date(),
-            race_time=request.form.get('race_time', ''),
-            finish_time=request.form['finish_time'],
-            location=request.form.get('location', ''),
-            weather=request.form.get('weather', ''),
-            notes=request.form.get('notes', '')
-        )
-        db.session.add(race)
-        db.session.commit()
-        # Handle up to 5 photo uploads, each with its own type and caption
-        for i in range(1, 6):
-            file = request.files.get(f'photo{i}')
-            if file and file.filename != '' and allowed_file(file.filename):
-                # Ensure filename is not None and has an extension
-                if file.filename and '.' in file.filename:
-                    filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
-                    photo = RacePhoto(
-                        race_id=race.id,
-                        filename=filename,
-                        original_filename=file.filename,
-                        photo_type=request.form.get(f'photo_type{i}', 'other'),
-                        caption=request.form.get(f'photo_caption{i}', '')
-                    )
-                    db.session.add(photo)
-        db.session.commit()
-        flash('Race added successfully!')
-        return redirect(url_for('races'))
-    return render_template('add_race.html')
+    if request.method != 'POST':
+        return render_template('add_race.html')
+    race = Race(
+        user_id=current_user.id,
+        race_name=request.form['race_name'],
+        race_type=request.form['race_type'],
+        race_date=datetime.strptime(request.form['race_date'], '%Y-%m-%d').date(),
+        race_time=request.form.get('race_time', ''),
+        finish_time=request.form['finish_time'],
+        location=request.form.get('location', ''),
+        weather=request.form.get('weather', ''),
+        notes=request.form.get('notes', '')
+    )
+    db.session.add(race)
+    db.session.commit()
+    # Handle up to 10 photo uploads, each with its own type and caption
+    for i in range(1, 11):
+        file = request.files.get(f'photo{i}')
+        if file and file.filename != '' and allowed_file(file.filename):
+            if file.filename and '.' in file.filename:
+                filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
+                photo = RacePhoto(
+                    race_id=race.id,
+                    filename=filename,
+                    original_filename=file.filename,
+                    photo_type=request.form.get(f'photo_type{i}', 'other'),
+                    caption=request.form.get(f'photo_caption{i}', '')
+                )
+                db.session.add(photo)
+    pasted_saved = _save_pasted_images_from_form(race.id, request.form)
+    db.session.commit()
+    flash(f'Race added successfully! {pasted_saved} pasted image(s) saved.' if pasted_saved else 'Race added successfully!')
+    return redirect(url_for('races'))
 
 @app.route('/edit_race/<int:race_id>', methods=['GET', 'POST'])
 @login_required
 def edit_race(race_id):
     race = Race.query.filter_by(id=race_id, user_id=current_user.id).first_or_404()
-    if request.method == 'POST':
-        race.race_name = request.form['race_name']
-        race.race_type = request.form['race_type']
-        race.race_date = datetime.strptime(request.form['race_date'], '%Y-%m-%d').date()
-        race.race_time = request.form.get('race_time', '')
-        race.finish_time = request.form['finish_time']
-        race.location = request.form.get('location', '')
-        race.weather = request.form.get('weather', '')
-        race.notes = request.form.get('notes', '')
-        
-        # Handle new photo uploads (up to 10 photos)
-        for i in range(1, 11):
-            file = request.files.get(f'photo{i}')
-            if file and file.filename != '' and allowed_file(file.filename):
-                # Ensure filename is not None and has an extension
-                if file.filename and '.' in file.filename:
-                    filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
-                    photo = RacePhoto(
-                        race_id=race.id,
-                        filename=filename,
-                        original_filename=file.filename,
-                        photo_type=request.form.get(f'photo_type{i}', 'other'),
-                        caption=request.form.get(f'photo_caption{i}', '')
-                    )
-                    db.session.add(photo)
-        
-        db.session.commit()
-        flash('Race updated successfully!')
-        return redirect(url_for('races'))
-    return render_template('edit_race.html', race=race)
+    if request.method != 'POST':
+        return render_template('edit_race.html', race=race)
+    race.race_name = request.form['race_name']
+    race.race_type = request.form['race_type']
+    race.race_date = datetime.strptime(request.form['race_date'], '%Y-%m-%d').date()
+    race.race_time = request.form.get('race_time', '')
+    race.finish_time = request.form['finish_time']
+    race.location = request.form.get('location', '')
+    race.weather = request.form.get('weather', '')
+    race.notes = request.form.get('notes', '')
+
+    for i in range(1, 11):
+        file = request.files.get(f'photo{i}')
+        if file and file.filename != '' and allowed_file(file.filename):
+            if file.filename and '.' in file.filename:
+                filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename))
+                photo = RacePhoto(
+                    race_id=race.id,
+                    filename=filename,
+                    original_filename=file.filename,
+                    photo_type=request.form.get(f'photo_type{i}', 'other'),
+                    caption=request.form.get(f'photo_caption{i}', '')
+                )
+                db.session.add(photo)
+    pasted_saved = _save_pasted_images_from_form(race.id, request.form)
+    db.session.commit()
+    flash(f'Race updated successfully! {pasted_saved} pasted image(s) saved.' if pasted_saved else 'Race updated successfully!')
+    return redirect(url_for('races'))
 
 @app.route('/delete_race/<int:race_id>', methods=['POST'])
 @login_required
@@ -655,6 +653,61 @@ def allowed_file(filename):
     """Check if uploaded file has allowed extension"""
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def _save_pasted_images_from_form(race_id: int, form_data) -> int:
+    """Persist any pasted images included as data URLs in hidden inputs.
+
+    Expected field patterns:
+      pasted_image_<n> (value = data URL)
+      pasted_type_<n>
+      pasted_caption_<n>
+    Returns number of images saved.
+    """
+    import base64, re
+    saved = 0
+    data_url_re = re.compile(r'^data:image/(png|jpe?g|gif|webp|bmp);base64,(.+)$', re.IGNORECASE)
+    for key, value in form_data.items():
+        if not key.startswith('pasted_image_'):
+            continue
+        m = data_url_re.match(value.strip())
+        if not m:
+            continue
+        ext = m.group(1).lower()
+        b64data = m.group(2)
+        try:
+            binary = base64.b64decode(b64data)
+        except Exception:
+            continue
+        index = key.split('_')[-1]
+        photo_type = form_data.get(f'pasted_type_{index}', 'other') or 'other'
+        caption = form_data.get(f'pasted_caption_{index}', '') or ''
+        # Normalize extension
+        if ext == 'jpeg':
+            ext = 'jpg'
+        filename = f"{uuid.uuid4()}.{ext}"
+        photo_path = os.path.join(app.config['UPLOAD_FOLDER'], 'photos', filename)
+        try:
+            with open(photo_path, 'wb') as f:
+                f.write(binary)
+            photo = RacePhoto(
+                race_id=race_id,
+                filename=filename,
+                original_filename=f"pasted.{ext}",
+                photo_type=photo_type if photo_type in ['finish','medal','bib','other'] else 'other',
+                caption=caption[:500]
+            )
+            db.session.add(photo)
+            saved += 1
+        except Exception:
+            db.session.rollback()
+            continue
+    if saved:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return max(saved-1, 0)
+    return saved
 
 @app.route('/api/weather')
 def api_weather():
