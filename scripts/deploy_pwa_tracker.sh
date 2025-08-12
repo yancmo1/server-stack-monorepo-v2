@@ -53,10 +53,14 @@ fi
 
 LOG "Starting remote deploy (branch: $BRANCH)..."
 SSH_OPTS=(-tt -o BatchMode=yes -o ConnectTimeout=15)
+
+# Build remote script with explicit newlines between all commands
 REMOTE_SCRIPT=$(cat <<'RSCRIPT'
 set -euo pipefail
+
 timestamp() { date '+%Y-%m-%d %H:%M:%S'; }
 LOG() { echo "[REMOTE $(timestamp)] $*"; }
+
 cd /home/yancmo/apps/server-stack-monorepo-v2
 BR=$(git rev-parse --abbrev-ref HEAD)
 LOG "On branch $BR"
@@ -71,20 +75,20 @@ RSCRIPT
 )
 
 if [[ $SKIP_REMOTE_BUILD -eq 0 ]]; then
-  REMOTE_SCRIPT+=$'LOG "Building pwa-tracker image..."\n'
+  REMOTE_SCRIPT+=$'\nLOG "Building pwa-tracker image..."\n'
   REMOTE_SCRIPT+=$'docker compose build pwa-tracker || { LOG "Build failed"; exit 1; }\n'
 else
-  REMOTE_SCRIPT+=$'LOG "Skipping remote build (using existing image)."\n'
+  REMOTE_SCRIPT+=$'\nLOG "Skipping remote build (using existing image)."\n'
 fi
-REMOTE_SCRIPT+=$'LOG "Restarting service..."\n'
+REMOTE_SCRIPT+=$'\nLOG "Restarting service..."\n'
 REMOTE_SCRIPT+=$'docker compose up -d --no-deps pwa-tracker || { LOG "docker compose up failed"; exit 1; }\n'
-REMOTE_SCRIPT+=$'LOG "Service status:"\n'
+REMOTE_SCRIPT+=$'\nLOG "Service status:"\n'
 REMOTE_SCRIPT+=$'docker compose ps pwa-tracker || true\n'
-REMOTE_SCRIPT+=$'LOG "Recent logs (last 60 lines):"\n'
+REMOTE_SCRIPT+=$'\nLOG "Recent logs (last 60 lines):"\n'
 REMOTE_SCRIPT+=$'docker compose logs --tail=60 pwa-tracker || true\n'
-REMOTE_SCRIPT+=$'LOG "Healthcheck curl attempt:"\n'
+REMOTE_SCRIPT+=$'\nLOG "Healthcheck curl attempt:"\n'
 REMOTE_SCRIPT+=$'curl -fsS http://localhost:5555/health || echo "Health endpoint not reachable (yet)."\n'
-REMOTE_SCRIPT+=$'LOG "✅ Remote deploy complete."\n'
+REMOTE_SCRIPT+=$'\nLOG "✅ Remote deploy complete."\n'
 
 if ! ssh "${SSH_OPTS[@]}" yancmo@ubuntumac "bash -l" <<<"$REMOTE_SCRIPT"; then
   LOG "ERROR: Remote deploy failed." >&2
