@@ -6,7 +6,7 @@
 #  - Optional skipping of remote build
 #  - Remote logs and status retrieval
 #  - Clear structured logging with timestamps
-# Usage: deploy_pwa_tracker.sh [--no-commit] [--message "msg"] [--skip-remote-build]
+ # Usage: deploy_pwa_tracker.sh [--no-commit] [--message "msg"] [--skip-remote-build] [--no-cache]
 
 set -euo pipefail
 
@@ -17,11 +17,13 @@ RUN() { LOG "➤ $*"; "$@"; }
 DO_COMMIT=1
 CUSTOM_MSG=""
 SKIP_REMOTE_BUILD=0
+NO_CACHE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --no-commit) DO_COMMIT=0; shift ;;
     --message|-m) CUSTOM_MSG="$2"; shift 2 ;;
     --skip-remote-build) SKIP_REMOTE_BUILD=1; shift ;;
+    --no-cache) NO_CACHE=1; shift ;;
     *) LOG "Unknown arg: $1"; exit 1 ;;
   esac
 done
@@ -76,7 +78,11 @@ RSCRIPT
 
 if [[ $SKIP_REMOTE_BUILD -eq 0 ]]; then
   REMOTE_SCRIPT+=$'\nLOG "Building pwa-tracker image..."\n'
-  REMOTE_SCRIPT+=$'docker compose build pwa-tracker || { LOG "Build failed"; exit 1; }\n'
+  if [[ $NO_CACHE -eq 1 ]]; then
+    REMOTE_SCRIPT+=$'docker compose build --no-cache pwa-tracker || { LOG "Build failed"; exit 1; }\n'
+  else
+    REMOTE_SCRIPT+=$'docker compose build pwa-tracker || { LOG "Build failed"; exit 1; }\n'
+  fi
 else
   REMOTE_SCRIPT+=$'\nLOG "Skipping remote build (using existing image)."\n'
 fi

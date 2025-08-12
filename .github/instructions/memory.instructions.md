@@ -4,6 +4,12 @@ applyTo: '**'
 
 # User Preferences (compact)
 
+# Memory Note (2025-08-11)
+- Always proactively fix formatting issues in config and code files (e.g., tasks.json, Dockerfiles, scripts) to best-practice standards, unless user requests otherwise.
+- If a file is found with invalid JSON, YAML, or shell syntax, reformat and validate before proceeding with further edits.
+
+- User's default terminal is bash; all scripts and VS Code tasks should be written and launched for bash compatibility.
+
 - deploy: clan-map and coc-discord-bot must be deployed/restarted on server (ubuntumac) only; do not run locally.
 
 ## Session Summary (2025-08-11)
