@@ -27,14 +27,14 @@
                             <td><strong>{{ player.name }}</strong></td>
                             <td>{{ get_role_emoji(player.role) }} {{ player.role or 'Member' }}</td>
                             <td>
-                                {% if player.latitude and player.longitude %}
+                                {% if player.latitude is not none and player.longitude is not none %}
                                     📍 {{ player.location }}
                                 {% else %}
                                     <span class="muted">{{ player.location or 'Unknown' }}</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if player.latitude and player.longitude %}
+                                {% if player.latitude is not none and player.longitude is not none %}
                                     <span class="tag" style="background: rgba(34,197,94,.15); color:#86efac">Located</span>
                                 {% else %}
                                     <span class="tag" style="background: rgba(239,68,68,.15); color:#fca5a5">Unknown</span>
@@ -43,16 +43,16 @@
                             {% if is_admin %}
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    {% if player.latitude and player.longitude %}
-                                        <a href="/clan-map/admin/reset/{{ player.name }}" class="btn btn-outline-warning btn-sm" onclick="return confirm('Reset location for {{ player.name }}?')">Reset</a>
+                                    {% if player.latitude is not none and player.longitude is not none %}
+                                        <a href="/clan-map/admin/reset/{{ player.name|urlencode }}" class="btn btn-outline-warning btn-sm" onclick="return confirm('Reset location for {{ player.name }}?')">Reset</a>
                                     {% endif %}
                                     <div class="dropdown">
                                         <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">Role</button>
                                         <ul class="dropdown-menu dropdown-menu-dark">
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Leader">Leader</a></li>
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Co-Leader">Co-Leader</a></li>
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Elder">Elder</a></li>
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name }}/Member">Member</a></li>
+                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Leader">Leader</a></li>
+                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Co-Leader">Co-Leader</a></li>
+                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Elder">Elder</a></li>
+                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Member">Member</a></li>
                                         </ul>
                                     </div>
                                 </div>
