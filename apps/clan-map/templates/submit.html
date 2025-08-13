@@ -97,7 +97,14 @@
         fetch('/clan-map/api/players')
             .then(r=>r.json())
             .then(players=>{
-                const pins = players.filter(p=>p.latitude !== null && p.longitude !== null);
+                                const toNum = (v) => {
+                                        if (v === null || v === undefined) return null;
+                                        const n = typeof v === 'string' ? parseFloat(v) : v;
+                                        return Number.isFinite(n) ? n : null;
+                                };
+                                const pins = players
+                                    .map(p => ({ ...p, latitude: toNum(p.latitude), longitude: toNum(p.longitude) }))
+                                    .filter(p=>p.latitude !== null && p.longitude !== null);
                 if(!pins.length) return; // nothing to draw
                 const grp = L.featureGroup();
                 pins.forEach(p=>{
@@ -110,8 +117,6 @@
     })();
 </script>
 {% endblock %}
-
-{% block head %}
-<script>
+*** End Patch
 
 

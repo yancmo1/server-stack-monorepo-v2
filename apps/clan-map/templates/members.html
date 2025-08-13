@@ -44,15 +44,15 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     {% if player.latitude is not none and player.longitude is not none %}
-                                        <a href="/clan-map/admin/reset/{{ player.name|urlencode }}" class="btn btn-outline-warning btn-sm" onclick="return confirm('Reset location for {{ player.name }}?')">Reset</a>
+                                        <a href="{{ url_for('admin_reset_location_prefixed', name=player.name) }}" class="btn btn-outline-warning btn-sm" onclick="return confirm('Reset location for {{ player.name }}?')">Reset</a>
                                     {% endif %}
                                     <div class="dropdown">
                                         <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">Role</button>
                                         <ul class="dropdown-menu dropdown-menu-dark">
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Leader">Leader</a></li>
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Co-Leader">Co-Leader</a></li>
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Elder">Elder</a></li>
-                                            <li><a class="dropdown-item" href="/clan-map/admin/set_role/{{ player.name|urlencode }}/Member">Member</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('admin_set_role_prefixed', name=player.name, role='Leader') }}">Leader</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('admin_set_role_prefixed', name=player.name, role='Co-Leader') }}">Co-Leader</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('admin_set_role_prefixed', name=player.name, role='Elder') }}">Elder</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('admin_set_role_prefixed', name=player.name, role='Member') }}">Member</a></li>
                                         </ul>
                                     </div>
                                 </div>
