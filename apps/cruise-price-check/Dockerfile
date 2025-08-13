@@ -27,6 +27,8 @@ COPY improved_price_tracker.py .
 COPY cruise_config.json .
 COPY web_interface.py .
 
+COPY carnival_scraper.py .
+
 # Create directories for data persistence
 RUN mkdir -p /app/data /app/logs
 

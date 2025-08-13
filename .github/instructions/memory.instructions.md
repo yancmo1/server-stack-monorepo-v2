@@ -12,6 +12,8 @@ applyTo: '**'
 
 - deploy: clan-map and coc-discord-bot must be deployed/restarted on server (ubuntumac) only; do not run locally.
 
+- Always suggest best practices and best methods. Not reason to give a choice when there is a clear method.
+
 ## Session Summary (2025-08-11)
 - clan-map fixed and redesigned; bulk writes replaced with targeted DB updates (`update_player_in_db`) to prevent pin wipes; submit/admin now regenerate map/snapshot.
 - Added admin repair route to re-geocode missing pins; UI moved to dark theme with `base.html` and simplified templates.

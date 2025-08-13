@@ -27,16 +27,12 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import re
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+import json as _json_for_discord
+from carnival_scraper import CarnivalScraper, build_carnival_booking_url
 
 # Setup logging
 log_file = '/app/logs/cruise_price_tracker.log' if os.path.exists('/app/logs') else 'cruise_price_tracker.log'
@@ -55,6 +51,8 @@ class CruisePriceTracker:
         """Initialize the cruise price tracker with your specific booking details"""
         self.config = self.load_config(config_file)
         self.init_database()
+        # Lazy-created scraper instance (Playwright/Selenium/Requests)
+        self._scraper_instance: Optional[CarnivalScraper] = None
         
     def load_config(self, config_file: str) -> Dict:
         """Load configuration from JSON file"""
@@ -86,6 +84,11 @@ class CruisePriceTracker:
                 "max_retries": 3,
                 "timeout_seconds": 30
             },
+            "storage": {
+                "save_snapshots": False,
+                "snapshot_dir": "snapshots",
+                "retain_days": 7
+            },
             "alerts": {
                 "email_enabled": False,
                 "email_smtp_server": "smtp.gmail.com",
@@ -99,7 +102,6 @@ class CruisePriceTracker:
         try:
             with open(config_file, 'r') as f:
                 user_config = json.load(f)
-                # Merge with defaults
                 for key, value in user_config.items():
                     if isinstance(value, dict) and key in default_config:
                         default_config[key].update(value)
@@ -107,10 +109,8 @@ class CruisePriceTracker:
                         default_config[key] = value
         except FileNotFoundError:
             logger.info(f"Config file {config_file} not found, using defaults")
-            # Create default config file
             with open(config_file, 'w') as f:
                 json.dump(default_config, f, indent=2)
-            
         return default_config
     
     def init_database(self):
@@ -129,9 +129,28 @@ class CruisePriceTracker:
                     availability TEXT,
                     url TEXT,
                     success BOOLEAN,
-                    error_message TEXT
+                    error_message TEXT,
+                    currency TEXT,
+                    engine TEXT,
+                    raw_price_text TEXT,
+                    price_hash TEXT,
+                    debug_json TEXT
                 )
             ''')
+            conn.commit()
+            # Migration: ensure columns exist (older versions may lack them)
+            cursor.execute("PRAGMA table_info(price_history)")
+            existing_cols = {row[1] for row in cursor.fetchall()}
+            new_cols = {
+                'currency': 'TEXT',
+                'engine': 'TEXT',
+                'raw_price_text': 'TEXT',
+                'price_hash': 'TEXT',
+                'debug_json': 'TEXT'
+            }
+            for col, col_type in new_cols.items():
+                if col not in existing_cols:
+                    cursor.execute(f"ALTER TABLE price_history ADD COLUMN {col} {col_type}")
             conn.commit()
     
     def build_booking_url(self, rate_code: str = "PJS", meta_code: str = "IS") -> str:
@@ -167,113 +186,62 @@ class CruisePriceTracker:
         return f"{base_url}?{param_string}"
     
     def get_price_with_selenium(self, url: str) -> Tuple[Optional[float], Optional[str], bool]:
-        """
-        Use Selenium to get the current price from Carnival's booking page
-        Returns: (price, error_message, success)
-        """
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1280,720')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
-        
-        # Additional options for container environment
-        if os.getenv('CHROME_BIN'):
-            chrome_options.binary_location = os.getenv('CHROME_BIN')
-        
-        # Container-specific options
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-extensions')
-        chrome_options.add_argument('--disable-plugins')
-        chrome_options.add_argument('--disable-images')
-        chrome_options.add_argument('--no-first-run')
-        chrome_options.add_argument('--disable-default-apps')
-        chrome_options.add_argument('--disable-popup-blocking')
-        
-        driver = None
-        try:
-            driver = webdriver.Chrome(options=chrome_options)
-            driver.set_page_load_timeout(self.config["monitoring"]["timeout_seconds"])
-            
-            logger.info(f"Checking price at: {url}")
-            driver.get(url)
-            
-            # Wait for page to load
-            time.sleep(5)
-            
-            # Check if we're on an error page
-            if "error" in driver.current_url.lower() or "not found" in driver.page_source.lower():
-                return None, "Booking page returned error or not found", False
-            
-            # Multiple strategies to find price
-            price = self._extract_price_from_page(driver)
-            
-            if price:
-                logger.info(f"Successfully extracted price: ${price}")
-                return price, None, True
-            else:
-                return None, "Could not find price on page", False
-                
-        except TimeoutException:
-            return None, "Page load timeout", False
-        except WebDriverException as e:
-            return None, f"WebDriver error: {str(e)}", False
-        except Exception as e:
-            return None, f"Unexpected error: {str(e)}", False
-        finally:
-            if driver:
-                driver.quit()
+        """Backward-compatible method name; now delegates to modular scraper."""
+        result = self._scrape_price(url, 'PJS', 'IS')
+        price = result.get('price')  # type: ignore
+        error = result.get('error')  # type: ignore
+        success = bool(result.get('success'))
+        return price, error, success
     
-    def _extract_price_from_page(self, driver) -> Optional[float]:
-        """Extract price from the booking page using multiple strategies"""
-        
-        # Strategy 1: Look for prices in URL parameters (most reliable)
-        current_url = driver.current_url
-        price_match = re.search(r'qbPrice=(\d+)', current_url)
-        if price_match:
-            return float(price_match.group(1))
-        
-        # Strategy 2: Check JavaScript variables
-        js_checks = [
-            "return window.bookingData && window.bookingData.qbPrice;",
-            "return window.utag_data && window.utag_data.cruise_price;",
-            "return document.querySelector('[data-qb-price]')?.getAttribute('data-qb-price');",
-        ]
-        
-        for js_check in js_checks:
-            try:
-                result = driver.execute_script(js_check)
-                if result and isinstance(result, (int, float, str)):
-                    price_val = float(str(result).replace('$', '').replace(',', ''))
-                    if 200 <= price_val <= 15000:  # Reasonable cruise price range
-                        return price_val
-            except:
-                continue
-        
-        # Strategy 3: DOM text extraction
-        price_selectors = [
-            "//*[contains(text(), '$') and contains(text(), ',')]",
-            "//*[contains(@class, 'price')]",
-            "//*[contains(@class, 'rate')]//text()[contains(., '$')]",
-            "//*[contains(@class, 'total')]//text()[contains(., '$')]"
-        ]
-        
-        for selector in price_selectors:
-            try:
-                elements = driver.find_elements(By.XPATH, selector)
-                for element in elements:
-                    text = element.text.strip()
-                    price_match = re.search(r'\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)', text)
-                    if price_match:
-                        price_val = float(price_match.group(1).replace(',', ''))
-                        if 500 <= price_val <= 10000:  # Reasonable cabin price
-                            return price_val
-            except:
-                continue
-        
+    def _extract_price_from_page(self, *args, **kwargs):  # legacy compatibility stub
         return None
+
+    # ---------- New modular scraping integration ----------
+    def _get_scraper(self) -> CarnivalScraper:
+        if self._scraper_instance is None:
+            self._scraper_instance = CarnivalScraper(self.config)
+        return self._scraper_instance
+
+    def _scrape_price(self, url: str, rate_code: str, meta_code: str) -> Dict:
+        scraper = self._get_scraper()
+        return scraper.get_price(url, rate_code, meta_code)
+
+    def _maybe_save_snapshot(self, html: Optional[str], rate_code: str, meta_code: str, price: Optional[float]):
+        if not html:
+            return None
+        storage_cfg = self.config.get('storage', {})
+        if not storage_cfg.get('save_snapshots'):
+            return None
+        directory = storage_cfg.get('snapshot_dir', 'snapshots')
+        base_dir = '/app/data' if os.path.exists('/app/data') else '.'
+        snap_root = os.path.join(base_dir, directory)
+        os.makedirs(snap_root, exist_ok=True)
+        ts = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        price_part = f"{int(price)}" if price else 'na'
+        filename = f"{ts}_{rate_code}_{meta_code}_{price_part}.html.gz"
+        path = os.path.join(snap_root, filename)
+        import gzip
+        with gzip.open(path, 'wt', encoding='utf-8') as f:
+            f.write(html)
+        # Cleanup old snapshots
+        retain_days = int(storage_cfg.get('retain_days', 7))
+        cutoff = datetime.utcnow().timestamp() - retain_days * 86400
+        try:
+            for fname in os.listdir(snap_root):
+                fpath = os.path.join(snap_root, fname)
+                if os.path.isfile(fpath) and os.path.getmtime(fpath) < cutoff:
+                    os.remove(fpath)
+        except Exception:
+            pass
+        return path
+
+    def _compute_price_hash(self, rate_code: str, meta_code: str, price: Optional[float]) -> Optional[str]:
+        if price is None:
+            return None
+        import hashlib
+        date_bucket = datetime.utcnow().strftime('%Y-%m-%d')
+        raw = f"{rate_code}|{meta_code}|{price}|{date_bucket}"
+        return hashlib.sha256(raw.encode()).hexdigest()
     
     def check_price(self) -> Dict:
         """Check current price and return results"""
@@ -282,37 +250,38 @@ class CruisePriceTracker:
         # Check both rate codes
         for rate_code in self.config["target_price"]["rate_codes"]:
             for meta_code in self.config["target_price"]["meta_codes"]:
-                url = self.build_booking_url(rate_code, meta_code)
-                
+                url = build_carnival_booking_url(self.config, rate_code, meta_code)
+                final_result = None
                 for attempt in range(self.config["monitoring"]["max_retries"]):
                     logger.info(f"Checking {rate_code}/{meta_code} - attempt {attempt + 1}")
-                    
-                    price, error, success = self.get_price_with_selenium(url)
-                    
+                    scrape_result = self._scrape_price(url, rate_code, meta_code)
+                    snapshot_path = self._maybe_save_snapshot(scrape_result.get('html'), rate_code, meta_code, scrape_result.get('price'))
+                    price_hash = self._compute_price_hash(rate_code, meta_code, scrape_result.get('price'))
                     result = {
-                        'timestamp': datetime.now().isoformat(),
+                        'timestamp': datetime.utcnow().isoformat(),
                         'rate_code': rate_code,
                         'meta_code': meta_code,
-                        'price': price,
-                        'success': success,
-                        'error': error,
+                        'price': scrape_result.get('price'),
+                        'success': scrape_result.get('success'),
+                        'error': scrape_result.get('error'),
                         'url': url,
-                        'attempt': attempt + 1
+                        'attempt': attempt + 1,
+                        'engine': scrape_result.get('engine'),
+                        'debug': scrape_result.get('debug', []),
+                        'raw_price_text': scrape_result.get('raw_price_text'),
+                        'currency': scrape_result.get('currency'),
+                        'price_hash': price_hash,
+                        'snapshot_path': snapshot_path
                     }
-                    
-                    # Store in database
                     self._store_price_check(result)
-                    
-                    if success:
+                    final_result = result
+                    if result['success']:
                         results.append(result)
                         break
-                    
                     if attempt < self.config["monitoring"]["max_retries"] - 1:
-                        logger.info(f"Retrying in 10 seconds...")
-                        time.sleep(10)
-                else:
-                    # All attempts failed
-                    results.append(result)
+                        time.sleep(5)
+                if final_result and not final_result['success']:
+                    results.append(final_result)
         
         # Check for price drops and send alerts
         self._check_price_alerts(results)
@@ -324,21 +293,32 @@ class CruisePriceTracker:
         }
     
     def _store_price_check(self, result: Dict):
-        """Store price check result in database"""
+        """Store price check result in database (with new extended columns)."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO price_history 
-                (price, rate_code, meta_code, url, success, error_message)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                result.get('price'),
-                result.get('rate_code'),
-                result.get('meta_code'), 
-                result.get('url'),
-                result.get('success'),
-                result.get('error')
-            ))
+            # Insert while gracefully handling older schema (omit missing columns)
+            cursor.execute("PRAGMA table_info(price_history)")
+            cols = {row[1] for row in cursor.fetchall()}
+            base_cols = [
+                ('price', result.get('price')),
+                ('rate_code', result.get('rate_code')),
+                ('meta_code', result.get('meta_code')),
+                ('url', result.get('url')),
+                ('success', result.get('success')),
+                ('error_message', result.get('error'))
+            ]
+            extra_cols = [
+                ('currency', result.get('currency')),
+                ('engine', result.get('engine')),
+                ('raw_price_text', result.get('raw_price_text')),
+                ('price_hash', result.get('price_hash')),
+                ('debug_json', json.dumps(result.get('debug', [])) if result.get('debug') else None)
+            ]
+            insert_cols = [name for name, _ in base_cols + extra_cols if name in cols]
+            insert_vals = [val for name, val in base_cols + extra_cols if name in cols]
+            placeholders = ','.join(['?'] * len(insert_cols))
+            col_string = ','.join(insert_cols)
+            cursor.execute(f"INSERT INTO price_history ({col_string}) VALUES ({placeholders})", insert_vals)
             conn.commit()
     
     def _check_price_alerts(self, results: List[Dict]):
@@ -365,6 +345,36 @@ class CruisePriceTracker:
                     
                     if self.config["alerts"]["email_enabled"]:
                         self._send_email_alert(message)
+                    # Optional Discord webhook
+                    webhook = os.environ.get('DISCORD_WEBHOOK_URL') or self.config['alerts'].get('discord_webhook')
+                    if webhook:
+                        self._send_discord_alert(webhook, result, baseline, price_drop)
+
+    def _send_discord_alert(self, webhook: str, result: Dict, baseline: float, price_drop: float):
+        try:
+            import requests
+            payload = {
+                "username": "Cruise Price Tracker",
+                "embeds": [
+                    {
+                        "title": "🚨 Cruise Price Drop",
+                        "description": f"Price dropped by ${price_drop:.0f}",
+                        "color": 15258703,
+                        "fields": [
+                            {"name": "Original", "value": f"${baseline}", "inline": True},
+                            {"name": "New", "value": f"${result['price']}", "inline": True},
+                            {"name": "Rate/Meta", "value": f"{result['rate_code']}/{result['meta_code']}", "inline": True},
+                            {"name": "Engine", "value": str(result.get('engine')), "inline": True},
+                            {"name": "Hash", "value": result.get('price_hash','-') or '-', "inline": False}
+                        ],
+                        "url": result['url'],
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                ]
+            }
+            requests.post(webhook, json=payload, timeout=10)
+        except Exception as e:
+            logger.error(f"Failed to send Discord alert: {e}")
     
     def _send_email_alert(self, message: str):
         """Send email alert for price drops"""
@@ -446,6 +456,7 @@ def main():
     parser.add_argument('--check', action='store_true', help='Run single price check')
     parser.add_argument('--monitor', action='store_true', help='Start continuous monitoring')
     parser.add_argument('--history', type=int, default=7, help='Show price history (days)')
+    parser.add_argument('--summary', action='store_true', help='Show aggregated daily min/max/latest per rate/meta')
     parser.add_argument('--config', default='cruise_config.json', help='Config file path')
     
     args = parser.parse_args()
@@ -457,11 +468,70 @@ def main():
         print(json.dumps(results, indent=2))
     elif args.monitor:
         tracker.run_monitoring_loop()
-    elif args.history:
+    elif args.history and not args.summary:
         history = tracker.get_price_history(args.history)
         print(json.dumps(history, indent=2))
+    elif args.summary:
+        summary = summarize_history(tracker, args.history)
+        print(json.dumps(summary, indent=2))
     else:
         print("Use --check, --monitor, or --history. See --help for details.")
+
+def summarize_history(tracker: 'CruisePriceTracker', days: int = 7):
+    """Aggregate daily min/max/latest per (rate_code, meta_code)."""
+    with sqlite3.connect(tracker.db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(price_history)")
+        cols = {r[1] for r in cursor.fetchall()}
+        has_hash = 'price_hash' in cols
+        cursor.execute(f"""
+            SELECT date(timestamp) as day, rate_code, meta_code, price, success, price_hash
+            FROM price_history
+            WHERE timestamp >= datetime('now', '-{days} days') AND success = 1 AND price IS NOT NULL
+            ORDER BY timestamp ASC
+        """)
+        data = {}
+        for day, rate, meta, price, success, phash in cursor.fetchall():
+            key = (day, rate, meta)
+            if key not in data:
+                data[key] = {
+                    'day': day,
+                    'rate_code': rate,
+                    'meta_code': meta,
+                    'min_price': price,
+                    'max_price': price,
+                    'first_price': price,
+                    'last_price': price,
+                    'observations': 1,
+                    'distinct_hashes': set([phash]) if has_hash and phash else None
+                }
+            else:
+                d = data[key]
+                d['min_price'] = min(d['min_price'], price)
+                d['max_price'] = max(d['max_price'], price)
+                d['last_price'] = price
+                d['observations'] += 1
+                if d['distinct_hashes'] is not None and phash:
+                    d['distinct_hashes'].add(phash)
+        # Format output
+        out = []
+        for key, d in sorted(data.items()):
+            out.append({
+                'day': d['day'],
+                'rate_code': d['rate_code'],
+                'meta_code': d['meta_code'],
+                'min': d['min_price'],
+                'max': d['max_price'],
+                'first': d['first_price'],
+                'last': d['last_price'],
+                'observations': d['observations'],
+                'distinct_price_hashes': len(d['distinct_hashes']) if d['distinct_hashes'] is not None else None
+            })
+        return {
+            'days': days,
+            'generated_at': datetime.utcnow().isoformat(),
+            'summary': out
+        }
 
 if __name__ == '__main__':
     main()

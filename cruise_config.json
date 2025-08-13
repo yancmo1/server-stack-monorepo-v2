@@ -16,15 +16,16 @@
     "locality": "1"
   },
   "target_price": {
-    "baseline_price": 714,
-    "alert_threshold": 25,
-    "rate_codes": ["PJS", "PUG", "PZQ"],
-    "meta_codes": ["IS", "OB"]
-  },
-  "vifp_tracking": {
-    "enabled": true,
-    "vifp_number": "9003242299",
-    "track_review_pages": true
+    "baseline_price": 1462,
+    "alert_threshold": 50,
+    "rate_codes": [
+      "PJS",
+      "PUG"
+    ],
+    "meta_codes": [
+      "IS",
+      "OB"
+    ]
   },
   "monitoring": {
     "check_interval_hours": 6,
@@ -40,8 +41,8 @@
     "email_enabled": false,
     "email_smtp_server": "smtp.gmail.com",
     "email_smtp_port": 587,
-    "email_from": "your-email@gmail.com",
-    "email_to": "your-email@gmail.com",
-    "email_password": "your-app-password"
+    "email_from": "",
+    "email_to": "",
+    "email_password": ""
   }
 }

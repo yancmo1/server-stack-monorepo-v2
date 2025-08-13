@@ -58,26 +58,56 @@
             <div class="card-clean">
                 <div class="card-header"><strong>Preview</strong></div>
                 <div class="card-body">
-                    {% if has_snapshot %}
-                        <img src="/clan-map/static/images/map_snapshot.png" alt="Map Snapshot" class="img-fluid rounded" />
-                        <div class="mt-2">
-                            <a class="btn btn-sm btn-outline-light" href="/clan-map/">Open full map</a>
-                        </div>
-                    {% elif mini_map_data and mini_map_data.has_locations %}
-                        <div class="muted mb-2">{{ mini_map_data.total_located }} members are pinned</div>
-                        <div class="row gy-2">
-                            {% for member in mini_map_data.pinned_members[:12] %}
-                                <div class="col-6 col-md-4"><span class="tag">📍 {{ member.name }}</span></div>
-                            {% endfor %}
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-sm btn-outline-light" href="/clan-map/">Open full map</a>
-                        </div>
-                    {% else %}
-                        <div class="muted">No pins yet. Be the first!</div>
-                    {% endif %}
+                                        {% if mini_map_data and mini_map_data.has_locations %}
+                                            <div class="muted mb-2">{{ mini_map_data.total_located }} members are pinned</div>
+                                            <div id="miniMap" style="height:300px;border-radius:12px;overflow:hidden;"></div>
+                                            <div class="mt-3">
+                                                <a class="btn btn-sm btn-outline-light" href="/clan-map/">Open full map</a>
+                                            </div>
+                                        {% elif has_snapshot %}
+                                            <img src="/clan-map/static/images/map_snapshot.png" alt="Map Snapshot" class="img-fluid rounded" />
+                                            <div class="mt-2">
+                                                <a class="btn btn-sm btn-outline-light" href="/clan-map/">Open full map</a>
+                                            </div>
+                                        {% else %}
+                                            <div class="muted">No pins yet. Be the first!</div>
+                                        {% endif %}
                 </div>
             </div>
         </div>
     </div>
 {% endblock %}
+
+{% block head %}
+<style>
+    #miniMap .leaflet-control-attribution { background: rgba(0,0,0,.35); color:#cbd5e1; }
+</style>
+<script>
+    (function(){
+        const el = document.getElementById('miniMap');
+        if(!el) return;
+        const m = L.map('miniMap', { center:[20,0], zoom:2, zoomControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(m);
+        fetch('/clan-map/api/players')
+            .then(r=>r.json())
+            .then(players=>{
+                const pins = players.filter(p=>p.latitude !== null && p.longitude !== null);
+                const grp = L.featureGroup();
+                pins.forEach(p=>{
+                    L.circleMarker([p.latitude, p.longitude], { radius:5, color:'#0d6efd', fillOpacity:0.8 }).addTo(grp);
+                });
+                grp.addTo(m);
+                if(pins.length){ try{ m.fitBounds(grp.getBounds().pad(0.2)); }catch(_){} }
+            })
+            .catch(()=>{});
+    })();
+</script>
+{% endblock %}
+
+{% block head %}
+<script>
+
+

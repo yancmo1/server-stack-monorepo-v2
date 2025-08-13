@@ -1,106 +1,191 @@
-# Cruise Price Checker
+# Cruise Price Checker (Refactored)
 
-This app checks cruise prices from Carnival.com by navigating through the multi-page booking flow. It automatically clicks through 2 CONTINUE buttons and extracts the price of the second interior room ($1,462), excluding the "ROOM WILL BE ASSIGNED" option.
+Modern, modular Carnival cruise price tracker focused on robustness, observability, and future extensibility.
 
-## Features
+## Key Improvements
 
-- **Multi-page Navigation**: Automatically clicks through 2 CONTINUE buttons in the Carnival booking flow
-- **Specific Price Extraction**: Targets the second interior room price ($1,462)
-- **Raspberry Pi Deployment**: Designed to run on Raspberry Pi at 192.168.50.100
-- **Web API**: Simple REST API for remote access
-- **Debug Information**: Provides detailed debug info for troubleshooting
+- Multi‑engine scraping (Playwright → Selenium → Requests fallback) via `CarnivalScraper`
+- Direct booking URL generation (no brittle multi‑click navigation dependence)
+- Structured extraction: regex + semantic class scan + JSON sniffing
+- SQLite price history with automatic schema migration
+- Extended fields stored: `currency`, `engine`, `raw_price_text`, `price_hash`, `debug_json`
+- Optional HTML snapshot archiving (gzip) with retention policy
+- Deterministic daily price hash for de‑dup / change detection
+- Improved web API (`web_interface.py`) exposing monitoring + history
+- Config auto-merging with safe defaults (`cruise_config.json`)
+- Unit tests for scraper fallback logic (`test_carnival_scraper.py`)
 
-## Quick Start
+## Folder Highlights
 
-### Local Testing
+| File | Purpose |
+|------|---------|
+| `improved_price_tracker.py` | Orchestrates checks, persistence, alerts |
+| `carnival_scraper.py` | Engine abstraction + extraction heuristics |
+| `web_interface.py` | Flask UI / API endpoints |
+| `cruise_config.json` | User config (merged with defaults) |
+| `test_carnival_scraper.py` | Core scraper logic tests |
 
-1. Test locally first:
+## Configuration
+
+`cruise_config.json` (user editable) – new `storage` section:
+
+```json
+"storage": {
+  "save_snapshots": false,
+  "snapshot_dir": "snapshots",
+  "retain_days": 7
+}
+```
+
+Other notable keys:
+- `target_price.rate_codes` / `meta_codes` – permutations to monitor
+- `target_price.baseline_price` – used for drop threshold comparisons and qbPrice param
+- `monitoring.max_retries` – per combination retry attempts
+
+If the file is missing, a default one is generated automatically.
+
+## Running a One‑Off Check (CLI)
+
 ```bash
-./test_local.sh
+python improved_price_tracker.py --check
 ```
 
-2. Test price extraction with a Carnival URL:
+Or via repository helper script (from repo root):
 ```bash
-python test_price_extraction.py <carnival_url>
+bash scripts/run_cruise_tracker_dev.sh
 ```
 
-### Deploy to Raspberry Pi
-
-1. Deploy to Pi (auto-commits, pushes, and deploys):
-```bash
-./deploy_to_pi.sh
-```
-
-## Manual Usage
-
-### Start the server locally:
-
-```bash
-source .venv/bin/activate
-python app.py
-```
-
-### Access the API:
-
-- **Home page**: `http://localhost:5000/`
-- **Price check**: `http://localhost:5000/check_price?url=<carnival-url>`
-
-### From Raspberry Pi:
-
-```
-http://192.168.50.100:5000/check_price?url=<carnival-url>
-```
-
-Replace `<carnival-url>` with the full Carnival.com booking URL.
-
-## API Response
-
-The API returns JSON with the following structure:
+Output example:
 
 ```json
 {
-  "price": "$1,462",
-  "page_title": "Carnival Cruise Page Title",
-  "current_url": "https://final-page-url.com",
-  "debug_info": [
-    "Initial page loaded: ...",
-    "First CONTINUE button clicked using selector: ...",
-    "Second CONTINUE button clicked using selector: ...",
-    "Found target price: $1,462"
+  "check_time": "2025-08-12T15:55:21.987Z",
+  "baseline_price": 1462,
+  "results": [
+    {
+      "timestamp": "2025-08-12T15:55:21.055000",
+      "rate_code": "PJS",
+      "meta_code": "IS",
+      "price": 1462.0,
+      "success": true,
+      "engine": "requests",
+      "raw_price_text": "1462",
+      "price_hash": "<sha256>",
+      "debug": [ {"source": "regex_url_qbPrice", "value": 1462.0} ]
+    }
   ]
 }
 ```
 
-## Requirements
+## Web Interface
 
-- Python 3.13+
-- Flask
-- Selenium
-- BeautifulSoup4
-- Requests
-- Chrome/Chromium browser
-- ChromeDriver
+Expose endpoints (example port may differ):
 
-All dependencies are installed automatically during setup.
+| Endpoint | Description |
+|----------|-------------|
+| `/` | Basic dashboard HTML |
+| `/api/status` | Current monitoring state + last check timestamp |
+| `/api/check-price` (POST) | Trigger immediate check (returns extended fields) |
+| `/api/history/<days>` | Historical results (includes `engine`, `raw_price_text`, `price_hash` if available) |
+| `/health` | Generic health probe |
 
-## Files
+Start (typical):
+```bash
+python web_interface.py
+```
 
-- `app.py` - Main Flask application with multi-page navigation logic
-- `test_price_extraction.py` - Test script for price extraction
-- `test_local.sh` - Local testing script
-- `deploy_to_pi.sh` - Automated deployment to Raspberry Pi
-- `setup_pi.sh` - Raspberry Pi setup script
+## Database Schema (price_history)
 
-## Navigation Logic
+Columns: `id, timestamp, price, rate_code, meta_code, availability (legacy placeholder), url, success, error_message, currency, engine, raw_price_text, price_hash, debug_json`.
+Missing columns are added automatically on startup (idempotent migrations).
 
-1. **Load Initial Page**: Loads the provided Carnival URL
-2. **First CONTINUE**: Finds and clicks the first CONTINUE button
-3. **Second CONTINUE**: Finds and clicks the second CONTINUE button  
-4. **Price Extraction**: Searches for the specific $1,462 price from the second interior room (not "ROOM WILL BE ASSIGNED")
+## Snapshots
+
+When `storage.save_snapshots` = true, sanitized HTML is stored as gzip under `snapshot_dir` (default `snapshots/`; path relocates to `/app/data` in container). Retention cleanup runs opportunistically during saves.
+
+Guidelines:
+- Leave off for normal monitoring (reduces I/O and disk usage)
+- Enable temporarily while debugging price extraction failures
+- Adjust `retain_days` for longer investigations; lower it in constrained environments
+
+## Scraper Engine Selection
+
+1. Playwright (if installed & `prefer_playwright` true internally)
+2. Selenium (if available)
+3. Raw HTTP GET (Requests) – resilient baseline
+
+Each engine returns a uniform dict: `{success, price, engine, raw_price_text, debug, html?, error}`.
+
+## Testing
+
+`pytest` tests added for core fallback & variant extraction scenarios:
+```bash
+pytest -k carnival_scraper -q
+```
+
+Optional (install Playwright browser runtime for dynamic engine):
+```bash
+python -m playwright install chromium
+```
+
+Run full suite (example path):
+```bash
+pytest apps/cruise-price-check -q
+```
+
+## Alerts
+
+Email alerts fire when `(baseline_price - current_price) >= alert_threshold`. Provide SMTP creds in config & set `email_enabled` true.
+
+## Extending
+
+- Add other cruise lines: create new scraper module & integrate via strategy map in tracker
+- Alternate notification channels (Discord/Slack) – hook into `_check_price_alerts`
+- Rich analytics: compute deltas & moving averages with a separate reporting module
 
 ## Troubleshooting
 
-- Check debug_info in the API response for navigation details
-- Ensure ChromeDriver is properly installed on Raspberry Pi
-- Verify the Carnival URL leads to the booking flow
-- Check that the price selectors match the current page structure
+| Issue | Hint |
+|-------|------|
+| No price detected | Inspect `debug` array; enable snapshots for HTML review |
+| Always fallback to requests | Ensure Playwright/Selenium installed & importable |
+| Duplicate rows same day | Hash includes date; multiple identical checks are expected (use price_hash aggregation) |
+| Email not sent | Verify `email_enabled` and SMTP credentials / app password |
+
+## Roadmap Ideas
+
+- Tenacity-based retry backoff
+- Concurrent rate/meta fetches
+- Multi-cruise portfolio support
+- Structured HTML diffing between snapshots
+
+## Optional CI (GitHub Actions)
+
+```yaml
+name: cruise-price-check
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r apps/cruise-price-check/requirements.txt
+      - run: pytest apps/cruise-price-check -k carnival_scraper -q
+```
+
+---
+Refactor focus: reliability, clarity, and future extensibility while preserving straightforward usage.
+\n+## Docker Development & Operations
+\n+Container workflow (mirrors production browser dependencies):\n+\n+```bash
+# from repo root
+./scripts/cruise_dev.sh up       # start service
+./scripts/cruise_dev.sh rebuild  # rebuild image & recreate
+./scripts/cruise_dev.sh logs     # follow logs
+./scripts/cruise_dev.sh check    # one-off price check inside container
+./scripts/cruise_dev.sh summary  # 7 day summary
+./scripts/cruise_dev.sh down     # stop container
+```
+\n+VS Code tasks titled "Cruise Docker" wrap these commands for click-to-run convenience.\n+\n+Prefer Docker when you need: reproducible headless Chromium, CI/server parity, isolated deps.\n+Prefer local Python when rapidly iterating scraper logic, running unit tests, or debugging with interactive tools.\n+

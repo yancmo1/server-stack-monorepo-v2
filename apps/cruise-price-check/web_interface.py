@@ -63,6 +63,7 @@ def monitoring_loop():
         try:
             logger.info("Running scheduled price check...")
             results = tracker.check_price()
+            # Detailed fields (engine, raw_price_text, snapshot_path) already included in results
             logger.info(f"Price check completed: {len(results['results'])} checks")
             
             # Sleep for configured interval
@@ -112,12 +113,61 @@ def home():
         .price-error { color: #dc3545; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .form-row { display: flex; gap: 20px; margin-bottom: 10px; }
+        .form-row label { min-width: 120px; }
+        .form-row input, .form-row select { flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
+        .form-section { background: #f1f7ff; border: 1px solid #cce1ff; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🚢 Carnival Cruise Price Tracker</h1>
         <p class="subtitle">Monitoring your November 8, 2025 Western Caribbean cruise</p>
+
+        <div class="form-section">
+            <h3>🔎 Search for a Cruise</h3>
+            <form id="cruise-search-form" onsubmit="submitCruiseForm(event)">
+                <div class="form-row">
+                    <label for="ship">Ship:</label>
+                    <input type="text" id="ship" name="ship" placeholder="e.g. Jubilee" required>
+                </div>
+                <div class="form-row">
+                    <label for="date">Date:</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div class="form-row">
+                    <label for="people">People:</label>
+                    <input type="number" id="people" name="people" min="1" value="2" required>
+                </div>
+                <div class="form-row">
+                    <label for="sail_from">Sail From:</label>
+                    <input type="text" id="sail_from" name="sail_from" placeholder="e.g. Galveston" required>
+                </div>
+                <div class="form-row">
+                    <label for="sail_to">Sail To:</label>
+                    <input type="text" id="sail_to" name="sail_to" placeholder="e.g. The Bahamas" required>
+                </div>
+                <div class="form-row">
+                    <label for="cabin_number">Cabin Number:</label>
+                    <input type="text" id="cabin_number" name="cabin_number" placeholder="Optional">
+                </div>
+                <div class="form-row">
+                    <label for="room_type">Room Type:</label>
+                    <select id="room_type" name="room_type">
+                        <option value="Interior" selected>Interior</option>
+                        <option value="Oceanview">Oceanview</option>
+                        <option value="Balcony">Balcony</option>
+                        <option value="Suite">Suite</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="floor">Floor:</label>
+                    <input type="text" id="floor" name="floor" placeholder="Optional">
+                </div>
+                <button type="submit" class="button success">🔍 Search & Check Price</button>
+            </form>
+            <div id="form-result"></div>
+        </div>
         
         <div class="grid">
             <div class="card">
@@ -306,6 +356,38 @@ def home():
         
         // Auto-refresh every 30 seconds
         setInterval(checkStatus, 30000);
+
+        // Cruise form submission handler
+        function submitCruiseForm(event) {
+            event.preventDefault();
+            const form = document.getElementById('cruise-search-form');
+            const data = Object.fromEntries(new FormData(form).entries());
+            document.getElementById('form-result').innerHTML = '<p>🔍 Checking price...</p>';
+            fetch('/api/check-custom', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    document.getElementById('form-result').innerHTML = `<p class="price-error">❌ ${result.error}</p>`;
+                } else {
+                    let html = '<h4>Custom Price Check Results:</h4>';
+                    if (result.results && result.results.length > 0) {
+                        result.results.forEach(r => {
+                            html += `<div class="price-item"><strong>${r.success ? '✅' : '❌'} ${r.rate_code || ''}/${r.meta_code || ''}:</strong> $${r.price || 'N/A'}${r.error ? `<br><small class='price-error'>${r.error}</small>` : ''}</div>`;
+                        });
+                    } else {
+                        html += '<p>No results found.</p>';
+                    }
+                    document.getElementById('form-result').innerHTML = html;
+                }
+            })
+            .catch(error => {
+                document.getElementById('form-result').innerHTML = `<p class="price-error">❌ ${error}</p>`;
+            });
+        }
     </script>
 </body>
 </html>
@@ -342,9 +424,26 @@ def api_check_price():
     try:
         tracker = get_tracker()
         results = tracker.check_price()
+        # results already contains engine, raw_price_text, price_hash, snapshot_path
         return jsonify(results)
     except Exception as e:
         logger.error(f"Error in price check: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# New: Custom price check from form
+@app.route('/api/check-custom', methods=['POST'])
+def api_check_custom():
+    try:
+        data = request.get_json(force=True)
+        # For now, just log and echo back
+        logger.info(f"Custom price check requested: {data}")
+        # TODO: Use form data to build config and run check
+        tracker = get_tracker()
+        # Optionally override tracker.config with form data here
+        results = tracker.check_price()
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error in custom price check: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/monitoring/<action>', methods=['POST'])
@@ -369,8 +468,25 @@ def api_history(days):
     """Get price history"""
     try:
         tracker = get_tracker()
-        history = tracker.get_price_history(days)
-        return jsonify(history)
+        # Attempt to include extended columns if present
+        rows = []
+        with sqlite3.connect(CRUISE_DB_PATH) as conn:
+            cursor = conn.cursor()
+            # Check available columns
+            cursor.execute("PRAGMA table_info(price_history)")
+            cols = {r[1] for r in cursor.fetchall()}
+            extended = ['engine','raw_price_text','price_hash']
+            select_cols = ['timestamp','price','rate_code','meta_code','success','error_message'] + [c for c in extended if c in cols]
+            col_string = ",".join(select_cols)
+            cursor.execute(f"SELECT {col_string} FROM price_history WHERE timestamp >= datetime('now', '-{days} days') ORDER BY timestamp DESC")
+            for row in cursor.fetchall():
+                base_keys = ['timestamp','price','rate_code','meta_code','success','error_message']
+                data = {k: row[i] for i,k in enumerate(select_cols)}
+                # Normalize success to bool
+                if 'success' in data:
+                    data['success'] = bool(data['success'])
+                rows.append(data)
+        return jsonify(rows)
     except Exception as e:
         logger.error(f"Error getting history: {e}")
         return jsonify({'error': str(e)}), 500

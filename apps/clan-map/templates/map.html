@@ -1,19 +1,75 @@
 {% extends 'base.html' %}
 {% block title %}Clan Map{% endblock %}
+{% block head %}
+<style>
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#101a36; color:#e5e7eb; }
+  .leaflet-control-attribution { background: rgba(0,0,0,.35); color:#cbd5e1; }
+</style>
+{% endblock %}
 {% block content %}
-    <!-- <div class="page-header d-flex align-items-center justify-content-between">
-        <div>
-            <h1 class="h1 mb-0">Clan      Map</h1>
-            <div class="muted">Interactive Folium map of member locations</div>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="/clan-map/submit" class="btn btn-sm btn-brand">Add your location</a>
-            <a href="/clan-map/members" class="btn btn-sm btn-outline-light">Members</a>
-        </div>
-    </div> -->
     <div class="card-clean p-2 p-md-3" style="overflow:hidden;">
         <div class="map-viewport">
-            <iframe src="/clan-map/static/folium_map.html" title="Clan Map" style="border:0;border-radius:12px;width:100%;height:100%;"></iframe>
+            <div id="liveMap" style="width:100%;height:100%;border-radius:12px;"></div>
         </div>
     </div>
+
+    <script>
+            (function(){
+                const map = L.map('liveMap', {
+                    center: [20, 0],
+                    zoom: 2,
+                    worldCopyJump: true
+                });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+                const roleColors = {
+                    'Leader': 'red',
+                    'Co-Leader': 'orange',
+                    'Elder': 'purple',
+                    'Member': 'blue'
+                };
+                const roleIcons = {
+                    'Leader': { icon: 'star', emoji: '👑' },
+                    'Co-Leader': { icon: 'fire', emoji: '🔥' },
+                    'Elder': { icon: 'star', emoji: '⭐' },
+                    'Member': { icon: 'user', emoji: '👤' }
+                };
+
+                fetch('/clan-map/api/players')
+                    .then(r => r.json())
+                    .then(players => {
+                        const pins = players.filter(p => p.latitude !== null && p.longitude !== null);
+                        const group = L.featureGroup();
+                        pins.forEach(p => {
+                            const role = p.role || 'Member';
+                            const rColor = roleColors[role] || 'blue';
+                            const rInfo = roleIcons[role] || roleIcons['Member'];
+                            const icon = L.AwesomeMarkers.icon({
+                                markerColor: rColor,
+                                prefix: 'fa',
+                                icon: rInfo.icon
+                            });
+                            const marker = L.marker([p.latitude, p.longitude], { icon });
+                            const popup = `
+                                <div style="font-family:Arial,sans-serif;min-width:200px;">
+                                    <h4 style="margin:5px 0;color:${rColor};">${rInfo.emoji} ${p.name}</h4>
+                                    <p style="margin:3px 0;"><strong>Role:</strong> ${role}</p>
+                                    <p style="margin:3px 0;"><strong>Location:</strong> ${p.location || 'Unknown'}</p>
+                                </div>
+                            `;
+                            marker.bindPopup(popup);
+                            marker.bindTooltip(`${rInfo.emoji} ${p.name} (${role})`);
+                            marker.addTo(group);
+                        });
+                        group.addTo(map);
+                        if (pins.length) {
+                            try { map.fitBounds(group.getBounds().pad(0.2)); } catch(_) {}
+                        }
+                    })
+                    .catch(err => console.error('Failed to load players', err));
+            })();
+        </script>
 {% endblock %}
