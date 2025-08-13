@@ -26,7 +26,8 @@ ssh yancmo@ubuntumac '
   # Protect any accidental local changes on server
   if ! git diff --quiet || ! git diff --cached --quiet; then \
     echo "Stashing local changes before pull..."; \
-    git stash push -u -m "auto-stash before clan-map deploy $(date '+%Y-%m-%d %H:%M:%S')" || true; \
+  # Use ISO-8601 timestamp without spaces to avoid quote issues in SSH single-quoted block
+  git stash push -u -m "auto-stash before clan-map deploy $(date -Iseconds)" || true; \
   fi && \
   git pull --rebase && \
   cd deploy && \

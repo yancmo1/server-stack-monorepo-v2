@@ -60,14 +60,14 @@ def load_clan_data():
         clan_data = []
         for row in rows:
             name, role, location, latitude, longitude, updated = row
+            # Always include lat/lon keys to avoid undefined on client side
             player = {
                 'name': name,
                 'role': role or 'Member',
-                'location': location or 'Unknown'
+                'location': location or 'Unknown',
+                'latitude': float(latitude) if latitude is not None else None,
+                'longitude': float(longitude) if longitude is not None else None,
             }
-            if latitude is not None and longitude is not None:
-                player['latitude'] = latitude
-                player['longitude'] = longitude
             if updated:
                 player['updated_at'] = updated
             clan_data.append(player)

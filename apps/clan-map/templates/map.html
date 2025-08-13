@@ -43,7 +43,18 @@
                 fetch('/clan-map/api/players')
                     .then(r => r.json())
                     .then(players => {
-                        const pins = players.filter(p => p.latitude !== null && p.longitude !== null);
+                        const toNum = (v) => {
+                            if (v === null || v === undefined) return null;
+                            const n = typeof v === 'string' ? parseFloat(v) : v;
+                            return Number.isFinite(n) ? n : null;
+                        };
+                        const pins = players
+                          .map(p => ({
+                            ...p,
+                            latitude: toNum(p.latitude),
+                            longitude: toNum(p.longitude)
+                          }))
+                          .filter(p => p.latitude !== null && p.longitude !== null);
                         const group = L.featureGroup();
                         pins.forEach(p => {
                             const role = p.role || 'Member';
@@ -54,17 +65,21 @@
                                 prefix: 'fa',
                                 icon: rInfo.icon
                             });
-                            const marker = L.marker([p.latitude, p.longitude], { icon });
-                            const popup = `
+                            try {
+                                const marker = L.marker([p.latitude, p.longitude], { icon });
+                                const popup = `
                                 <div style="font-family:Arial,sans-serif;min-width:200px;">
                                     <h4 style="margin:5px 0;color:${rColor};">${rInfo.emoji} ${p.name}</h4>
                                     <p style="margin:3px 0;"><strong>Role:</strong> ${role}</p>
                                     <p style="margin:3px 0;"><strong>Location:</strong> ${p.location || 'Unknown'}</p>
                                 </div>
                             `;
-                            marker.bindPopup(popup);
-                            marker.bindTooltip(`${rInfo.emoji} ${p.name} (${role})`);
-                            marker.addTo(group);
+                                marker.bindPopup(popup);
+                                marker.bindTooltip(`${rInfo.emoji} ${p.name} (${role})`);
+                                marker.addTo(group);
+                            } catch (e) {
+                                console.warn('Skipping invalid player coordinates', p, e);
+                            }
                         });
                         group.addTo(map);
                         if (pins.length) {
