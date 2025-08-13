@@ -80,8 +80,11 @@
 
 {% block head %}
 <style>
-    #miniMap .leaflet-control-attribution { background: rgba(0,0,0,.35); color:#cbd5e1; }
+        #miniMap .leaflet-control-attribution { background: rgba(0,0,0,.35); color:#cbd5e1; }
 </style>
+{% endblock %}
+
+{% block scripts %}
 <script>
     (function(){
         const el = document.getElementById('miniMap');
@@ -95,12 +98,13 @@
             .then(r=>r.json())
             .then(players=>{
                 const pins = players.filter(p=>p.latitude !== null && p.longitude !== null);
+                if(!pins.length) return; // nothing to draw
                 const grp = L.featureGroup();
                 pins.forEach(p=>{
                     L.circleMarker([p.latitude, p.longitude], { radius:5, color:'#0d6efd', fillOpacity:0.8 }).addTo(grp);
                 });
                 grp.addTo(m);
-                if(pins.length){ try{ m.fitBounds(grp.getBounds().pad(0.2)); }catch(_){} }
+                try{ m.fitBounds(grp.getBounds().pad(0.2)); }catch(_){}
             })
             .catch(()=>{});
     })();
