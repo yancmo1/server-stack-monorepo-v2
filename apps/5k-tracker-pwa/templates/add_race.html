@@ -14,11 +14,11 @@
                     <form method="POST" enctype="multipart/form-data" autocomplete="off">
                         <div class="mb-3">
                             <label for="race_name" class="form-label">Race Name</label>
-                            <input type="text" class="form-control form-control-lg" id="race_name" name="race_name" placeholder="e.g. Tulsa 5K" required>
+                            <input type="text" class="form-control" id="race_name" name="race_name" placeholder="e.g. Tulsa 5K" required>
                         </div>
                         <div class="mb-3">
                             <label for="race_type" class="form-label">Race Type</label>
-                            <select class="form-select form-select-lg" id="race_type" name="race_type" required>
+                            <select class="form-select" id="race_type" name="race_type" required>
                                 <option value="">Select type...</option>
                                 <option value="5K">5K</option>
                                 <option value="10K">10K</option>
@@ -30,33 +30,33 @@
                         <div class="row g-2 mb-3">
                             <div class="col-6">
                                 <label for="race_date" class="form-label">Date</label>
-                                <input type="date" class="form-control form-control-lg" id="race_date" name="race_date" required>
+                                <input type="date" class="form-control" id="race_date" name="race_date" required>
                             </div>
                             <div class="col-6">
                                 <label for="race_time" class="form-label">Start Time</label>
-                                <input type="time" class="form-control form-control-lg" id="race_time" name="race_time">
+                                <input type="time" class="form-control" id="race_time" name="race_time">
                             </div>
                         </div>
                         <div class="mb-3">
                             <label for="finish_time" class="form-label">Finish Time (Elapsed Gun Time)</label>
-                            <input type="text" class="form-control form-control-lg" id="finish_time" name="finish_time" placeholder="5K/10K: MM:SS:CC (e.g. 21:45:37), Longer: HH:MM:SS (e.g. 1:45:23)" required pattern="^((\d{1,2}):(\d{2}):(\d{2})(:(\d{1,2}))?|\d{1,2}:\d{2}|\d{1,2}:\d{2}:\d{1,2})$" title="5K/10K: MM:SS:CC, Longer: HH:MM:SS; CC=centiseconds optional">
+                            <input type="text" class="form-control" id="finish_time" name="finish_time" placeholder="5K/10K: MM:SS:CC (e.g. 21:45:37), Longer: HH:MM:SS (e.g. 1:45:23)" required pattern="^((\d{1,2}):(\d{2}):(\d{2})(:(\d{1,2}))?|\d{1,2}:\d{2}|\d{1,2}:\d{2}:\d{1,2})$" title="5K/10K: MM:SS:CC, Longer: HH:MM:SS; CC=centiseconds optional">
                             <div class="form-text">Tip: For 5K/10K include centiseconds (MM:SS:CC). For Half/Marathon use HH:MM:SS.</div>
                         </div>
                         <div class="mb-3">
                             <label for="location" class="form-label">Location</label>
-                            <input type="text" class="form-control form-control-lg" id="location" name="location" placeholder="e.g. Tulsa, OK" required>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="e.g. Tulsa, OK" required>
                         </div>
                         <div class="mb-3">
                             <label for="weather" class="form-label">Weather (Temp, Humidity, Wind in °F)</label>
                             <div class="input-group">
-                                <input type="text" class="form-control form-control-lg" id="weather" name="weather" placeholder="Auto-fill or enter manually (e.g. 72°F, humidity 60%, wind 5 mph)">
+                                <input type="text" class="form-control" id="weather" name="weather" placeholder="Auto-fill or enter manually (e.g. 72°F, humidity 60%, wind 5 mph)">
                                 <button type="button" class="btn btn-outline-secondary" id="fetch-weather-btn">Get Weather</button>
                             </div>
                             <div id="weather-status" class="form-text text-muted"></div>
                         </div>
                         <div class="mb-3">
                             <label for="notes" class="form-label">Notes</label>
-                            <textarea class="form-control form-control-lg" id="notes" name="notes" rows="2" placeholder="Any notes about the race..."></textarea>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Any notes about the race..."></textarea>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Photos</label>
@@ -112,14 +112,14 @@ function createPhotoRow(idx) {
                 <img id="photo_preview${idx}" src="" alt="Preview" style="display:none;max-width:100%;max-height:100px;border-radius:8px;" />
             </div>
             <div class="flex-grow-1 w-100">
-                <input type="file" class="form-control form-control-lg mb-2" id="photo${idx}" name="photo${idx}" accept="image/*">
-                <select class="form-select form-select-lg mb-2" id="photo_type${idx}" name="photo_type${idx}">
+                <input type="file" class="form-control mb-2" id="photo${idx}" name="photo${idx}" accept="image/*">
+                <select class="form-select mb-2" id="photo_type${idx}" name="photo_type${idx}">
                     <option value="other">Other</option>
                     <option value="finish">Finish Line</option>
                     <option value="medal">Medal</option>
                     <option value="bib">Race Bib</option>
                 </select>
-                <input type="text" class="form-control form-control-lg mb-2" id="photo_caption${idx}" name="photo_caption${idx}" placeholder="Optional caption">
+                <input type="text" class="form-control mb-2" id="photo_caption${idx}" name="photo_caption${idx}" placeholder="Optional caption">
                 <div class="d-flex justify-content-between align-items-center mt-2">
                     <button type="button" class="btn btn-success btn-sm save-photo-btn" title="Save Photo">
                         <i class="fas fa-save"></i> Save Photo

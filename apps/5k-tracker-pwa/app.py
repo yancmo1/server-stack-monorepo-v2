@@ -503,6 +503,57 @@ def login():
 def profile():
     return render_template('profile.html')
 
+@app.route('/settings')
+@login_required
+def settings():
+    """Settings page with app configuration options"""
+    return render_template('settings.html')
+
+@app.route('/export_races')
+@login_required
+def export_races():
+    """Export user's race data as CSV"""
+    try:
+        import csv
+        import io
+        from flask import make_response
+        
+        # Get user's races
+        race_date_col = getattr(Race, 'race_date')
+        races = Race.query.filter_by(user_id=current_user.id).order_by(desc(race_date_col)).all()
+        
+        # Create CSV content
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow(['Date', 'Race Name', 'Type', 'Start Time', 'Finish Time', 'Location', 'Weather', 'Notes'])
+        
+        # Write race data
+        for race in races:
+            writer.writerow([
+                race.race_date.strftime('%Y-%m-%d') if race.race_date else '',
+                race.race_name or '',
+                race.race_type or '',
+                race.race_time or '',
+                race.finish_time or '',
+                race.location or '',
+                race.weather or '',
+                race.notes or ''
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=race_data_{current_user.email}_{datetime.utcnow().strftime("%Y%m%d")}.csv'
+        
+        return response
+        
+    except Exception as e:
+        print(f'[EXPORT_ERROR] user_id={current_user.id} error={e}', file=sys.stderr)
+        flash('Error exporting race data. Please try again.', 'error')
+        return redirect(url_for('settings'))
+
 @app.route('/logout')
 @login_required
 def logout():

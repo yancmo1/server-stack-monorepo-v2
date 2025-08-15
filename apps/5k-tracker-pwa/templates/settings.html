@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-cog"></i> Settings</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Weather Management -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-cloud-sun"></i> Weather Data</h5>
+                        <p class="text-muted small">Manage weather information for your races</p>
+                        
+                        <div class="d-grid gap-2">
+                            <form method="POST" action="{{ url_for('backfill_weather') }}" onsubmit="return confirm('Refresh weather for all races? This will update missing weather data.')">
+                                <button type="submit" class="btn btn-outline-secondary w-100">
+                                    <i class="fas fa-cloud-sun"></i> Refresh Weather Data
+                                </button>
+                            </form>
+                            
+                            <form method="POST" action="{{ url_for('backfill_weather', force=1) }}" onsubmit="return confirm('Force re-fetch weather for all races? This will overwrite all existing weather data.')">
+                                <input type="hidden" name="force" value="1" />
+                                <button type="submit" class="btn btn-outline-warning w-100">
+                                    <i class="fas fa-redo"></i> Force Refresh All Weather
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <small class="text-muted">
+                            <strong>Refresh:</strong> Updates only missing weather data<br>
+                            <strong>Force Refresh:</strong> Re-fetches all weather data (overwrites manual entries)
+                        </small>
+                    </div>
+
+                    <!-- App Preferences -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-mobile-alt"></i> App Preferences</h5>
+                        <p class="text-muted small">Customize your app experience</p>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" value="" id="hideInstallPrompt">
+                            <label class="form-check-label" for="hideInstallPrompt">
+                                Hide iPhone installation prompt
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" value="" id="enableNotifications" disabled>
+                            <label class="form-check-label text-muted" for="enableNotifications">
+                                Enable push notifications (Coming soon)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Data Management -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-database"></i> Data Management</h5>
+                        <p class="text-muted small">Export and manage your race data</p>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-info w-100" onclick="exportRaceData()">
+                                <i class="fas fa-download"></i> Export Race Data (CSV)
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-secondary w-100" disabled>
+                                <i class="fas fa-upload"></i> Import Race Data (Coming soon)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Account Info -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-user"></i> Account Information</h5>
+                        <p class="text-muted small">Your account details</p>
+                        
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    <div class="col-4"><strong>Email:</strong></div>
+                                    <div class="col-8">{{ current_user.email }}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-4"><strong>Name:</strong></div>
+                                    <div class="col-8">{{ current_user.first_name }} {{ current_user.last_name }}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-4"><strong>Member since:</strong></div>
+                                    <div class="col-8">{{ current_user.created_at.strftime('%B %Y') if current_user.created_at else 'N/A' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ url_for('profile') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-edit"></i> Edit Profile
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- App Information -->
+                    <div class="text-center">
+                        <h6 class="text-muted">Race Tracker PWA</h6>
+                        <small class="text-muted">Version 2.0 • Enhanced for mobile</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle install prompt preference
+document.getElementById('hideInstallPrompt').addEventListener('change', function() {
+    if (this.checked) {
+        localStorage.setItem('hideInstallPrompt', 'true');
+        // Hide current prompt if visible
+        const installAlert = document.getElementById('install-alert');
+        if (installAlert) {
+            installAlert.style.display = 'none';
+        }
+    } else {
+        localStorage.removeItem('hideInstallPrompt');
+    }
+});
+
+// Set current state
+if (localStorage.getItem('hideInstallPrompt') === 'true') {
+    document.getElementById('hideInstallPrompt').checked = true;
+}
+
+// Export race data function
+function exportRaceData() {
+    window.location.href = '/export_races';
+}
+</script>
+{% endblock %}

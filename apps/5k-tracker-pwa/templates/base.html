@@ -87,27 +87,22 @@
                 <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('races') }}">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'races' }}" href="{{ url_for('races') }}">
                                 <i class="fas fa-list"></i> My Races
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('workouts') }}">
-                                <i class="fas fa-dumbbell"></i> Workouts
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('add_race') }}">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'add_race' }}" href="{{ url_for('add_race') }}">
                                 <i class="fas fa-plus"></i> Add Race
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('statistics') }}">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'statistics' }}" href="{{ url_for('statistics') }}">
                                 <i class="fas fa-chart-bar"></i> Statistics
                             </a>
                         </li>
@@ -128,9 +123,10 @@
                                 <i class="fas fa-user"></i> {{ current_user.first_name }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                                <li><a class="dropdown-item {{ 'active' if request.endpoint == 'profile' }}" href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Profile</a></li>
+                                <li><a class="dropdown-item {{ 'active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                             </ul>
                         </li>
                     {% else %}
