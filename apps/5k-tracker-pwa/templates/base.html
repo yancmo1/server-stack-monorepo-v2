@@ -124,6 +124,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 <li><a class="dropdown-item {{ 'active' if request.endpoint == 'profile' }}" href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Profile</a></li>
+                                <li><a class="dropdown-item {{ 'active' if request.endpoint == 'photos' }}" href="{{ url_for('photos') }}"><i class="fas fa-camera"></i> Photos</a></li>
                                 <li><a class="dropdown-item {{ 'active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>

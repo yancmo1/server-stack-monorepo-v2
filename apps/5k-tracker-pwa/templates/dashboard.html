@@ -41,75 +41,64 @@
         </a>
     </div>
 
-    <!-- Stats Overview - Compact 2x2 Grid -->
+    <!-- Stats Overview - Compact 2x2 Grid with Clickable Actions -->
     <div class="row mb-4 g-3">
         <div class="col-6 col-md-6">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body text-center py-3">
-                    <i class="fas fa-running fa-lg mb-2"></i>
-                    <h5 class="mb-1">{{ total_races }}</h5>
-                    <small class="mb-0">Total Races</small>
+            <a href="{{ url_for('races') }}" class="text-decoration-none">
+                <div class="card bg-primary text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-running fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ total_races }}</h5>
+                        <small class="mb-0">Total Races</small>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-6 col-md-6">
-            <div class="card bg-success text-white h-100">
-                <div class="card-body text-center py-3">
-                    <i class="fas fa-trophy fa-lg mb-2"></i>
-                    <h5 class="mb-1">{{ personal_records|length }}</h5>
-                    <small class="mb-0">Personal Records</small>
+            <a href="{{ url_for('statistics') }}" class="text-decoration-none">
+                <div class="card bg-success text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-trophy fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ personal_records|length }}</h5>
+                        <small class="mb-0">Personal Records</small>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-6 col-md-6">
-            <div class="card bg-warning text-white h-100">
-                <div class="card-body text-center py-3">
-                    <i class="fas fa-calendar fa-lg mb-2"></i>
-                    <h5 class="mb-1">{{ recent_races|length }}</h5>
-                    <small class="mb-0">Recent Races</small>
+            <a href="{{ url_for('races') }}" class="text-decoration-none">
+                <div class="card bg-warning text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-calendar fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ recent_races|length }}</h5>
+                        <small class="mb-0">Recent Races</small>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-6 col-md-6">
-            <div class="card bg-info text-white h-100">
-                <div class="card-body text-center py-3">
-                    <i class="fas fa-camera fa-lg mb-2"></i>
-                    <h5 class="mb-1">{{ (recent_races|map(attribute='photos')|map('length')|sum) or 0 }}</h5>
-                    <small class="mb-0">Photos Uploaded</small>
+            <a href="{{ url_for('photos') }}" class="text-decoration-none">
+                <div class="card bg-info text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-camera fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ (recent_races|map(attribute='photos')|map('length')|sum) or 0 }}</h5>
+                        <small class="mb-0">Photos Uploaded</small>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card bg-light">
-                <div class="card-body py-3">
-                    <h6 class="card-title mb-3"><i class="fas fa-bolt"></i> Quick Actions</h6>
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ url_for('add_race') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus"></i> Add Race
-                        </a>
-                        <a href="{{ url_for('races') }}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-list"></i> View All Races
-                        </a>
-                        <a href="{{ url_for('statistics') }}" class="btn btn-outline-success btn-sm">
-                            <i class="fas fa-chart-bar"></i> Statistics
-                        </a>
-                        <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-cog"></i> Settings
-                        </a>
-                        {% if current_user.is_admin %}
-                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-danger btn-sm">
-                            <i class="fas fa-users-cog"></i> Admin
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <style>
+    .dashboard-tile {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+    }
+    .dashboard-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    </style>
 
     <div class="row">
         <!-- Personal Records -->

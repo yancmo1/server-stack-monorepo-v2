@@ -509,6 +509,40 @@ def settings():
     """Settings page with app configuration options"""
     return render_template('settings.html')
 
+@app.route('/photos')
+@login_required
+def photos():
+    """Photo gallery page showing all user's race photos"""
+    try:
+        # Get all photos for the current user through their races
+        race_id_col = getattr(Race, 'id')
+        race_user_id_col = getattr(Race, 'user_id')
+        race_date_col = getattr(Race, 'race_date')
+        photo_race_id_col = getattr(RacePhoto, 'race_id')
+        photo_uploaded_col = getattr(RacePhoto, 'uploaded_at')
+        
+        photos_query = (db.session.query(RacePhoto, Race)
+                       .join(Race, photo_race_id_col == race_id_col)
+                       .filter(race_user_id_col == current_user.id)
+                       .order_by(desc(race_date_col), desc(photo_uploaded_col))
+                       .all())
+        
+        # Format photos with race information
+        photos_data = []
+        for photo, race in photos_query:
+            photos_data.append({
+                'photo': photo,
+                'race': race,
+                'race_date_formatted': race.race_date.strftime('%B %d, %Y') if race.race_date else 'Unknown Date'
+            })
+        
+        return render_template('photos.html', photos_data=photos_data, total_photos=len(photos_data))
+        
+    except Exception as e:
+        print(f'[PHOTOS_ERROR] user_id={getattr(current_user, "id", None)} error={e}', file=sys.stderr)
+        flash('Error loading photos. Please try again.', 'warning')
+        return redirect(url_for('dashboard'))
+
 @app.route('/export_races')
 @login_required
 def export_races():
