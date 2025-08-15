@@ -164,7 +164,7 @@ services:
 
   coc-discord-bot:
     build:
-      context: ../apps/coc-discord-bot
+      context: ../apps/coc-discord-bot-cwl
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
