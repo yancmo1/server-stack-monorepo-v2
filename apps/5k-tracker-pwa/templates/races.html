@@ -17,22 +17,9 @@
     {% endif %}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-list"></i> My Races</h2>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('add_race') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Race
-            </a>
-            <form method="POST" action="{{ url_for('backfill_weather') }}" onsubmit="return confirm('Backfill weather for all races now?')">
-                <button type="submit" class="btn btn-outline-secondary">
-                    <i class="fas fa-cloud-sun"></i> Refresh Weather
-                </button>
-            </form>
-            <form method="POST" action="{{ url_for('backfill_weather', force=1) }}" onsubmit="return confirm('Force re-poll weather for all races? This will overwrite cached values.')">
-                <input type="hidden" name="force" value="1" />
-                <button type="submit" class="btn btn-outline-danger">
-                    <i class="fas fa-redo"></i> Force Refresh Weather
-                </button>
-            </form>
-        </div>
+        <a href="{{ url_for('add_race') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Race
+        </a>
     </div>
 
     <!-- Filters -->

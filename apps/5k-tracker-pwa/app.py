@@ -212,6 +212,61 @@ class RacePhoto(db.Model):
     def __repr__(self):
         return f'<RacePhoto {self.filename}>'
 
+class Workout(db.Model):
+    """Training workout model - different from formal races"""
+    def __init__(self, user_id, workout_type, duration, distance=None, pace=None, calories=None, 
+                 heart_rate_avg=None, heart_rate_max=None, notes=None, location=None, 
+                 weather=None, workout_date=None, created_at=None):
+        self.user_id = user_id
+        self.workout_type = workout_type
+        self.duration = duration
+        self.distance = distance
+        self.pace = pace
+        self.calories = calories
+        self.heart_rate_avg = heart_rate_avg
+        self.heart_rate_max = heart_rate_max
+        self.notes = notes
+        self.location = location
+        self.weather = weather
+        self.workout_date = workout_date or datetime.utcnow().date()
+        self.created_at = created_at or datetime.utcnow()
+        
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    workout_type = db.Column(db.String(50), nullable=False)  # 'Running', 'Walking', 'Cycling', 'Other'
+    duration = db.Column(db.String(20), nullable=False)  # Format: HH:MM:SS
+    distance = db.Column(db.Float)  # Distance in miles/km
+    pace = db.Column(db.String(10))  # Average pace per mile/km (MM:SS)
+    calories = db.Column(db.Integer)  # Calories burned
+    heart_rate_avg = db.Column(db.Integer)  # Average heart rate
+    heart_rate_max = db.Column(db.Integer)  # Maximum heart rate
+    notes = db.Column(db.Text)
+    location = db.Column(db.String(200))
+    weather = db.Column(db.String(100))
+    workout_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship to user
+    user = db.relationship('User', backref=db.backref('workouts', lazy=True, cascade='all, delete-orphan'))
+    
+    def duration_to_seconds(self):
+        """Convert duration to seconds for calculations"""
+        return _parse_duration_seconds(self.duration or '', 'workout')
+    
+    def calculate_pace(self):
+        """Calculate pace if distance and duration are available"""
+        if self.distance and self.duration:
+            seconds = self.duration_to_seconds()
+            if seconds > 0:
+                pace_seconds = seconds / self.distance
+                minutes = int(pace_seconds // 60)
+                seconds = int(pace_seconds % 60)
+                return f"{minutes:02d}:{seconds:02d}"
+        return None
+    
+    def __repr__(self):
+        return f'<Workout {self.workout_type} - {self.duration}>'
+
 # --- Top-level function to add test races for a runner ---
 def add_test_races(runner, race_types, locations):
     from random import choice, randint
@@ -379,25 +434,15 @@ def reset_password(token):
 # --- Routes ---
 @app.route('/')
 def index():
+    """Landing page - redirect to dashboard if logged in, otherwise to login"""
     import sys
     print('SCRIPT_NAME:', request.environ.get('SCRIPT_NAME'), file=sys.stderr)
     print('HTTP_X_SCRIPT_NAME:', request.environ.get('HTTP_X_SCRIPT_NAME'), file=sys.stderr)
+    
     if current_user.is_authenticated:
-        # Instead of auto-redirecting, show a welcome page with dashboard link
-        return '''
-        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
-            <h1>🏃‍♂️ 5K Race Tracker</h1>
-            <p>Welcome back, <strong>{email}</strong>!</p>
-            <a href="{dashboard_url}" style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block; margin: 10px;">📊 Go to Dashboard</a>
-            <br><br>
-            <a href="{logout_url}" style="color: #6c757d; text-decoration: none;">🚪 Logout</a>
-        </div>
-        '''.format(
-            email=current_user.email,
-            dashboard_url=url_for('dashboard'),
-            logout_url=url_for('logout')
-        )
-    return render_template('index.html')
+        return redirect(url_for('dashboard'))
+    else:
+        return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -1147,6 +1192,192 @@ def races():
             total_count=0,
             user_email=getattr(current_user, 'email', '')
         ), 200
+
+@app.route('/workouts')
+@login_required
+def workouts():
+    """Display user's workouts with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        if page < 1:
+            page = 1
+        workout_type = request.args.get('type', '').strip()
+
+        base_query = Workout.query.filter_by(user_id=current_user.id)
+        if workout_type:
+            base_query = base_query.filter_by(workout_type=workout_type)
+
+        per_page = 15
+        total = base_query.count()
+        workout_date_col = getattr(Workout, 'workout_date')
+        items = (base_query
+                 .order_by(desc(workout_date_col))
+                 .offset((page - 1) * per_page)
+                 .limit(per_page)
+                 .all())
+
+        # Simple pagination class (reusing from races)
+        class SimplePagination:
+            def __init__(self, items, page, per_page, total):
+                self.items = items
+                self.page = page
+                self.per_page = per_page
+                self.total = total
+            @property
+            def pages(self):
+                return math.ceil(self.total / self.per_page) if self.per_page else 0
+            @property
+            def has_prev(self):
+                return self.page > 1
+            @property
+            def has_next(self):
+                return self.page < self.pages
+            @property
+            def prev_num(self):
+                return self.page - 1 if self.has_prev else None
+            @property
+            def next_num(self):
+                return self.page + 1 if self.has_next else None
+
+        workouts_pagination = SimplePagination(items, page, per_page, total)
+
+        return render_template(
+            'workouts.html',
+            workouts=workouts_pagination,
+            selected_type=workout_type,
+            total_count=total
+        )
+    except Exception as e:
+        print(f'[WORKOUTS_ERROR] user_id={getattr(current_user, "id", None)} error={e}', file=sys.stderr)
+        flash('There was an issue loading your workouts.', 'warning')
+        return redirect(url_for('dashboard'))
+
+@app.route('/add_workout', methods=['GET', 'POST'])
+@login_required
+def add_workout():
+    """Add a new workout"""
+    if request.method == 'POST':
+        try:
+            workout_type = request.form.get('workout_type', '').strip()
+            duration = request.form.get('duration', '').strip()
+            distance = request.form.get('distance', '').strip()
+            calories = request.form.get('calories', '').strip()
+            heart_rate_avg = request.form.get('heart_rate_avg', '').strip()
+            heart_rate_max = request.form.get('heart_rate_max', '').strip()
+            notes = request.form.get('notes', '').strip()
+            location = request.form.get('location', '').strip()
+            workout_date = request.form.get('workout_date', '').strip()
+
+            # Validation
+            if not workout_type or not duration:
+                flash('Workout type and duration are required.', 'error')
+                return render_template('add_workout.html')
+
+            # Parse and validate duration (HH:MM:SS or MM:SS)
+            try:
+                if ':' not in duration:
+                    flash('Duration must be in format MM:SS or HH:MM:SS', 'error')
+                    return render_template('add_workout.html')
+                
+                parts = duration.split(':')
+                if len(parts) == 2:  # MM:SS
+                    duration = f"00:{duration}"
+                elif len(parts) != 3:  # Must be HH:MM:SS
+                    flash('Duration must be in format MM:SS or HH:MM:SS', 'error')
+                    return render_template('add_workout.html')
+            except:
+                flash('Invalid duration format', 'error')
+                return render_template('add_workout.html')
+
+            # Parse date
+            workout_date_obj = None
+            if workout_date:
+                try:
+                    workout_date_obj = datetime.strptime(workout_date, '%Y-%m-%d').date()
+                except:
+                    flash('Invalid date format', 'error')
+                    return render_template('add_workout.html')
+
+            # Create workout
+            workout = Workout(
+                user_id=current_user.id,
+                workout_type=workout_type,
+                duration=duration,
+                distance=float(distance) if distance else None,
+                calories=int(calories) if calories else None,
+                heart_rate_avg=int(heart_rate_avg) if heart_rate_avg else None,
+                heart_rate_max=int(heart_rate_max) if heart_rate_max else None,
+                notes=notes if notes else None,
+                location=location if location else None,
+                workout_date=workout_date_obj
+            )
+
+            # Calculate pace if distance is provided
+            if workout.distance and workout.duration:
+                workout.pace = workout.calculate_pace()
+
+            db.session.add(workout)
+            db.session.commit()
+
+            flash('Workout added successfully!', 'success')
+            return redirect(url_for('workouts'))
+
+        except Exception as e:
+            print(f'[ADD_WORKOUT_ERROR] user_id={current_user.id} error={e}', file=sys.stderr)
+            db.session.rollback()
+            flash('Error adding workout. Please try again.', 'error')
+
+    return render_template('add_workout.html')
+
+@app.route('/import_healthkit_workouts', methods=['POST'])
+@login_required
+def import_healthkit_workouts():
+    """Import workouts from HealthKit (for iOS app)"""
+    try:
+        # This will be called by the iOS app via JavaScript
+        workouts_data = request.get_json()
+        
+        if not workouts_data or 'workouts' not in workouts_data:
+            return jsonify({'error': 'No workout data provided'}), 400
+
+        imported_count = 0
+        for workout_data in workouts_data['workouts']:
+            try:
+                # Create workout from HealthKit data
+                workout = Workout(
+                    user_id=current_user.id,
+                    workout_type=workout_data.get('type', 'Running'),
+                    duration=workout_data.get('duration', '00:00:00'),
+                    distance=workout_data.get('distance'),
+                    calories=workout_data.get('calories'),
+                    heart_rate_avg=workout_data.get('heartRateAvg'),
+                    heart_rate_max=workout_data.get('heartRateMax'),
+                    notes=f"Imported from HealthKit - {workout_data.get('sourceApp', 'Unknown')}",
+                    workout_date=datetime.strptime(workout_data.get('date', ''), '%Y-%m-%d').date() if workout_data.get('date') else None
+                )
+
+                # Calculate pace if possible
+                if workout.distance and workout.duration:
+                    workout.pace = workout.calculate_pace()
+
+                db.session.add(workout)
+                imported_count += 1
+
+            except Exception as e:
+                print(f'[IMPORT_WORKOUT_ERROR] workout_data={workout_data} error={e}', file=sys.stderr)
+                continue
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'imported': imported_count,
+            'message': f'Successfully imported {imported_count} workouts from HealthKit'
+        })
+
+    except Exception as e:
+        print(f'[IMPORT_HEALTHKIT_ERROR] user_id={current_user.id} error={e}', file=sys.stderr)
+        db.session.rollback()
+        return jsonify({'error': 'Failed to import workouts'}), 500
 
 @app.route('/backfill_weather', methods=['POST'])
 @login_required

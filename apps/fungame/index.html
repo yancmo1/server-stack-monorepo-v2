@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>Glasslight Drift — A Minimal Phaser 3 Game</title>
+  <style>
+    html,body { height:100%; margin:0; background: #0f1724; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#dbe7ff }
+    #game-container { width:100%; height:100%; display:flex; align-items:center; justify-content:center }
+    .instructions { position: absolute; top:12px; left:12px; right:12px; color:#dbe7ffcc; font-size:14px; line-height:1.3; max-width:900px }
+    .credits { position: absolute; bottom:12px; left:12px; color:#dbe7ff88; font-size:12px }
+    a { color:#9ad1ff }
+  </style>
+</head>
+<body>
+  <!-- Short instructions: how to play (required) -->
+  <div class="instructions">
+    <strong>How to play:</strong> Guide your glowing Glassfly through a drifting, nocturnal glass garden. Move with the mouse or arrow keys/touch to collect luminous Petals and recharge your energy. Avoid the shadow Moths — collisions damage your energy. Survive as long as you can to grow your score; each Petal collected increases score and restores energy. Click or press Space to (re)start.
+  </div>
+
+  <div id="game-container"></div>
+  <div class="credits">Theme: "Nocturnal Glass Gardens" • Synth background music (generated) • Developer: AI</div>
+
+  <!-- Phaser 3 via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

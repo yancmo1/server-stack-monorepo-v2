@@ -1,0 +1,24 @@
+# Node / Capacitor
+node_modules/
+dist/
+build/
+.DS_Store
+*.log
+
+# Capacitor iOS platform output
+ios/
+plugins/
+
+# Xcode
+*.xcworkspace/
+*.xcodeproj/
+DerivedData/
+build/
+*.pbxproj
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+
+# Env
+.env
