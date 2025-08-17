@@ -181,12 +181,14 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: calc(56px + env(safe-area-inset-bottom));
+    height: calc(64px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1040;
+    pointer-events: auto;
+    background: transparent;
 }
 .app-fade-enter {
     opacity: 0;
@@ -202,7 +204,7 @@
     max-width: 540px;
     margin: 0 auto;
     padding: 8px 16px;
-    background: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(8px);
     border-radius: 28px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.12);
@@ -213,3 +215,6 @@
 .photo-item:hover img {
     transform: scale(1.1);
 }
+
+/* Add bottom padding to main content so it doesn't scroll under the fixed nav */
+main.container, .container { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
