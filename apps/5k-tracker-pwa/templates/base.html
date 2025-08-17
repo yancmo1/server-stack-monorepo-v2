@@ -59,6 +59,68 @@
             padding: 20px 0;
             background-color: #f8f9fa;
         }
+        /* iOS-style bottom navigation */
+        .bottom-nav {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: calc(56px + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1040;
+            pointer-events: auto;
+        }
+        .bottom-nav-inner {
+            width: 100%;
+            max-width: 540px;
+            margin: 0 auto;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bottom-nav .nav-item {
+            flex: 1 1 auto;
+            text-align: center;
+        }
+        .bottom-nav .nav-link {
+            color: #333;
+            font-size: 20px;
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            line-height: 48px;
+            border-radius: 12px;
+        }
+        .bottom-nav .nav-link.active {
+            background: linear-gradient(135deg,#4f46e5,#06b6d4);
+            color: white !important;
+            box-shadow: 0 6px 18px rgba(79,70,229,0.25);
+        }
+        .bottom-nav .fab-center {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            margin-top: -28px;
+            background: linear-gradient(135deg,#06b6d4,#4f46e5);
+            border-radius: 999px;
+            display:flex;align-items:center;justify-content:center;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+            border: 4px solid rgba(255,255,255,0.8);
+            cursor: pointer;
+        }
+        @media (min-width: 992px) {
+            /* Hide bottom nav on larger screens */
+            .bottom-nav { display: none; }
+        }
     </style>
     <script>
       if ('serviceWorker' in navigator) {
@@ -162,13 +224,124 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- iOS-style bottom navigation -->
+    <div class="bottom-nav" role="navigation" aria-label="Bottom navigation">
+        <div class="bottom-nav-inner">
+            <div class="nav-item">
+                <a class="nav-link" href="{{ url_for('dashboard') }}" title="Home" id="bn-home" aria-label="Home"><i class="fas fa-home"></i></a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" href="{{ url_for('races') }}" title="Races" id="bn-races" aria-label="Races"><i class="fas fa-list"></i></a>
+            </div>
+            <div class="nav-item" style="flex:0 0 auto;">
+                <div class="fab-center" id="bn-add" title="Add" role="button" aria-label="Add"> <i class="fas fa-plus" style="font-size:22px;"></i> </div>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link" href="{{ url_for('statistics') }}" title="Stats" id="bn-stats" aria-label="Statistics"><i class="fas fa-chart-bar"></i></a>
+            </div>
+            <div class="nav-item">
+                {% if current_user.is_authenticated %}
+                    <a class="nav-link" href="{{ url_for('profile') }}" title="Profile" id="bn-profile" aria-label="Profile"><i class="fas fa-user"></i></a>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('login') }}" title="Login" id="bn-login" aria-label="Login"><i class="fas fa-sign-in-alt"></i></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <footer class="footer mt-5">
         <div class="container text-center">
             <p class="text-muted">&copy; 2025 Race Tracker. Keep running! 🏃‍♂️</p>
         </div>
     </footer>
 
+        <!-- Quick Add Race Modal (opened by FAB) -->
+        <div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="quickAddLabel">Quick Add Race</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('add_race') }}">
+                        <div class="modal-body">
+                                <div class="mb-3">
+                                        <label for="qa_race_name" class="form-label">Race Name</label>
+                                        <input type="text" class="form-control" id="qa_race_name" name="race_name" required>
+                                </div>
+                                <div class="mb-3">
+                                        <label for="qa_race_date" class="form-label">Date</label>
+                                        <input type="date" class="form-control" id="qa_race_date" name="race_date" required>
+                                </div>
+                                <div class="mb-3">
+                                        <label for="qa_finish_time" class="form-label">Finish Time</label>
+                                        <input type="text" class="form-control" id="qa_finish_time" name="finish_time" placeholder="MM:SS or HH:MM:SS" required>
+                                </div>
+                                <input type="hidden" name="race_type" value="5K">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Race</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Bottom nav interactions: center FAB opens Add Race page (progressive enhancement)
+        document.addEventListener('DOMContentLoaded', function() {
+            var fab = document.getElementById('bn-add');
+            if (fab) {
+                fab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Open the Quick Add modal if Bootstrap modal is available
+                    try {
+                        var quickModalEl = document.getElementById('quickAddModal');
+                        var quickModal = new bootstrap.Modal(quickModalEl);
+                        quickModal.show();
+                    } catch (err) {
+                        // Fallback to full add page
+                        window.location.href = '{{ url_for("add_race") }}';
+                    }
+                });
+            }
+
+            // Highlight active bottom nav item based on pathname
+            var path = window.location.pathname || '';
+            var mapping = {
+                'dashboard': '#bn-home',
+                'races': '#bn-races',
+                'add_race': '#bn-add',
+                'statistics': '#bn-stats',
+                'profile': '#bn-profile',
+                'login': '#bn-login'
+            };
+            // Try to use server-side endpoint name when available via a data attribute
+            try {
+                // simple heuristics: check known route fragments
+                if (path.indexOf('/add_race') !== -1) document.querySelector('#bn-add')?.classList.add('active');
+                else if (path.indexOf('/races') !== -1) document.querySelector('#bn-races')?.classList.add('active');
+                else if (path.indexOf('/statistics') !== -1) document.querySelector('#bn-stats')?.classList.add('active');
+                else if (path.indexOf('/profile') !== -1) document.querySelector('#bn-profile')?.classList.add('active');
+                else if (path.indexOf('/login') !== -1) document.querySelector('#bn-login')?.classList.add('active');
+                else document.querySelector('#bn-home')?.classList.add('active');
+            } catch (e) {
+                // no-op
+            }
+        });
+    </script>
+    <script>
+        // Page transition: add class for fade-in
+        document.documentElement.classList.add('app-fade-enter');
+        window.addEventListener('load', function() {
+            document.documentElement.classList.add('app-fade-enter-active');
+            setTimeout(function(){
+                document.documentElement.classList.remove('app-fade-enter');
+            }, 350);
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Add Race - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus"></i> Add Race</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" autocomplete="off">
+                        <div class="mb-3">
+                            <label for="race_name" class="form-label">Race Name</label>
+                            <input type="text" class="form-control" id="race_name" name="race_name" placeholder="e.g. Tulsa 5K" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="race_type" class="form-label">Race Type</label>
+                            <select class="form-select" id="race_type" name="race_type" required>
+                                <option value="">Select type...</option>
+                                <option value="5K">5K</option>
+                                <option value="10K">10K</option>
+                                <option value="Half Marathon">Half Marathon</option>
+                                <option value="Marathon">Marathon</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label for="race_date" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="race_date" name="race_date" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="race_time" class="form-label">Start Time</label>
+                                <input type="time" class="form-control" id="race_time" name="race_time">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="finish_time" class="form-label">Finish Time (Elapsed Gun Time)</label>
+                            <input type="text" class="form-control" id="finish_time" name="finish_time" placeholder="5K/10K: MM:SS:CC (e.g. 21:45:37), Longer: HH:MM:SS (e.g. 1:45:23)" required pattern="^((\d{1,2}):(\d{2}):(\d{2})(:(\d{1,2}))?|\d{1,2}:\d{2}|\d{1,2}:\d{2}:\d{1,2})$" title="5K/10K: MM:SS:CC, Longer: HH:MM:SS; CC=centiseconds optional">
+                            <div class="form-text">Tip: For 5K/10K include centiseconds (MM:SS:CC). For Half/Marathon use HH:MM:SS.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="e.g. Tulsa, OK" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="weather" class="form-label">Weather (Temp, Humidity, Wind in °F)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="weather" name="weather" placeholder="Auto-fill or enter manually (e.g. 72°F, humidity 60%, wind 5 mph)">
+                                <button type="button" class="btn btn-outline-secondary" id="fetch-weather-btn">Get Weather</button>
+                            </div>
+                            <div id="weather-status" class="form-text text-muted"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Any notes about the race..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Photos</label>
+                            <div class="alert alert-info py-2" id="paste-hint" style="display:block;">
+                                <strong>Tip: Right click here, and you can paste an image from your phone.</strong>
+                            </div>
+                            <div id="pasted-photo-list" class="mb-3"></div>
+                            <div id="photo-list"></div>
+                            <button type="button" class="btn btn-outline-primary w-100 mt-2" id="add-photo-btn">
+                                <i class="fas fa-camera"></i> Add Photo
+                            </button>
+                            <div class="form-text mt-2" id="photo-count-status"></div>
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Save Race
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dynamic photo & pasted image logic
+let filePhotoCount = 0;           // number of file upload rows
+let pastedPhotoCount = 0;         // number of pasted images
+let pastedIndexSeq = 0;           // monotonically increasing index used in field names to avoid collisions
+const maxPhotos = 10;             // total (file + pasted)
+const photoList = document.getElementById('photo-list');
+const pastedPhotoList = document.getElementById('pasted-photo-list');
+const addPhotoBtn = document.getElementById('add-photo-btn');
+const photoCountStatus = document.getElementById('photo-count-status');
+
+function totalPhotos() { return filePhotoCount + pastedPhotoCount; }
+function updatePhotoControls() {
+    const remaining = maxPhotos - totalPhotos();
+    addPhotoBtn.disabled = remaining <= 0;
+    if (photoCountStatus) {
+        photoCountStatus.textContent = `${totalPhotos()} / ${maxPhotos} photos added`;
+    }
+}
+
+function createPhotoRow(idx) {
+    const row = document.createElement('div');
+    row.className = 'card mb-3 shadow-sm';
+    row.style.position = 'relative';
+    row.innerHTML = `
+        <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+            <div class="flex-shrink-0 text-center" style="width:120px;">
+                <img id="photo_preview${idx}" src="" alt="Preview" style="display:none;max-width:100%;max-height:100px;border-radius:8px;" />
+            </div>
+            <div class="flex-grow-1 w-100">
+                <input type="file" class="form-control mb-2" id="photo${idx}" name="photo${idx}" accept="image/*">
+                <select class="form-select mb-2" id="photo_type${idx}" name="photo_type${idx}">
+                    <option value="other">Other</option>
+                    <option value="finish">Finish Line</option>
+                    <option value="medal">Medal</option>
+                    <option value="bib">Race Bib</option>
+                </select>
+                <input type="text" class="form-control mb-2" id="photo_caption${idx}" name="photo_caption${idx}" placeholder="Optional caption">
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <button type="button" class="btn btn-success btn-sm save-photo-btn" title="Save Photo">
+                        <i class="fas fa-save"></i> Save Photo
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm remove-photo-btn ms-2" title="Remove Photo">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    // Preview logic
+    const fileInput = row.querySelector(`#photo${idx}`);
+    const previewImg = row.querySelector(`#photo_preview${idx}`);
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                previewImg.src = ev.target.result;
+                previewImg.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewImg.src = '';
+            previewImg.style.display = 'none';
+        }
+    });
+    // Remove logic
+    row.querySelector('.remove-photo-btn').addEventListener('click', function() {
+        row.remove();
+        photoCount--;
+        addPhotoBtn.disabled = false;
+    });
+    // Save logic (for UI feedback only)
+    row.querySelector('.save-photo-btn').addEventListener('click', function() {
+        alert('Photo info saved for this row.');
+    });
+    return row;
+}
+
+addPhotoBtn.addEventListener('click', function() {
+    if (totalPhotos() >= maxPhotos) return;
+    filePhotoCount++;
+    const row = createPhotoRow(filePhotoCount);
+    photoList.appendChild(row);
+    updatePhotoControls();
+});
+
+// Clipboard paste handler (document-level to catch even when focus in inputs)
+document.addEventListener('paste', function(event) {
+    if (!event.clipboardData) return;
+    const items = event.clipboardData.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+            if (totalPhotos() >= maxPhotos) break;
+            const file = item.getAsFile();
+            if (!file) continue;
+            // Size guard (6MB max raw before encode)
+            if (file.size > 6 * 1024 * 1024) {
+                alert(`Pasted image '${file.name || 'clipboard'}' is larger than 6MB and was skipped.`);
+                continue;
+            }
+            const reader = new FileReader();
+            pastedIndexSeq++;
+            const thisIndex = pastedIndexSeq; // used in field names
+            reader.onload = function(ev) {
+                const dataUrl = ev.target.result;
+                // Create UI card
+                const card = document.createElement('div');
+                card.className = 'card mb-3 shadow-sm border-success';
+                card.innerHTML = `
+                    <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3">
+                        <div class="flex-shrink-0 text-center" style="width:120px;">
+                            <img src="${dataUrl}" alt="Pasted Preview" style="max-width:100%;max-height:100px;border-radius:8px;" />
+                        </div>
+                        <div class="flex-grow-1 w-100">
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Photo Type</label>
+                                <select class="form-select form-select-sm" name="pasted_type_${thisIndex}">
+                                    <option value="other" selected>Other</option>
+                                    <option value="finish">Finish Line</option>
+                                    <option value="medal">Medal</option>
+                                    <option value="bib">Race Bib</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" class="form-control form-control-sm" name="pasted_caption_${thisIndex}" placeholder="Optional caption">
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-pasted-btn"><i class="fas fa-trash"></i> Remove</button>
+                            <input type="hidden" name="pasted_image_${thisIndex}" value="${dataUrl}">
+                        </div>
+                    </div>
+                `;
+                const removeBtn = card.querySelector('.remove-pasted-btn');
+                removeBtn.addEventListener('click', function() {
+                    card.remove();
+                    pastedPhotoCount--; 
+                    updatePhotoControls();
+                });
+                pastedPhotoList.appendChild(card);
+                pastedPhotoCount++;
+                updatePhotoControls();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+});
+
+updatePhotoControls();
+
+// Weather auto-fill logic
+function getWeather(place, date, time) {
+    const statusElement = document.getElementById('weather-status');
+    if (!place || !date) {
+        statusElement.textContent = 'Enter location and date to fetch weather.';
+        statusElement.classList.remove('text-success');
+        statusElement.classList.add('text-danger');
+        return;
+    }
+    
+    // If no time provided, default to 8:00 AM
+    if (!time) {
+        time = '08:00';
+    }
+    
+    statusElement.textContent = 'Fetching weather...';
+    statusElement.classList.remove('text-danger', 'text-success');
+    statusElement.classList.add('text-primary');
+    
+    const datetime = date + 'T' + time;
+    
+    // Use relative URL that works with the Flask app routing
+    const weatherUrl = 'api/weather';
+    const fullUrl = `${weatherUrl}?place=${encodeURIComponent(place)}&datetime=${encodeURIComponent(datetime)}`;
+    
+    console.log('Fetching weather from:', fullUrl); // Debug log
+    
+    fetch(fullUrl)
+        .then(response => {
+            return response.json().then(data => ({
+                ok: response.ok,
+                status: response.status,
+                data: data
+            }));
+        })
+        .then(({ok, status, data}) => {
+            console.log('Weather response:', {ok, status, data}); // Debug log
+            
+            if (!ok) {
+                const errorMsg = data && data.error ? data.error : `Weather service error (${status})`;
+                statusElement.textContent = errorMsg;
+                statusElement.classList.remove('text-success', 'text-primary');
+                statusElement.classList.add('text-danger');
+                return;
+            }
+            
+            if (data && data.weather) {
+                const w = data.weather;
+                const tempUnit = w.unit === 'F' ? '°F' : '°C';
+                const windSpeed = w.wind_speed ? Math.round(w.wind_speed * 10) / 10 : 0;
+                const humidity = (w.humidity !== undefined && w.humidity !== null) ? Math.round(w.humidity) : null;
+                
+                let summary = `${w.temperature}${tempUnit}`;
+                if (humidity !== null) {
+                    summary += `, humidity ${humidity}%`;
+                }
+                summary += `, wind ${windSpeed} mph`;
+                
+                document.getElementById('weather').value = summary;
+                statusElement.textContent = `Weather auto-filled for ${data.location.name}, ${data.location.state}`;
+                statusElement.classList.remove('text-danger', 'text-primary');
+                statusElement.classList.add('text-success');
+            } else {
+                statusElement.textContent = 'No weather data available for this date/location.';
+                statusElement.classList.remove('text-success', 'text-primary');
+                statusElement.classList.add('text-danger');
+            }
+        })
+        .catch(error => {
+            console.error('Weather fetch error:', error); // Debug log
+            statusElement.textContent = 'Could not fetch weather. Check network connection.';
+            statusElement.classList.remove('text-success', 'text-primary');
+            statusElement.classList.add('text-danger');
+        });
+}
+
+const locationInput = document.getElementById('location');
+const dateInput = document.getElementById('race_date');
+const timeInput = document.getElementById('race_time');
+const fetchBtn = document.getElementById('fetch-weather-btn');
+
+    if (fetchBtn) {
+        fetchBtn.addEventListener('click', function() {
+            getWeather(locationInput.value, dateInput.value, timeInput.value);
+        });
+    }
+
+[locationInput, dateInput, timeInput].forEach(input => {
+    input.addEventListener('change', function() {
+        // Auto-fetch weather when location and date are filled (time is optional)
+        if (locationInput.value && dateInput.value) {
+            getWeather(locationInput.value, dateInput.value, timeInput.value);
+        }
+    });
+});
+</script>
+{% endblock %}

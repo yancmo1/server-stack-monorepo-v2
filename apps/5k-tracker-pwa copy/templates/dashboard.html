@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Race Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- iPhone Installation Instructions - Compact -->
+    <div id="install-alert" class="alert alert-info alert-dismissible fade show py-2" role="alert" style="font-size: 0.9rem; display: none;">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-mobile-alt me-2"></i>
+            <div class="flex-grow-1">
+                <strong>Install as iPhone App:</strong> 
+                Tap <i class="fas fa-share"></i> → "Add to Home Screen" for app-like experience
+            </div>
+            <div class="d-flex gap-1 ms-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="dont-show-install" style="font-size: 0.75rem;">Don't show again</button>
+                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Show install prompt only if not hidden in settings
+    document.addEventListener('DOMContentLoaded', function() {
+        if (localStorage.getItem('hideInstallPrompt') !== 'true') {
+            document.getElementById('install-alert').style.display = 'block';
+        }
+        
+        // Handle "Don't show again" button
+        document.getElementById('dont-show-install').addEventListener('click', function() {
+            localStorage.setItem('hideInstallPrompt', 'true');
+            document.getElementById('install-alert').style.display = 'none';
+        });
+    });
+    </script>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Welcome back, {{ current_user.first_name }}! 🏃‍♀️</h2>
+        <a href="{{ url_for('add_race') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Race
+        </a>
+    </div>
+
+    <!-- Stats Overview - Compact 2x2 Grid with Clickable Actions -->
+    <div class="row mb-4 g-3">
+        <div class="col-6 col-md-6">
+            <a href="{{ url_for('races') }}" class="text-decoration-none">
+                <div class="card bg-primary text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-running fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ total_races }}</h5>
+                        <small class="mb-0">Total Races</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-6">
+            <a href="{{ url_for('statistics') }}" class="text-decoration-none">
+                <div class="card bg-success text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-trophy fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ personal_records|length }}</h5>
+                        <small class="mb-0">Personal Records</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-6">
+            <a href="{{ url_for('races') }}" class="text-decoration-none">
+                <div class="card bg-warning text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-calendar fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ recent_races|length }}</h5>
+                        <small class="mb-0">Recent Races</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-6">
+            <a href="{{ url_for('photos') }}" class="text-decoration-none">
+                <div class="card bg-info text-white h-100 dashboard-tile">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-camera fa-lg mb-2"></i>
+                        <h5 class="mb-1">{{ (recent_races|map(attribute='photos')|map('length')|sum) or 0 }}</h5>
+                        <small class="mb-0">Photos Uploaded</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <style>
+    .dashboard-tile {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+    }
+    .dashboard-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    </style>
+
+    <div class="row">
+        <!-- Personal Records -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-trophy text-warning"></i> Personal Records</h5>
+                </div>
+                <div class="card-body">
+                    {% if personal_records %}
+                        <div class="list-group list-group-flush">
+                            {% for race_type, race in personal_records.items() %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ race_type }}</strong><br>
+                                        <small class="text-muted">{{ race.race_name }} - {{ race.race_date.strftime('%m/%d/%Y') }}</small>
+                                    </div>
+                                    <span class="badge bg-success rounded-pill">{{ format_time(race.race_type, race.finish_time) }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No personal records yet. <a href="{{ url_for('add_race') }}">Add your first race!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Races -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock text-primary"></i> Recent Races</h5>
+                    <a href="{{ url_for('races') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_races %}
+                        <div class="list-group list-group-flush">
+                            {% for race in recent_races %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ race.race_name }}</h6>
+                                            <p class="mb-1">
+                                                <span class="badge bg-secondary me-2">{{ race.race_type }}</span>
+                                                <strong>{{ format_time(race.race_type, race.finish_time) }}</strong>
+                                            </p>
+                                            <small class="text-muted">{{ race.race_date.strftime('%B %d, %Y') }}</small>
+                                        </div>
+                                        {% if race.photos %}
+                                            <i class="fas fa-camera text-success" title="Has photos"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No races recorded yet. <a href="{{ url_for('add_race') }}">Add your first race!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bolt text-warning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('add_race') }}" class="btn btn-outline-primary btn-block w-100 mb-2">
+                                <i class="fas fa-plus"></i> Add Race
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('races') }}" class="btn btn-outline-secondary btn-block w-100 mb-2">
+                                <i class="fas fa-list"></i> View All Races
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('statistics') }}" class="btn btn-outline-info btn-block w-100 mb-2">
+                                <i class="fas fa-chart-line"></i> Statistics
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-block w-100 mb-2">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    // Hide install alert if user opted out (shared with index.html)
+    document.addEventListener('DOMContentLoaded', function() {
+        if (localStorage.getItem('hideInstallAlert') === '1') {
+            var alertElem = document.getElementById('install-alert');
+            if (alertElem) alertElem.style.display = 'none';
+        }
+        var dontShowBtn = document.getElementById('dont-show-install');
+        if (dontShowBtn) {
+            dontShowBtn.addEventListener('click', function() {
+                localStorage.setItem('hideInstallAlert', '1');
+                var alertElem = document.getElementById('install-alert');
+                if (alertElem) alertElem.style.display = 'none';
+            });
+        }
+    });
+</script>
+{% endblock %}
