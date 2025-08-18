@@ -1,7 +1,7 @@
 // Service Worker for Race Tracker PWA - lightweight cache versioning
 const CACHE_PREFIX = 'race-tracker-v';
 // IMPORTANT: bump this value on deploy (we set headers no-cache for sw.js and manifest)
-const CACHE_VERSION = '5';
+const CACHE_VERSION = '6';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 const PRECACHE_URLS = [
   '/tracker/manifest.json',
