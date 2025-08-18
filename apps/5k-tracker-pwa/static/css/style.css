@@ -91,13 +91,15 @@
 
 /* Mobile header tweaks: icon-only navbar on small screens */
 @media (max-width: 576px) {
-    .navbar { padding-top: 4px; padding-bottom: 4px; }
-    .navbar .navbar-brand { font-size: 0.98rem; }
+    .navbar { padding-top: 2px; padding-bottom: 2px; }
+    .navbar .navbar-brand { font-size: 1rem; line-height: 1.1; display: inline-flex; align-items: center; }
+    .navbar .navbar-brand i { font-size: 1rem; margin-right: 6px; }
     .navbar .nav-link { padding-left: 0.5rem; padding-right: 0.5rem; }
     .navbar .nav-link i { font-size: 18px; }
     .navbar .nav-link { color: #fff; }
     .navbar .nav-link span, .navbar .nav-link .text { display: none; }
     .navbar .dropdown-toggle::after { display: none; }
+    .navbar-toggler { padding: 2px 8px; font-size: 0.9rem; }
 }
 
 /* Larger touch targets for bottom nav */
