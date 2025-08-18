@@ -45,6 +45,10 @@ List: sortable/filterable/searchable race list; details page
 
 Photos: upload per race (basic)
 
+Workouts: A page to import workouts from IOS or input data like time and milage on the treadmill or outside. Give option to choose. When app is ready for app store we'll incorporate healthkit. 
+
+
+
 Import: CSV/JSON import (stub is fine for V2)
 
 Dashboard & Analytics:
