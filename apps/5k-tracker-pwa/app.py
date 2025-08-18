@@ -56,6 +56,30 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 app.config['REMEMBER_COOKIE_SECURE'] = True
 
+# Development toggles for hot reload
+if os.environ.get('FLASK_ENV') == 'development' or os.environ.get('FLASK_DEBUG') == '1':
+    app.config['ENV'] = 'development'
+    app.config['DEBUG'] = True
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    try:
+        app.jinja_env.auto_reload = True
+        app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    except Exception:
+        pass
+    # Dev: local HTTP, so don't mark cookies as Secure and prefer http scheme
+    app.config['SESSION_COOKIE_SECURE'] = False
+    app.config['REMEMBER_COOKIE_SECURE'] = False
+    app.config['PREFERRED_URL_SCHEME'] = 'http'
+
+def _is_dev_runtime() -> bool:
+    return os.environ.get('FLASK_ENV') == 'development' or os.environ.get('FLASK_DEBUG') == '1'
+
+@app.context_processor
+def inject_env_flags():
+    return {
+        'is_dev': _is_dev_runtime()
+    }
+
 
 # --- Template context processor: asset_version for cache-busting ---
 def _get_asset_version():

@@ -10,6 +10,7 @@ backups/
 *.tar.gz
 *.db.bak*
 *.bak
+archive/
 
 # Temporary files
 tmp/

@@ -33,7 +33,7 @@ EXPOSE 5555
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5555/ || exit 1
+    CMD curl -fsS http://localhost:5555/tracker/health || exit 1
 
 # Use init_and_run.sh as entrypoint for dev
 ENTRYPOINT ["/app/init_and_run.sh"]
