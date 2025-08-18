@@ -208,8 +208,8 @@ function createPhotoRow(idx) {
     // Remove logic
     row.querySelector('.remove-photo-btn').addEventListener('click', function() {
         row.remove();
-        if (filePhotoCount > 0) filePhotoCount--;
-        updatePhotoControls();
+        photoCount--;
+        addPhotoBtn.disabled = false;
     });
     // Save logic (for UI feedback only)
     row.querySelector('.save-photo-btn').addEventListener('click', function() {

@@ -142,11 +142,9 @@
         });
       }
     </script>
-    <!-- Turbo Drive for content-only navigation (keeps header/footer persistent) -->
-    <script src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@7.3.0/dist/turbo.es2017-umd.js" defer></script>
 </head>
 <body>
-    <nav id="top-navbar" class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-running"></i> Race Tracker
@@ -236,7 +234,7 @@
     </main>
 
     <!-- iOS-style bottom navigation -->
-    <div id="mobile-bottom-nav" class="bottom-nav" role="navigation" aria-label="Bottom navigation" data-turbo-permanent>
+    <div class="bottom-nav" role="navigation" aria-label="Bottom navigation">
         <div class="bottom-nav-inner">
             <div class="nav-item">
                 <a class="nav-link" href="{{ url_for('dashboard') }}" title="Home" id="bn-home" aria-label="Home"><i class="fas fa-home"></i></a>
@@ -251,7 +249,11 @@
                 <a class="nav-link" href="{{ url_for('statistics') }}" title="Stats" id="bn-stats" aria-label="Statistics"><i class="fas fa-chart-bar"></i></a>
             </div>
             <div class="nav-item">
-                <a class="nav-link" href="{{ url_for('profile') }}" title="Profile" id="bn-profile" aria-label="Profile"><i class="fas fa-user"></i></a>
+                {% if current_user.is_authenticated %}
+                    <a class="nav-link" href="{{ url_for('profile') }}" title="Profile" id="bn-profile" aria-label="Profile"><i class="fas fa-user"></i></a>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('login') }}" title="Login" id="bn-login" aria-label="Login"><i class="fas fa-sign-in-alt"></i></a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -263,8 +265,8 @@
         </div>
     </footer>
 
-    <!-- Quick Add Race Modal (opened by FAB) -->
-    <div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddLabel" aria-hidden="true" data-turbo-permanent>
+        <!-- Quick Add Race Modal (opened by FAB) -->
+        <div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -299,7 +301,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Bottom nav interactions: center FAB opens Add Race page (progressive enhancement)
-        function initBottomNav() {
+        document.addEventListener('DOMContentLoaded', function() {
             var fab = document.getElementById('bn-add');
             if (fab) {
                 fab.addEventListener('click', function(e) {
@@ -315,43 +317,40 @@
                     }
                 });
             }
-        }
 
-        function setActiveBottomNav() {
-            // Clear any existing active state first
-            document.querySelectorAll('.bottom-nav .nav-link').forEach(function(el){ el.classList.remove('active'); });
+            // Highlight active bottom nav item based on pathname
             var path = window.location.pathname || '';
+            var mapping = {
+                'dashboard': '#bn-home',
+                'races': '#bn-races',
+                'add_race': '#bn-add',
+                'statistics': '#bn-stats',
+                'profile': '#bn-profile',
+                'login': '#bn-login'
+            };
+            // Try to use server-side endpoint name when available via a data attribute
             try {
+                // simple heuristics: check known route fragments
                 if (path.indexOf('/add_race') !== -1) document.querySelector('#bn-add')?.classList.add('active');
                 else if (path.indexOf('/races') !== -1) document.querySelector('#bn-races')?.classList.add('active');
                 else if (path.indexOf('/statistics') !== -1) document.querySelector('#bn-stats')?.classList.add('active');
-                else if (path.indexOf('/profile') !== -1 || path.indexOf('/login') !== -1) document.querySelector('#bn-profile')?.classList.add('active');
+                else if (path.indexOf('/profile') !== -1) document.querySelector('#bn-profile')?.classList.add('active');
+                else if (path.indexOf('/login') !== -1) document.querySelector('#bn-login')?.classList.add('active');
                 else document.querySelector('#bn-home')?.classList.add('active');
-            } catch (e) { /* no-op */ }
-        }
-
-        // Initialize on first load and on Turbo navigations
-        document.addEventListener('DOMContentLoaded', function() {
-            initBottomNav();
-            setActiveBottomNav();
-        });
-        document.addEventListener('turbo:load', function() {
-            setActiveBottomNav();
+            } catch (e) {
+                // no-op
+            }
         });
     </script>
     <script>
         // Page transition: add class for fade-in
-        function triggerPageFade() {
-            document.documentElement.classList.add('app-fade-enter');
-            requestAnimationFrame(function(){
-                document.documentElement.classList.add('app-fade-enter-active');
-                setTimeout(function(){
-                    document.documentElement.classList.remove('app-fade-enter');
-                }, 320);
-            });
-        }
-        window.addEventListener('load', triggerPageFade);
-        document.addEventListener('turbo:render', triggerPageFade);
+        document.documentElement.classList.add('app-fade-enter');
+        window.addEventListener('load', function() {
+            document.documentElement.classList.add('app-fade-enter-active');
+            setTimeout(function(){
+                document.documentElement.classList.remove('app-fade-enter');
+            }, 350);
+        });
     </script>
     {% block scripts %}{% endblock %}
 </body>
