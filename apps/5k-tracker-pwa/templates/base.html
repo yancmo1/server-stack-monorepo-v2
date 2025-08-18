@@ -337,6 +337,20 @@
             }
         }
 
+        // Ensure navbar collapsed-state listeners are bound (idempotent)
+        function bindNavbarCollapseListeners() {
+            try {
+                var nav = document.getElementById('top-navbar');
+                var collapse = document.getElementById('navbarNav');
+                if (!nav || !collapse) return;
+                // Avoid duplicate bindings if Turbo reuses nodes
+                if (collapse.dataset.collapseBound === '1') return;
+                collapse.addEventListener('shown.bs.collapse', function(){ nav.classList.remove('is-collapsed'); });
+                collapse.addEventListener('hidden.bs.collapse', function(){ nav.classList.add('is-collapsed'); });
+                collapse.dataset.collapseBound = '1';
+            } catch(e) { /* no-op */ }
+        }
+
         function setActiveBottomNav() {
             // Clear any existing active state first
             document.querySelectorAll('.bottom-nav .nav-link').forEach(function(el){ el.classList.remove('active'); });
@@ -361,9 +375,8 @@
                 if (nav && collapse && !collapse.classList.contains('show')) {
                     nav.classList.add('is-collapsed');
                 }
-                // Listen for bootstrap collapse events to toggle fixed height
-                collapse.addEventListener('shown.bs.collapse', function(){ nav.classList.remove('is-collapsed'); });
-                collapse.addEventListener('hidden.bs.collapse', function(){ nav.classList.add('is-collapsed'); });
+                // Bind collapse listeners once
+                bindNavbarCollapseListeners();
             } catch(e) { /* no-op */ }
         });
         document.addEventListener('turbo:load', function() {
@@ -375,6 +388,8 @@
                 if (nav && collapse && !collapse.classList.contains('show')) {
                     nav.classList.add('is-collapsed');
                 }
+                // Rebind listeners if nav was re-rendered
+                bindNavbarCollapseListeners();
             } catch(e) { /* no-op */ }
         });
     </script>
