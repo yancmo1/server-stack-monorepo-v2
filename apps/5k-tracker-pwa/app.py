@@ -56,6 +56,21 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 app.config['REMEMBER_COOKIE_SECURE'] = True
 
+
+# --- Template context processor: asset_version for cache-busting ---
+def _get_asset_version():
+    try:
+        # short git hash, fall back to timestamp
+        import subprocess
+        sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=os.path.dirname(__file__)).decode().strip()
+        return sha
+    except Exception:
+        return str(int(datetime.utcnow().timestamp()))
+
+@app.context_processor
+def inject_asset_version():
+    return {'asset_version': _get_asset_version()}
+
 # --- Flask-Login Manager ---
 login_manager = LoginManager()
 login_manager.init_app(app)
