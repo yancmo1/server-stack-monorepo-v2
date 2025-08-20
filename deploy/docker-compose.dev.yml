@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: racetracker
       POSTGRES_PASSWORD: racetracker
     ports:
-      - "5433:5432"
+      - "5440:5432"
     volumes:
       - tracker_pgdata_dev:/var/lib/postgresql/data
     restart: unless-stopped
@@ -38,17 +38,20 @@ services:
       dockerfile: Dockerfile
     container_name: pwa-tracker-dev
     ports:
-      - "5555:5555"
-    entrypoint: ["bash", "/app/init_and_run.sh"]
+      - "5556:5555"
     environment:
       - FLASK_ENV=development
       - FLASK_DEBUG=1
       - PYTHONUNBUFFERED=1
+      - GUNICORN_RELOAD=1
       - TRACKER_DATABASE_URI=postgresql://racetracker:racetracker@db:5432/racetracker
     volumes:
+      # Mount source code for hot reload
       - ../apps/5k-tracker-pwa:/app
       - tracker_uploads_dev:/app/uploads
       - ../shared/ssl:/app/ssl:ro
+    # Use custom command with hot reload for development
+    command: ["bash", "-c", "bash /app/init_and_run.sh"]
     depends_on:
       - db
     restart: unless-stopped

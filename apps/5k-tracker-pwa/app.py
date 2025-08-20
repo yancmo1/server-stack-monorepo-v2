@@ -197,7 +197,7 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
 class Race(db.Model):
-    def __init__(self, user_id, race_name, race_type, race_date, race_time, finish_time, location=None, weather=None, start_weather=None, finish_weather=None, notes=None, created_at=None):
+    def __init__(self, user_id, race_name, race_type, race_date, race_time, finish_time, location=None, weather=None, start_weather=None, finish_weather=None, notes=None, race_page_url=None, created_at=None):
         self.user_id = user_id
         self.race_name = race_name
         self.race_type = race_type
@@ -209,6 +209,7 @@ class Race(db.Model):
         self.start_weather = start_weather
         self.finish_weather = finish_weather
         self.notes = notes
+        self.race_page_url = race_page_url
         self.created_at = created_at or datetime.utcnow()
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -222,6 +223,7 @@ class Race(db.Model):
     start_weather = db.Column(db.String(100))  # cached weather at start
     finish_weather = db.Column(db.String(100))  # cached weather at finish
     notes = db.Column(db.Text)
+    race_page_url = db.Column(db.String(500))  # URL to race results page
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Photo relationships
     photos = db.relationship('RacePhoto', backref='race', lazy=True, cascade='all, delete-orphan')
@@ -680,7 +682,8 @@ def add_race():
         finish_time=request.form['finish_time'],
         location=request.form.get('location', ''),
         weather=request.form.get('weather', ''),
-        notes=request.form.get('notes', '')
+        notes=request.form.get('notes', ''),
+        race_page_url=request.form.get('race_page_url', '')
     )
     db.session.add(race)
     db.session.commit()
@@ -718,6 +721,7 @@ def edit_race(race_id):
     race.location = request.form.get('location', '')
     race.weather = request.form.get('weather', '')
     race.notes = request.form.get('notes', '')
+    race.race_page_url = request.form.get('race_page_url', '')
 
     for i in range(1, 11):
         file = request.files.get(f'photo{i}')

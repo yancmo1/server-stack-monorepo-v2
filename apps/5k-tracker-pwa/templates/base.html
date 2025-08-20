@@ -60,7 +60,6 @@
             padding: 20px 0;
             background-color: #f8f9fa;
         }
-        /* iOS-style bottom navigation (anchored) */
         .bottom-nav {
             position: fixed;
             left: 0;
@@ -73,7 +72,7 @@
             align-items: flex-end;
             z-index: 1080;
             pointer-events: auto;
-            background: #ffffff; /* make the bar itself flush and opaque */
+            background: #ffffff;
             border-top: 1px solid rgba(0,0,0,0.08);
         }
         .bottom-nav-inner {
@@ -81,18 +80,18 @@
             max-width: 560px;
             margin: 0 auto;
             padding: 10px 12px 6px 12px;
-            background: transparent; /* let the full-width bar provide background */
+            background: transparent;
             backdrop-filter: none;
-            border-radius: 0; /* no pill shape */
-            box-shadow: none; /* remove floating look */
+            border-radius: 0;
+            box-shadow: none;
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
             align-items: center;
         }
         /* Compact the top navbar on small screens */
         @media (max-width: 576px) {
             .navbar { 
-                --bs-navbar-padding-y: 0.25rem; /* small but comfortable */
+                --bs-navbar-padding-y: 0.25rem;
                 padding-top: 6px; 
                 padding-bottom: 3px; 
             }
@@ -107,44 +106,34 @@
             }
             .navbar .navbar-brand i { font-size: 2.0rem; margin-right: 6px; }
             .navbar-toggler { padding: 2px 6px; font-size: 2.0rem; border: none; }
-            .navbar-toggler .navbar-toggler-icon { width: 18px; height: 18px; }
-            /* Exact collapsed height for blue bar */
+            /* Exact collapsed height for white bar */
             #top-navbar.is-collapsed { height: 52px; min-height: 12px; }
             #top-navbar.is-collapsed .container { height: 100%; display: flex; align-items: center; }
             /* Ensure collapsed content doesn't reserve space */
             #top-navbar .navbar-collapse.collapse:not(.show) { display: none; }
         }
         .bottom-nav .nav-item {
-            flex: 1 1 auto;
+            flex: 1;
             text-align: center;
         }
         .bottom-nav .nav-link {
-            color: #333;
+            color: #666;
             font-size: 20px;
             display: inline-block;
             width: 48px;
             height: 48px;
             line-height: 48px;
             border-radius: 12px;
+            transition: all 0.2s ease;
         }
         .bottom-nav .nav-link.active {
             background: linear-gradient(135deg,#4f46e5,#06b6d4);
             color: white !important;
             box-shadow: 0 6px 18px rgba(79,70,229,0.25);
         }
-        .bottom-nav .fab-center {
-            position: relative;
-            width: 68px;
-            height: 68px;
-            margin-top: -30px; /* slightly overlap the nav */
-            background: linear-gradient(135deg,#06b6d4,#4f46e5);
-            border-radius: 999px;
-            display:flex;align-items:center;justify-content:center;
-            color: white;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-            border: 4px solid rgba(255,255,255,0.9);
-            cursor: pointer;
-            z-index: 1090; /* sit above the nav */
+        .bottom-nav .nav-link:hover {
+            color: #007bff;
+            transform: translateY(-2px);
         }
         @media (min-width: 992px) {
             /* Hide bottom nav on larger screens */
@@ -183,45 +172,45 @@
     <script src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@7.3.0/dist/turbo.es2017-umd.js" defer></script>
 </head>
 <body>
-    <nav id="top-navbar" class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav id="top-navbar" class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
         <div class="container">
-                        <a class="navbar-brand" href="{{ url_for('index') }}">
-                                <i class="fas fa-running"></i> Race Tracker
+                        <a class="navbar-brand text-primary fw-bold" href="{{ url_for('index') }}">
+                                <i class="fas fa-running text-primary"></i> Race Tracker
                                 {% if is_dev %}
                                     <span class="badge bg-warning text-dark ms-2" title="Development Mode">DEV</span>
                                 {% endif %}
                         </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars text-primary"></i>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                            <a class="nav-link text-primary {{ 'fw-bold' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ 'active' if request.endpoint == 'races' }}" href="{{ url_for('races') }}">
+                            <a class="nav-link text-primary {{ 'fw-bold' if request.endpoint == 'races' }}" href="{{ url_for('races') }}">
                                 <i class="fas fa-list"></i> My Races
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ 'active' if request.endpoint == 'add_race' }}" href="{{ url_for('add_race') }}">
+                            <a class="nav-link text-primary {{ 'fw-bold' if request.endpoint == 'add_race' }}" href="{{ url_for('add_race') }}">
                                 <i class="fas fa-plus"></i> Add Race
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ 'active' if request.endpoint == 'statistics' }}" href="{{ url_for('statistics') }}">
+                            <a class="nav-link text-primary {{ 'fw-bold' if request.endpoint == 'statistics' }}" href="{{ url_for('statistics') }}">
                                 <i class="fas fa-chart-bar"></i> Statistics
                             </a>
                         </li>
                         {% if current_user.is_admin %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                            <a class="nav-link text-primary" href="{{ url_for('admin_users') }}">
                                 <i class="fas fa-cog"></i> Admin
                             </a>
                         </li>
@@ -232,7 +221,7 @@
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle text-primary" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user"></i> {{ current_user.first_name }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
@@ -245,12 +234,12 @@
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">
+                            <a class="nav-link text-primary" href="{{ url_for('login') }}">
                                 <i class="fas fa-sign-in-alt"></i> Login
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">
+                            <a class="nav-link text-primary" href="{{ url_for('register') }}">
                                 <i class="fas fa-user-plus"></i> Register
                             </a>
                         </li>
@@ -275,7 +264,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- iOS-style bottom navigation -->
+    <!-- Simple bottom navigation -->
     <div id="mobile-bottom-nav" class="bottom-nav" role="navigation" aria-label="Bottom navigation" {% if not is_dev %}data-turbo-permanent{% endif %}>
         <div class="bottom-nav-inner">
             <div class="nav-item">
@@ -283,9 +272,6 @@
             </div>
             <div class="nav-item">
                 <a class="nav-link" href="{{ url_for('races') }}" title="Races" id="bn-races" aria-label="Races"><i class="fas fa-list"></i></a>
-            </div>
-            <div class="nav-item" style="flex:0 0 auto;">
-                <div class="fab-center" id="bn-add" title="Add" role="button" aria-label="Add"> <i class="fas fa-plus" style="font-size:22px;"></i> </div>
             </div>
             <div class="nav-item">
                 <a class="nav-link" href="{{ url_for('statistics') }}" title="Stats" id="bn-stats" aria-label="Statistics"><i class="fas fa-chart-bar"></i></a>
@@ -338,23 +324,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Bottom nav interactions: center FAB opens Add Race page (progressive enhancement)
+        // Bottom nav interactions: simplified without FAB
         function initBottomNav() {
-            var fab = document.getElementById('bn-add');
-            if (fab) {
-                fab.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    // Open the Quick Add modal if Bootstrap modal is available
-                    try {
-                        var quickModalEl = document.getElementById('quickAddModal');
-                        var quickModal = new bootstrap.Modal(quickModalEl);
-                        quickModal.show();
-                    } catch (err) {
-                        // Fallback to full add page
-                        window.location.href = '{{ url_for("add_race") }}';
-                    }
-                });
-            }
+            // No special FAB functionality needed anymore
         }
 
         // Ensure navbar collapsed-state listeners are bound (idempotent)
@@ -376,8 +348,7 @@
             document.querySelectorAll('.bottom-nav .nav-link').forEach(function(el){ el.classList.remove('active'); });
             var path = window.location.pathname || '';
             try {
-                if (path.indexOf('/add_race') !== -1) document.querySelector('#bn-add')?.classList.add('active');
-                else if (path.indexOf('/races') !== -1) document.querySelector('#bn-races')?.classList.add('active');
+                if (path.indexOf('/races') !== -1) document.querySelector('#bn-races')?.classList.add('active');
                 else if (path.indexOf('/statistics') !== -1) document.querySelector('#bn-stats')?.classList.add('active');
                 else if (path.indexOf('/profile') !== -1 || path.indexOf('/login') !== -1) document.querySelector('#bn-profile')?.classList.add('active');
                 else document.querySelector('#bn-home')?.classList.add('active');

@@ -79,6 +79,18 @@
                             </div>
                         </div>
 
+                        <!-- Race Page URL -->
+                        <div class="mb-3">
+                            <label for="race_page_url" class="form-label">Race Page URL</label>
+                            <div class="input-group">
+                                <input type="url" class="form-control" id="race_page_url" name="race_page_url" 
+                                       value="{{ race.race_page_url or '' }}" placeholder="Paste race page URL">
+                                <button class="btn btn-outline-secondary" type="button" id="paste-url-btn" title="Paste from clipboard">
+                                    <i class="fas fa-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label for="notes" class="form-label">Race Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="3">{{ race.notes or '' }}</textarea>
@@ -343,6 +355,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.getElementById('race_date');
     const timeInput = document.getElementById('race_time');
     const fetchBtn = document.getElementById('fetch-weather-btn');
+    
+    // Weather fetching functionality
     if (fetchBtn) {
         fetchBtn.addEventListener('click', function() {
             getWeather(locationInput.value, dateInput.value, timeInput.value);
@@ -357,6 +371,24 @@ document.addEventListener('DOMContentLoaded', function() {
     timeInput.addEventListener('change', function() {
         if (locationInput.value && dateInput.value) getWeather(locationInput.value, dateInput.value, timeInput.value);
     });
+    
+    // Race page URL paste functionality
+    const pasteUrlBtn = document.getElementById('paste-url-btn');
+    const racePageUrlInput = document.getElementById('race_page_url');
+    if (pasteUrlBtn && racePageUrlInput) {
+        pasteUrlBtn.addEventListener('click', async function() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+                    racePageUrlInput.value = text;
+                } else {
+                    alert('Clipboard does not contain a valid URL');
+                }
+            } catch (err) {
+                alert('Failed to read clipboard');
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
