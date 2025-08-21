@@ -365,7 +365,7 @@ def reset_user_password(user, new_password):
 @app.route('/admin/user/<int:user_id>/reset_password', methods=['POST'])
 @login_required
 def admin_reset_password(user_id):
-    """Admin-only: reset a user's password to a temporary random value."""
+    """Admin-only: reset a user's password to a specified value."""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.')
         return redirect(url_for('dashboard'))
@@ -375,16 +375,23 @@ def admin_reset_password(user_id):
         flash('Cannot reset your own password from admin panel')
         return redirect(url_for('admin_users'))
 
-    import secrets, string
-    alphabet = string.ascii_letters + string.digits
-    temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
-    user.set_password(temp_password)
+    # Get the new password from the form
+    new_password = request.form.get('new_password')
+    if not new_password:
+        flash('Password is required', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    if len(new_password) < 6:
+        flash('Password must be at least 6 characters long', 'danger')
+        return redirect(url_for('admin_users'))
+
+    user.set_password(new_password)
     try:
         # Clear any outstanding reset token
         if hasattr(user, 'clear_reset_token'):
             user.clear_reset_token()
         db.session.commit()
-        flash(f'Temporary password for {user.email}: {temp_password}')
+        flash(f'Password successfully reset for {user.email}')
     except Exception:
         db.session.rollback()
         flash('Failed to reset password due to a server error.', 'danger')
