@@ -81,6 +81,6 @@ with app.app_context():
 CMD=(gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app)
 if [ "${FLASK_ENV}" = "development" ] || [ "${GUNICORN_RELOAD}" = "1" ]; then
     echo "Starting Gunicorn in --reload mode (development)"
-    CMD=(gunicorn --reload --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app)
+    CMD=(gunicorn --reload --bind 0.0.0.0:5555 --workers 1 --timeout 60 app:app)
 fi
 exec "${CMD[@]}"
