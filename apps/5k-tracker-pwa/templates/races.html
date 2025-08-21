@@ -63,7 +63,7 @@
                                         id="dropdownMenuButton{{ race.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
-                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ race.id }}">
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ race.id }}">
                                     <li><a class="dropdown-item" href="{{ url_for('edit_race', race_id=race.id) }}">
                                         <i class="fas fa-edit"></i> Edit
                                     </a></li>
@@ -273,4 +273,25 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Ensure Bootstrap dropdowns are properly initialized
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all dropdowns on the page
+    var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+    var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+        return new bootstrap.Dropdown(dropdownToggleEl);
+    });
+});
+
+// Also reinitialize on Turbo navigation
+document.addEventListener('turbo:load', function() {
+    var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+    var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+        return new bootstrap.Dropdown(dropdownToggleEl);
+    });
+});
+</script>
 {% endblock %}
