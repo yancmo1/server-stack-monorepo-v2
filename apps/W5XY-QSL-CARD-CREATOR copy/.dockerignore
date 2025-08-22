@@ -1,0 +1,8 @@
+# Ignore backup files and other non-essential files for Docker image
+backup_files/
+*.pyc
+__pycache__/
+.DS_Store
+*.log
+.env
+.vscode/

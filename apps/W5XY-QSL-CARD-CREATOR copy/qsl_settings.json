@@ -1,0 +1,23 @@
+{
+  "last_template": "W5XY QSL Card Python TEMPLATE.pdf",
+  "last_database": "Log4OM db.SQLite",
+  "window_size": [800, 700],
+  "default_qsl_type": "TNX",
+  "show_tooltips": true,
+  "recent_templates": ["W5XY QSL Card Python TEMPLATE.pdf"],
+  "recent_databases": ["Log4OM db.SQLite"],
+  "hamqth_username": "w5xy",
+  "hamqth_password": "${HAMQTH_PASSWORD}",
+  "gmail_username": "",
+  "onedrive_database_path": "/Users/yancyshepherd/Library/CloudStorage/OneDrive-GCGLLC/Yancy/Home/Family/Yancy/Ham/Log4OM/Log4OM db.SQLite",
+  "windows_database_path": "C:/Users/yancm/OneDrive - GCG LLC/Yancy/Home/Family/Yancy/Ham/Log4OM/Log4OM db.SQLite",
+  "network_mount_path": "/Users/yancyshepherd/Library/CloudStorage/OneDrive-GCGLLC/Yancy/Home/Family/Yancy/Ham/Log4OM/Log4OM db.SQLite",
+  "pi_network_mount_path": "/mnt/onedrive/Log4OM db.SQLite",
+  "deployment_environment": "local",
+  "auto_download_database": false,
+  "enable_database_upload": false,
+  "backup_before_upload": true,
+  "pdf_generation_enabled": true,
+  "poppler_enabled": true,
+  "save_location": "/Users/yancyshepherd/Library/CloudStorage/OneDrive-GCGLLC/Yancy/Home/Family/Yancy/Ham/QSL-Cards"
+}

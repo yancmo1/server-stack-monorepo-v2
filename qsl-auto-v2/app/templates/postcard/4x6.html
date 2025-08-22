@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: 6in 4in; margin: 0.25in; }
+    body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 11pt; }
+    .card { border: 1px solid #ccc; padding: 0.15in; height: 3.5in; position: relative; }
+    .header { text-align: center; font-weight: 700; font-size: 18pt; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt; margin-top: 8pt; }
+    .label { color: #555; font-size: 9pt; }
+    .value { font-weight: 600; }
+    .footer { position: absolute; bottom: 0.15in; left: 0.15in; right: 0.15in; font-size: 8pt; color: #444; display:flex; justify-content:space-between; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">QSL Confirmation: {{ qso.callsign }}</div>
+    <div class="grid">
+      <div><div class="label">Date/Time (UTC)</div><div class="value">{{ qso.qso_datetime.strftime('%Y-%m-%d %H:%M') }} UTC</div></div>
+      <div><div class="label">Band/Mode</div><div class="value">{{ qso.band }} / {{ qso.mode }}</div></div>
+      <div><div class="label">RST</div><div class="value">{{ qso.rst_sent }}/{{ qso.rst_recv }}</div></div>
+      <div><div class="label">QTH</div><div class="value">{{ qso.qth or '-' }}</div></div>
+      <div><div class="label">Grid</div><div class="value">{{ qso.grid or '-' }}</div></div>
+      <div><div class="label">Notes</div><div class="value">{{ qso.notes or '-' }}</div></div>
+    </div>
+    <div class="footer">
+      <div>de {{ settings.from_callsign }} • {{ settings.from_operator_name }}</div>
+      <div>{{ generated_at }}</div>
+    </div>
+  </div>
+</body>
+</html>

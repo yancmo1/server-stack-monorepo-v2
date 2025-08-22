@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      - DRY_RUN=true
+    volumes:
+      - ./output:/app/output
+      - ./data:/app/data
+      - ./secrets:/app/secrets
+    depends_on:
+      - connector
+  connector:
+    image: python:3.11-slim
+    working_dir: /connector
+    environment:
+      - CONNECTOR_TOKEN=${CONNECTOR_TOKEN}
+      - SOURCE_DB_PATH=/data/Log4OM.db
+    volumes:
+      - ./connector:/connector
+      - ./data:/data
+    command: bash -lc "pip install fastapi uvicorn pydantic && uvicorn main:app --host 0.0.0.0 --port 8081"
+    ports:
+      - "8081:8081"
