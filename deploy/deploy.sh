@@ -60,7 +60,7 @@ deploy_to_server() {
     
     echo "🌐 Deploying to server..."
     
-    ssh "${SERVER_USER}@${SERVER_HOST}" << 'ENDSSH'
+    ssh "${SERVER_USER}@${SERVER_HOST}" << ENDSSH
         set -e
         echo "=== Server Deployment Started ==="
         
