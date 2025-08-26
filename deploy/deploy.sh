@@ -114,7 +114,7 @@ case "${1:-all}" in
         commit_and_push "$2"
         deploy_to_server "all"
         ;;
-    tracker|dashboard|clan-map|cruise-price-check|qsl-card-creator|bot|bot-nocache)
+    tracker|dashboard|clan-map|cruise-price-check|qsl-card-creator|connector|bot|bot-nocache)
         commit_and_push "$2"
         deploy_to_server "$1"
         ;;

@@ -116,9 +116,23 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=production
-      - QSL_DATABASE_PATH=/app/Log4OM\ db.SQLite
+      # Bind GUI to legacy external port and wire to connector
+      - QSL_WEB_PORT=5553
+      - CONNECTOR_BASE_URL=http://connector:5557
+      - CONNECTOR_TOKEN=${CONNECTOR_TOKEN}
+      # Optional explicit template path (mounted below)
+      - "QSL_TEMPLATE_PATH=/app/W5XY QSL Card Python TEMPLATE.pdf"
+      # Also point GUI's optional direct DB access to the same mounted directory (read-only)
+      - "QSL_DATABASE_PATH=/data/Log4OM Database/Log4OM db.SQLite"
     volumes:
       - ../shared/ssl:/app/ssl:ro
+      # Mount the production QSL template into app root with exact filename (spaces preserved)
+      - "../qsl-auto-v2/templates/W5XY QSL Card Python TEMPLATE.pdf:/app/W5XY QSL Card Python TEMPLATE.pdf:ro"
+      # Mount the DB directory for optional direct reads (read-only)
+      - "${CONNECTOR_DB_MOUNT_DIR:-/home/yancmo/databases/Log4OM Database}:/data:ro"
+    depends_on:
+      connector:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -133,6 +147,28 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  connector:
+    build:
+      context: ../qsl-auto-v2/connector
+    container_name: qsl-connector
+    env_file:
+      - ../shared/config/.env
+    environment:
+      - CONNECTOR_TOKEN=${CONNECTOR_TOKEN}
+      # Path to the SQLite DB inside container; override via CONNECTOR_SOURCE_DB_PATH in .env
+      - "SOURCE_DB_PATH=${CONNECTOR_SOURCE_DB_PATH:-/data/Log4OM Database/Log4OM db.SQLite}"
+    volumes:
+      # Mount directory containing Log4OM.db; override via CONNECTOR_DB_MOUNT_DIR in .env
+      - ${CONNECTOR_DB_MOUNT_DIR:-/home/yancmo/databases/Log4OM Database}:/data:ro
+    ports:
+      - "5557:5557"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5557/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
 
   pwa-tracker:
     build:

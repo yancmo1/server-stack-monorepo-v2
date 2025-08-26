@@ -38,8 +38,8 @@ RUN if [ "$(uname -m)" = "armv7l" ] || [ "$(uname -m)" = "aarch64" ]; then \
 # Copy application code (excluding backup_files and other unnecessary files)
 COPY . .
 
-# Expose Flask ports (HTTP and HTTPS)
-EXPOSE 5001
+# Expose Flask port used by web_app (default 5553; can be overridden by QSL_WEB_PORT)
+EXPOSE 5553
 
 # Set environment variable for Flask (optional, for production use)
 # ENV FLASK_ENV=production
