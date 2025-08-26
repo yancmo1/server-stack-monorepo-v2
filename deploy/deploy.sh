@@ -110,6 +110,17 @@ deploy_to_server() {
         echo "🔄 Reloading nginx to apply latest config..."
         sudo nginx -t && sudo systemctl reload nginx || sudo systemctl restart nginx || true
         
+    echo "🧪 Post-deploy diagnostics (qsl and connector)"
+    echo "— Listening on ports 5553/5557:"
+    (sudo ss -ltnp 2>/dev/null | grep -E ':5553|:5557' || true)
+    echo "— Container health:"
+    (docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E 'qsl|connector' || true)
+    echo "— Curl upstreams (localhost):"
+    (curl -sS http://localhost:5557/ | head -c 200; echo) || true
+    (curl -sS http://localhost:5553/status | head -c 200; echo) || true
+    echo "— Curl via nginx (https://localhost/qsl/status):"
+    (curl -skS https://localhost/qsl/status | head -c 200; echo) || true
+
         echo "=== Server Deployment Complete ==="
 ENDSSH
     
