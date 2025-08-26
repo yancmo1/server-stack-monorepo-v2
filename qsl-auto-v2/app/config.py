@@ -1,10 +1,17 @@
 from __future__ import annotations
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from pathlib import Path
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', case_sensitive=False)
+    # Only load .env automatically when running in Docker (compose passes envs anyway)
+    _in_docker = Path('/.dockerenv').exists() or os.environ.get('IN_DOCKER') == '1'
+    model_config = SettingsConfigDict(
+        env_file='.env' if _in_docker else None,
+        env_file_encoding='utf-8',
+        case_sensitive=False,
+    )
 
     # Feature flags
     dry_run: bool = Field(default=True, alias='DRY_RUN')
@@ -13,7 +20,7 @@ class Settings(BaseSettings):
     email_rate_limit_per_min: int = Field(default=8, alias='EMAIL_RATE_LIMIT_PER_MIN')
 
     # Connector
-    connector_base_url: str = Field(default='http://localhost:8081', alias='CONNECTOR_BASE_URL')
+    connector_base_url: str = Field(default='http://localhost:5557', alias='CONNECTOR_BASE_URL')
     connector_token: str = Field(default='please-change-me', alias='CONNECTOR_TOKEN')
 
     # Paths
@@ -29,7 +36,26 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Ensure directories exist
-settings.output_dir.mkdir(parents=True, exist_ok=True)
-settings.state_db.parent.mkdir(parents=True, exist_ok=True)
-settings.google_token_path.parent.mkdir(parents=True, exist_ok=True)
+def _ensure_dir(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        return True
+    except Exception:
+        return False
+
+# Ensure directories exist with graceful fallbacks for local/dev environments
+if not _ensure_dir(settings.output_dir):
+    # Fallback to a local writable folder
+    fallback_output = Path('./output')
+    fallback_output.mkdir(parents=True, exist_ok=True)
+    settings.output_dir = fallback_output
+
+if not _ensure_dir(settings.state_db.parent):
+    fallback_data = Path('./data')
+    fallback_data.mkdir(parents=True, exist_ok=True)
+    settings.state_db = fallback_data / settings.state_db.name
+
+if not _ensure_dir(settings.google_token_path.parent):
+    fallback_secrets = Path('./secrets/google')
+    fallback_secrets.mkdir(parents=True, exist_ok=True)
+    settings.google_token_path = fallback_secrets / settings.google_token_path.name

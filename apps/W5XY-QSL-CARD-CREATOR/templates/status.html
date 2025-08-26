@@ -75,6 +75,30 @@
                 </div>
                 
                 <div class="row">
+                    <!-- Connector Status -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-link text-primary me-2"></i>
+                                    Connector (qsl-auto-v2)
+                                </h5>
+                                <div class="mb-3">
+                                    <span class="badge status-badge {{ 'bg-success' if status.connector.reachable else 'bg-danger' }}">
+                                        {{ 'Reachable' if status.connector.reachable else 'Unreachable' }}
+                                    </span>
+                                </div>
+                                <p class="card-text mb-1"><strong>Base URL:</strong> {{ status.connector.base_url }}</p>
+                                <p class="card-text mb-1"><strong>DB Path:</strong> {{ status.connector.db_path or '-' }}</p>
+                                <p class="card-text"><strong>DB Exists:</strong> {{ status.connector.db_exists if status.connector.db_exists is not none else '-' }}</p>
+                                <div class="mt-2">
+                                    <a class="btn btn-outline-primary btn-sm" href="{{ status.connector.base_url }}/docs" target="_blank" rel="noopener">
+                                        <i class="fas fa-book me-1"></i>Open API Docs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Database Status -->
                     <div class="col-md-6 mb-4">
                         <div class="card h-100">

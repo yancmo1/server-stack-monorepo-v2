@@ -35,6 +35,13 @@ To share data between apps (e.g., Discord bot and webapp), ensure both use the s
 
 Refer to `docs/TROUBLESHOOTING_GUIDE.md` for common issues and solutions.
 
+# QSL Card Creator (v2 connector + legacy GUI)
+
+- Dev start: VS Code task "📟 QSL v2: Start (GUI + Connector)"
+- Connector API: http://localhost:5557/ (Swagger at /docs)
+- GUI: http://localhost:5553/
+- Syncthing integration and setup guide: see `docs/SYNCTHING_SETUP.md`
+
 # Local Development Secrets Setup
 
 For local development, secrets are managed in a single `.env` file at the repo root. Symlinks are created in each subproject so both can access the same secrets. Start scripts in each project will automatically load these secrets.

@@ -10,7 +10,7 @@ Steps
    python -m venv .venv && source .venv/bin/activate
    pip install fastapi uvicorn pydantic
 3) Run the service:
-   SOURCE_DB_PATH="/absolute/path/Log4OM db.SQLite" CONNECTOR_TOKEN="<token>" uvicorn main:app --host 0.0.0.0 --port 8081
+   SOURCE_DB_PATH="/absolute/path/Log4OM db.SQLite" CONNECTOR_TOKEN="<token>" uvicorn main:app --host 0.0.0.0 --port 5557
 4) Firewall: allow inbound from your IP only; consider reverse proxy with HTTPS
 
 API

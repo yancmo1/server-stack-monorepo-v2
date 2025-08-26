@@ -1909,7 +1909,7 @@ def email_setup():
 def hamqth_lookup(callsign):
     """Open HAMQTH lookup for email address"""
     try:
-        hamqth_url = f"https://www.hamqth.com/detail.php?callsign={callsign.upper()}"
+        hamqth_url = f"https://www.hamqth.com/{callsign.upper()}"
         webbrowser.open(hamqth_url)
         return jsonify({'success': True, 'message': f'HAMQTH lookup opened for {callsign}'})
     except Exception as e:
@@ -1920,7 +1920,7 @@ def api_hamqth_lookup(callsign):
     """API endpoint for HAMQTH callsign lookup"""
     try:
         if not hamqth_api.username or not hamqth_api.password:
-            return jsonify({'success': False, 'error': 'HAMQTH credentials not configured'}), 400
+            return jsonify({'success': False, 'error': 'HAMQTH credentials not configured', 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 400
         data, message = hamqth_api.lookup_callsign(callsign)
         if data:
             # Always return key fields for frontend compatibility
@@ -1939,9 +1939,9 @@ def api_hamqth_lookup(callsign):
                 'message': 'Email found via HAMQTH XML API'
             })
         else:
-            return jsonify({'success': False, 'error': message}), 404
+            return jsonify({'success': False, 'error': message, 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 404
     except Exception as e:
-        return jsonify({'success': False, 'error': f'Lookup error: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Lookup error: {str(e)}', 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 500
 
 @app.route('/api/hamqth-credentials', methods=['POST'])
 def set_hamqth_credentials():

@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!isAutoLookup) {
                     const useBrowser = confirm(`${message}\n\nWould you like to open HAMQTH in your browser instead?`);
                     if (useBrowser) {
-                        const fallbackUrl = data.fallback_url || `https://www.hamqth.com/detail.php?callsign=${callsign.toUpperCase()}`;
+                        const fallbackUrl = data.fallback_url || `https://www.hamqth.com/${callsign.toUpperCase()}`;
                         window.open(fallbackUrl, '_blank');
                         updateEmailStatus('HAMQTH opened in new tab. Copy email here if found.');
                     }

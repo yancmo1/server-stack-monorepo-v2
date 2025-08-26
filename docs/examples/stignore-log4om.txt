@@ -1,0 +1,20 @@
+# Syncthing .stignore for Log4OM folder
+
+# Temporary files
+*.tmp
+*.temp
+~*
+*.swp
+*.swo
+
+# OS cruft
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Caches or thumbnails
+cache/
+thumbnails/
+
+# Logs (optional)
+*.log

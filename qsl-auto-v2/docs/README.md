@@ -9,7 +9,7 @@ Run (dry-run)
 - python -m app.cli run --limit 3
 
 Connector (optional)
-- uvicorn connector.main:app --reload --port 8081
+- uvicorn connector.main:app --reload --port 5557
 - Provide SOURCE_DB_PATH env var pointing to the SQLite file on the remote host
 
 Docker

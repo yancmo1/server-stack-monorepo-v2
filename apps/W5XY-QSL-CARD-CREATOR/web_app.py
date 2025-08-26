@@ -42,6 +42,11 @@ import sqlite3
 import logging
 import threading
 from contextlib import contextmanager
+from typing import Optional, Tuple, List, Dict, Any
+import math
+
+# HTTP client for connector
+import requests
 
 # Gmail API imports
 try:
@@ -504,9 +509,14 @@ def generate_qsl_card(template_path, callsign, date, freq, mode, rst, qsltype, o
                 return 'Helvetica'  # ReportLab should always have this
         
         # Draw text with professional positioning
+        callsign_upper = (callsign or '').upper()
         for i, (font, size, text, is_label_value) in enumerate(lines):
             y = y_positions[i]
-            font_name = font_or_fallback(font)
+            # Ensure callsign renders in bold, regardless of mapping
+            if not is_label_value and text.upper() == callsign_upper:
+                font_name = 'Helvetica-Bold'
+            else:
+                font_name = font_or_fallback(font)
             print(f"Drawing text '{text}' using font '{font_name}' (requested: '{font}') at size {size}")
             can.setFont(font_name, size)
             if is_label_value:
@@ -780,6 +790,7 @@ class HamQTHXMLAPI:
         self.session_id = None
         self.session_expires = 0
         self.base_url = "https://www.hamqth.com/xml.php"
+        self.base_bio_url = "https://www.hamqth.com/xml_bio.php"
         self.username = None
         self.password = None
         self.namespace = None  # Will be set after first response
@@ -879,12 +890,77 @@ class HamQTHXMLAPI:
                 return None, f"Lookup error: {str(e)}"
         return None, "Max retries exceeded"
 
+    def lookup_bio(self, callsign: str, strip_html: bool = True):
+        """Lookup callsign bio text using xml_bio.php. Returns (data, message) where data is {'bio': str}.
+
+        Requires a valid session. Will attempt one session refresh on error, then fail gracefully.
+        """
+        max_retries = 2
+        strip = '1' if strip_html else '0'
+        for attempt in range(max_retries):
+            session_ok, message = self.get_session(force_new=(attempt > 0))
+            if not session_ok:
+                return None, message
+            try:
+                session_id = self.session_id
+                url = f"{self.base_bio_url}?id={session_id}&callsign={callsign.lower()}&strip_html={strip}"
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                root = ET.fromstring(response.content)
+                ns_uri = self._get_namespace(root)
+                ns = {'ns': ns_uri} if ns_uri else {}
+                session_elem = root.find('ns:session' if ns else 'session', ns)
+                if session_elem is not None:
+                    error_elem = session_elem.find('ns:error' if ns else 'error', ns)
+                    if error_elem is not None:
+                        err_text = (error_elem.text or '').strip()
+                        if err_text:
+                            # Session expired or invalid: retry once
+                            err_lower = err_text.lower()
+                            if ("session" in err_lower or "expired" in err_lower or "invalid" in err_lower) and attempt < max_retries - 1:
+                                self.session_id = None
+                                self.session_expires = 0
+                                continue
+                            return None, f"HAMQTH error: {err_text}"
+                # Extract <search>/<bio>
+                search_elem = root.find('ns:search' if ns else 'search', ns)
+                if search_elem is None and ns_uri:
+                    search_elem = root.find(f'.//{{{ns_uri}}}search')
+                if search_elem is not None:
+                    # Locate bio element (with or without namespace)
+                    bio_elem = search_elem.find('ns:bio' if ns else 'bio', ns)
+                    if bio_elem is None and ns_uri:
+                        bio_elem = search_elem.find(f'.//{{{ns_uri}}}bio')
+                    bio_text = bio_elem.text if bio_elem is not None else ''
+                    return {'bio': bio_text or ''}, "Success"
+                return None, "No bio found for callsign"
+            except requests.RequestException as e:
+                if attempt < max_retries - 1:
+                    continue
+                return None, f"Network error: {str(e)}"
+            except ET.ParseError as e:
+                return None, f"XML parse error: {str(e)}"
+            except Exception as e:
+                return None, f"Lookup error: {str(e)}"
+        return None, "Max retries exceeded"
+
 # Global HAMQTH API instance
 hamqth_api = HamQTHXMLAPI()
 
 def load_hamqth_credentials():
-    """Load HAMQTH credentials from settings"""
+    """Load HAMQTH credentials from environment (preferred) or settings file.
+
+    Returns True if credentials were set, else False.
+    """
     try:
+        # Prefer environment variables if present
+        env_user = os.environ.get('HAMQTH_USERNAME')
+        env_pass = os.environ.get('HAMQTH_PASSWORD')
+        if env_user and env_pass:
+            hamqth_api.set_credentials(env_user.strip(), env_pass.strip())
+            return True
+
+        # Fallback to settings file
         settings_file = "qsl_settings.json"
         if os.path.exists(settings_file):
             with open(settings_file, 'r') as f:
@@ -904,16 +980,173 @@ app.secret_key = os.environ.get('QSL_SECRET_KEY', 'changeme-please-set-QSL_SECRE
 # Global settings
 app_settings = AppSettings() if 'AppSettings' in globals() else None
 
-# Ensure HAMQTH credentials are loaded and set on startup
-if app_settings and 'hamqth_username' in app_settings.settings and 'hamqth_password' in app_settings.settings:
-    hamqth_user = app_settings.settings.get('hamqth_username', '')
-    hamqth_pass = app_settings.settings.get('hamqth_password', '')
-    if hamqth_user and hamqth_pass:
-        hamqth_api.set_credentials(hamqth_user, hamqth_pass)
+# Ensure HAMQTH credentials are loaded and set on startup (env overrides settings)
+_loaded_creds = load_hamqth_credentials()
 
 # Define standalone functions (no desktop imports needed)
 DESKTOP_FUNCTIONS_AVAILABLE = False
 HAMQTH_AVAILABLE = True  # We have our own HAMQTH implementation
+
+# ----------------------------------------------------------------------------
+# Template resolution
+# ----------------------------------------------------------------------------
+DEFAULT_TEMPLATE_NAME = "W5XY QSL Card Python TEMPLATE.pdf"
+
+def _candidate_template_paths(template_name: str) -> list:
+    """Return an ordered list of candidate absolute paths to search for the PDF template."""
+    candidates = []
+    # 1) Explicit env override (file or directory)
+    env_path = os.environ.get('QSL_TEMPLATE_PATH')
+    if env_path:
+        # If a directory, join template name
+        if os.path.isdir(env_path):
+            candidates.append(os.path.abspath(os.path.join(env_path, template_name)))
+        else:
+            candidates.append(os.path.abspath(env_path))
+
+    # 2) Current working directory
+    candidates.append(os.path.abspath(os.path.join(os.getcwd(), template_name)))
+
+    # 3) App directory (this file's directory)
+    app_dir = os.path.abspath(os.path.dirname(__file__))
+    candidates.append(os.path.join(app_dir, template_name))
+
+    # 4) App templates folder (in case placed alongside HTML templates)
+    app_templates = os.path.join(app_dir, 'templates')
+    candidates.append(os.path.join(app_templates, template_name))
+
+    # 5) Repository root and common locations
+    repo_root = os.path.abspath(os.path.join(app_dir, '..', '..'))
+    # qsl-auto-v2/templates (where our template currently lives)
+    candidates.append(os.path.join(repo_root, 'qsl-auto-v2', 'templates', template_name))
+    # apps/W5XY-QSL-CARD-CREATOR (historical location)
+    candidates.append(os.path.join(repo_root, 'apps', 'W5XY-QSL-CARD-CREATOR', template_name))
+
+    # De-duplicate while preserving order
+    seen = set()
+    unique_candidates = []
+    for p in candidates:
+        if p not in seen:
+            seen.add(p)
+            unique_candidates.append(p)
+    return unique_candidates
+
+def resolve_template_path(template_name: str = DEFAULT_TEMPLATE_NAME):
+    """Find the first existing path for the given template name.
+
+    Returns a tuple (path_or_none, searched_paths_list).
+    """
+    candidates = _candidate_template_paths(template_name)
+    for p in candidates:
+        try:
+            if os.path.exists(p):
+                return os.path.abspath(p), candidates
+        except Exception:
+            # Ignore pathological paths
+            continue
+    return None, candidates
+
+# ============================================================================
+# Connector integration (qsl-auto-v2)
+# ============================================================================
+
+# Environment-driven connector config (matches qsl-auto-v2 defaults)
+CONNECTOR_BASE_URL = os.environ.get('CONNECTOR_BASE_URL', 'http://localhost:5557').rstrip('/')
+CONNECTOR_TOKEN = os.environ.get('CONNECTOR_TOKEN', 'please-change-me')
+
+def _connector_headers() -> Dict[str, str]:
+    return {'Authorization': f'Bearer {CONNECTOR_TOKEN}'}
+
+def connector_health(timeout: float = 3.0) -> Optional[Dict[str, Any]]:
+    """Return connector health JSON or None if unreachable."""
+    try:
+        resp = requests.get(f"{CONNECTOR_BASE_URL}/", timeout=timeout)
+        if resp.ok:
+            return resp.json()
+    except Exception:
+        pass
+    return None
+
+def connector_get_qsos(limit: int = 100, since: Optional[str] = None, timeout: float = 5.0, retries: int = 2) -> Optional[List[Dict[str, Any]]]:
+    """Fetch QSOs from connector with simple retry/backoff. Returns list of items or None on failure."""
+    query_params: Dict[str, Any] = {'limit': max(1, int(limit))}
+    if since:
+        query_params['since'] = since
+    backoff = 0.5
+    last_exc = None
+    for _ in range(max(1, retries)):
+        try:
+            resp = requests.get(f"{CONNECTOR_BASE_URL}/qsos", params=query_params, headers=_connector_headers(), timeout=timeout)
+            if resp.ok:
+                data = resp.json() or {}
+                items = data.get('items', [])
+                if isinstance(items, list):
+                    return items
+                return []
+            # 401/403 likely means token issue; don't keep retrying long
+            if resp.status_code in (401, 403):
+                return None
+        except Exception as e:
+            last_exc = e
+        time.sleep(backoff)
+        backoff = min(4.0, backoff * 2)
+    if last_exc:
+        logging.warning(f"Connector /qsos error: {last_exc}")
+    return None
+
+def connector_post_status(qso_id: int, qsl_sent_flag: bool, qsl_sent_at_iso: Optional[str] = None, email_message_id: Optional[str] = None, postcard_ref: Optional[str] = None, timeout: float = 5.0) -> bool:
+    """Update QSL status via connector; returns True on success."""
+    try:
+        body = {
+            'qsl_sent_flag': bool(qsl_sent_flag),
+            'qsl_sent_at': qsl_sent_at_iso,
+            'email_message_id': email_message_id,
+            'postcard_ref': postcard_ref,
+        }
+        resp = requests.post(f"{CONNECTOR_BASE_URL}/qsos/{int(qso_id)}/status", json=body, headers=_connector_headers(), timeout=timeout)
+        return resp.ok
+    except Exception as e:
+        logging.warning(f"Connector POST status failed: {e}")
+        return False
+
+def _split_datetime_utc(dt_str: str) -> Tuple[str, str]:
+    """Split ISO-like datetime into (date, time_with_utc suffix)."""
+    if not dt_str:
+        return '', ''
+    try:
+        clean = dt_str.replace('Z', '').strip()
+        if 'T' in clean and ' ' not in clean:
+            clean = clean.replace('T', ' ')
+        if ' ' in clean:
+            d, t = clean.split(' ', 1)
+            t = t.strip()
+            if not t.endswith(' UTC'):
+                t = f"{t.split('.')[0]} UTC"
+            return d, t
+        return clean, ''
+    except Exception:
+        return dt_str, ''
+
+def _map_connector_item_to_gui(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Map connector QSO item to GUI template fields."""
+    date_part, time_part = _split_datetime_utc(item.get('qso_datetime', ''))
+    # Connector returns band, not frequency; present band as frequency surrogate
+    frequency = str(item.get('band') or '')
+    return {
+        'callsign': item.get('callsign') or '',
+        'date': date_part,
+        'time': time_part,
+        'frequency': frequency,
+        'mode': item.get('mode') or '',
+        'rst_sent': item.get('rst_sent') or '59',
+        'rst_received': item.get('rst_recv') or '59',
+        'email': item.get('email_to') or '',
+        # Without explicit connector flags today, show defaults
+        'qsl_sent': 'No',
+        'qsl_received': 'No',
+        'qso_datetime': item.get('qso_datetime') or '',
+        'connector_id': item.get('id'),
+    }
 
 def check_poppler():
     """Check if Poppler is available for PDF generation"""
@@ -1089,9 +1322,9 @@ def index():
         except Exception as e:
             poppler_message = f"Error checking Poppler: {e}"
     
-    # Check if template file exists
-    template_path = "W5XY QSL Card Python TEMPLATE.pdf"
-    template_exists = os.path.exists(template_path)
+    # Check if template file exists (robust resolution)
+    resolved_path, _searched = resolve_template_path(DEFAULT_TEMPLATE_NAME)
+    template_exists = bool(resolved_path)
     
     # Check if database exists
     db_path = DATABASE_PATH
@@ -1135,9 +1368,14 @@ def preview_qsl():
         if 'preview_qsl_card' not in globals():
             return jsonify({'success': False, 'error': 'Preview function not available'})
         
-        template_path = "W5XY QSL Card Python TEMPLATE.pdf"
-        if not os.path.exists(template_path):
-            return jsonify({'success': False, 'error': 'Template file not found'})
+        # Resolve template path robustly
+        template_path, searched = resolve_template_path(DEFAULT_TEMPLATE_NAME)
+        if not template_path:
+            return jsonify({
+                'success': False,
+                'error': 'Template file not found',
+                'searched_paths': searched
+            })
         
         # Generate preview
         preview_file_path = preview_qsl_card(
@@ -1265,8 +1503,8 @@ def generate_qsl():
             flash('PDF generation disabled - enable in settings to generate actual PDFs', 'warning')
             # Still allow text-based generation as fallback
         
-        template_path = "W5XY QSL Card Python TEMPLATE.pdf"
-        if not os.path.exists(template_path):
+        template_path, searched = resolve_template_path(DEFAULT_TEMPLATE_NAME)
+        if not template_path:
             flash('Template file not found', 'error')
             return redirect(url_for('create_qsl'))
         
@@ -1313,7 +1551,17 @@ def generate_qsl():
 def list_qsos():
     """List QSOs from database using safe database access"""
     try:
-        # Use safe database access - include QSL confirmation data
+        # Prefer connector if available and authorized
+        connector_info = connector_health()
+        if connector_info:
+            items = connector_get_qsos(limit=100)
+            if items is not None:
+                mapped = [_map_connector_item_to_gui(it) for it in items]
+                if len(mapped) == 0:
+                    return render_template('qsos.html', qsos=[], error="No QSOs found via connector")
+                return render_template('qsos.html', qsos=mapped)
+
+        # Fallback to direct DB access - include QSL confirmation data
         rows = safe_db.execute_query("""
             SELECT callsign, qsodate, freq, mode, rstsent, rstrcvd, email, qsoconfirmations
             FROM Log 
@@ -1402,12 +1650,20 @@ def status():
     """System status page"""
     status_info = {
         'poppler': {'status': False, 'message': 'Not available'},
-        'template': os.path.exists("W5XY QSL Card Python TEMPLATE.pdf"),
+        'template': False,
+        'template_path': None,
+        'template_search_paths': [],
         'database': os.path.exists("Log4OM db.SQLite"),
         'functions': {
             'check_poppler': 'check_poppler' in globals(),
             'generate_qsl_card': 'generate_qsl_card' in globals(),
             'preview_qsl_card': 'preview_qsl_card' in globals(),
+        },
+        'connector': {
+            'reachable': False,
+            'base_url': CONNECTOR_BASE_URL,
+            'db_path': None,
+            'db_exists': None,
         }
     }
     
@@ -1416,6 +1672,25 @@ def status():
             status_info['poppler']['status'], status_info['poppler']['message'] = check_poppler()
         except Exception as e:
             status_info['poppler']['message'] = f"Error: {e}"
+
+    # Template resolution details
+    try:
+        t_path, t_searched = resolve_template_path(DEFAULT_TEMPLATE_NAME)
+        status_info['template'] = bool(t_path)
+        status_info['template_path'] = t_path
+        status_info['template_search_paths'] = t_searched
+    except Exception:
+        pass
+
+    # Populate connector status
+    try:
+        info = connector_health()
+        if info:
+            status_info['connector']['reachable'] = True
+            status_info['connector']['db_path'] = info.get('db_path')
+            status_info['connector']['db_exists'] = info.get('db_exists')
+    except Exception:
+        pass
     
     return render_template('status.html', status=status_info)
 
@@ -1426,6 +1701,20 @@ def api_cleanup():
         if 'cleanup_temp_files' in globals():
             cleanup_temp_files()
         return jsonify({'success': True, 'message': 'Cleanup completed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/template-info')
+def api_template_info():
+    """Return information about the QSL template search and resolution."""
+    try:
+        path, searched = resolve_template_path(DEFAULT_TEMPLATE_NAME)
+        return jsonify({
+            'success': True,
+            'template_path': path,
+            'exists': bool(path),
+            'searched_paths': searched
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -1909,7 +2198,8 @@ def email_setup():
 def hamqth_lookup(callsign):
     """Open HAMQTH lookup for email address"""
     try:
-        hamqth_url = f"https://www.hamqth.com/detail.php?callsign={callsign.upper()}"
+        # Use the direct profile URL format per HamQTH guidance, not detail.php
+        hamqth_url = f"https://www.hamqth.com/{callsign.upper()}"
         webbrowser.open(hamqth_url)
         return jsonify({'success': True, 'message': f'HAMQTH lookup opened for {callsign}'})
     except Exception as e:
@@ -1920,11 +2210,11 @@ def api_hamqth_lookup(callsign):
     """API endpoint for HAMQTH callsign lookup"""
     try:
         if not hamqth_api.username or not hamqth_api.password:
-            return jsonify({'success': False, 'error': 'HAMQTH credentials not configured'}), 400
+            return jsonify({'success': False, 'error': 'HAMQTH credentials not configured', 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 400
         data, message = hamqth_api.lookup_callsign(callsign)
         if data:
             # Always return key fields for frontend compatibility
-            return jsonify({
+            response_payload = {
                 'success': True,
                 'email': data.get('email', ''),
                 'name': data.get('adr_name', ''),
@@ -1937,11 +2227,32 @@ def api_hamqth_lookup(callsign):
                 'qsl': data.get('qsl', ''),
                 'qsldirect': data.get('qsldirect', ''),
                 'message': 'Email found via HAMQTH XML API'
-            })
+            }
+            # Try to fetch bio as well, but don't fail the request if it errors
+            try:
+                bio_data, bio_msg = hamqth_api.lookup_bio(callsign, strip_html=True)
+                if bio_data and isinstance(bio_data, dict):
+                    response_payload['bio'] = bio_data.get('bio', '')
+            except Exception as _:
+                pass
+            return jsonify(response_payload)
         else:
-            return jsonify({'success': False, 'error': message}), 404
+            return jsonify({'success': False, 'error': message, 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 404
     except Exception as e:
-        return jsonify({'success': False, 'error': f'Lookup error: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Lookup error: {str(e)}', 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 500
+
+@app.route('/api/hamqth-bio/<callsign>')
+def api_hamqth_bio(callsign):
+    """API endpoint to get HAMQTH bio text only."""
+    try:
+        if not hamqth_api.username or not hamqth_api.password:
+            return jsonify({'success': False, 'error': 'HAMQTH credentials not configured', 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 400
+        data, message = hamqth_api.lookup_bio(callsign, strip_html=True)
+        if data:
+            return jsonify({'success': True, 'bio': data.get('bio', ''), 'callsign': callsign.upper()})
+        return jsonify({'success': False, 'error': message, 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Lookup error: {str(e)}', 'fallback_url': f"https://www.hamqth.com/{callsign.upper()}"}), 500
 
 @app.route('/api/hamqth-credentials', methods=['POST'])
 def set_hamqth_credentials():
@@ -1983,6 +2294,46 @@ def set_hamqth_credentials():
     except Exception as e:
         return jsonify({'success': False, 'error': f'Error setting credentials: {str(e)}'})
 
+@app.route('/api/hamqth-test')
+def api_hamqth_test():
+    """Check HAMQTH credential status and test session login."""
+    try:
+        # Determine source
+        src = 'unset'
+        user = None
+        if os.environ.get('HAMQTH_USERNAME') and os.environ.get('HAMQTH_PASSWORD'):
+            src = 'env'
+            user = os.environ.get('HAMQTH_USERNAME')
+        else:
+            try:
+                if os.path.exists('qsl_settings.json'):
+                    with open('qsl_settings.json', 'r') as f:
+                        st = json.load(f)
+                        if st.get('hamqth_username') and st.get('hamqth_password'):
+                            src = 'settings'
+                            user = st.get('hamqth_username')
+            except Exception:
+                pass
+
+        # Mask username display
+        masked_user = None
+        if user:
+            if len(user) <= 2:
+                masked_user = user[0] + '*'
+            else:
+                masked_user = user[0] + ('*' * (len(user)-2)) + user[-1]
+
+        # Test session
+        ok, msg = hamqth_api.get_session(force_new=True)
+        return jsonify({
+            'success': ok,
+            'source': src,
+            'username_masked': masked_user,
+            'message': msg
+        }), (200 if ok else 400)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Test error: {str(e)}'}), 500
+
 @app.route('/api/mark-qsl', methods=['POST'])
 def mark_qsl_sent():
     """Mark QSL as sent in Log4OM database"""
@@ -2015,6 +2366,33 @@ def update_qso_qsl_status(callsign, qso_date, qsl_sent, qsl_received, sent_via, 
     try:
         print(f"[DEBUG QSL UPDATE] Called with: callsign={callsign}, qso_date={qso_date}, qsl_sent={qsl_sent}, qsl_received={qsl_received}")
         
+        # First, attempt to update via connector sidecar table
+        try:
+            info = connector_health()
+            if info:
+                items = connector_get_qsos(limit=200)
+                target_id = None
+                if items:
+                    for it in items:
+                        if (it.get('callsign', '').upper() == (callsign or '').upper()):
+                            dt = it.get('qso_datetime') or ''
+                            date_part, _ = _split_datetime_utc(dt)
+                            # Accept match on date equality
+                            if date_part == (qso_date or ''):
+                                target_id = it.get('id')
+                                break
+                if target_id is not None:
+                    # Interpret 'Yes' as True
+                    sent_flag = (str(qsl_sent).strip().lower() == 'yes') if qsl_sent is not None else False
+                    from datetime import datetime as _dt
+                    sent_at_iso = _dt.utcnow().isoformat()
+                    if connector_post_status(int(target_id), sent_flag, qsl_sent_at_iso=sent_at_iso):
+                        msg = f"Connector: QSL status updated for {callsign} (id={target_id})"
+                        return True, msg
+        except Exception as e:
+            print(f"[DEBUG QSL UPDATE] Connector path failed: {e}")
+
+        # Fallback to direct DB update
         db_path = DATABASE_PATH
         if not os.path.exists(db_path):
             return False, "Database file not found"
@@ -2356,7 +2734,15 @@ def api_settings():
 def api_qsos():
     """API endpoint to get QSOs data as JSON"""
     try:
-        # Use safe database access - include QSL confirmation data
+        # Prefer connector if reachable
+        info = connector_health()
+        if info:
+            items = connector_get_qsos(limit=100)
+            if items is not None:
+                mapped = [_map_connector_item_to_gui(it) for it in items]
+                return jsonify({'count': len(mapped), 'qsos': mapped})
+
+        # Fallback to safe database access - include QSL confirmation data
         rows = safe_db.execute_query("""
             SELECT callsign, qsodate, freq, mode, rstsent, rstrcvd, email, qsoconfirmations
             FROM Log 
@@ -2629,7 +3015,7 @@ if __name__ == '__main__':
     print(f"Template file: {'✓' if os.path.exists('W5XY QSL Card Python TEMPLATE.pdf') else '✗'}")
     print(f"Database file: {'✓' if os.path.exists('Log4OM db.SQLite') else '✗'}")
     
-    # Load HAMQTH credentials if available
+    # Load HAMQTH credentials if available (env preferred)
     if load_hamqth_credentials():
         print("HAMQTH credentials: ✓")
     else:
@@ -2646,4 +3032,9 @@ if __name__ == '__main__':
     # Require SSL certificates for production-ready HTTPS-only deployment
     # Always run in HTTP mode for Docker/Nginx
     print("🌍 Starting QSL Card Creator in HTTP mode for Docker/Nginx")
-    app.run(host='0.0.0.0', port=5553, debug=False)
+    # Allow overriding port via env var for dev scripts
+    try:
+        port = int(os.environ.get('QSL_WEB_PORT', '5553'))
+    except Exception:
+        port = 5553
+    app.run(host='0.0.0.0', port=port, debug=False)

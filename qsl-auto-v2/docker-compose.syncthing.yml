@@ -1,0 +1,6 @@
+services:
+  connector:
+    environment:
+      SOURCE_DB_PATH: /syncthing
+    volumes:
+      - ${SYNCTHING_LOG4OM_DIR}:/syncthing:ro

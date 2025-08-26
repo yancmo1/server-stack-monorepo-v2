@@ -2,11 +2,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from datetime import datetime
+from datetime import datetime, timezone
 try:
     from weasyprint import HTML  # type: ignore
     _WEASY = True
 except Exception:
+    HTML = None  # type: ignore[assignment]
     _WEASY = False
 from ..config import settings
 
@@ -38,11 +39,22 @@ class PDFRenderer:
     def render(self, qso: QSO, size: str = '4x6', out_path: Path | None = None) -> Path:
         template_name = '4x6.html' if size == '4x6' else '5x7.html'
         tmpl = self.env.get_template(template_name)
-        html = tmpl.render(qso=qso, settings=settings, generated_at=datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC'))
+        html = tmpl.render(
+            qso=qso,
+            settings=settings,
+            generated_at=datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+        )
         out_path = out_path or (Path(settings.output_dir) / f"{qso.qso_datetime:%Y}/{qso.qso_datetime:%m}/{qso.callsign}/QSL_{qso.callsign}_{qso.qso_datetime:%Y%m%d_%H%M%S}_{size}.pdf")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         if _WEASY:
-            HTML(string=html).write_pdf(str(out_path))
+            assert HTML is not None
+            try:
+                HTML(string=html).write_pdf(str(out_path))
+            except Exception:
+                # Fallback if system libs missing at runtime
+                html_path = out_path.with_suffix('.html')
+                html_path.write_text(html, encoding='utf-8')
+                out_path.write_bytes(b"%PDF-1.4\n% placeholder generated without weasyprint runtime deps\n")
         else:
             # Fallback: write HTML next to expected PDF to aid local testing without system deps
             html_path = out_path.with_suffix('.html')

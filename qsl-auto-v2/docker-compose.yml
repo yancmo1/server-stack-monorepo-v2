@@ -1,25 +1,32 @@
-version: '3.8'
 services:
   app:
     build: .
     env_file: .env
     environment:
       - DRY_RUN=true
+      - APP_LOOP_SECONDS=300
+      - LIMIT=5
     volumes:
       - ./output:/app/output
       - ./data:/app/data
       - ./secrets:/app/secrets
     depends_on:
-      - connector
+      connector:
+        condition: service_healthy
+
   connector:
-    image: python:3.11-slim
-    working_dir: /connector
+    build:
+      context: ./connector
     environment:
       - CONNECTOR_TOKEN=${CONNECTOR_TOKEN}
       - SOURCE_DB_PATH=/data/Log4OM.db
     volumes:
-      - ./connector:/connector
       - ./data:/data
-    command: bash -lc "pip install fastapi uvicorn pydantic && uvicorn main:app --host 0.0.0.0 --port 8081"
     ports:
-      - "8081:8081"
+      - "5557:5557"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5557/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
