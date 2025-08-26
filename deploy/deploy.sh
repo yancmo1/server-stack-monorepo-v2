@@ -60,7 +60,7 @@ deploy_to_server() {
     
     echo "🌐 Deploying to server..."
     
-    ssh "${SERVER_USER}@${SERVER_HOST}" << ENDSSH
+    ssh "${SERVER_USER}@${SERVER_HOST}" << 'ENDSSH'
         set -e
         echo "=== Server Deployment Started ==="
         
@@ -72,7 +72,17 @@ deploy_to_server() {
         echo "🔧 Setting permissions..."
         find . -name "*.sh" -exec chmod +x {} \;
         
-        echo "🐳 Deploying containers..."
+        echo "� Installing nginx config (yancmo.xyz.conf)..."
+        if [ -f "deploy/nginx/yancmo.xyz.conf" ]; then
+            sudo cp deploy/nginx/yancmo.xyz.conf /etc/nginx/sites-available/yancmo.xyz
+            if [ ! -L "/etc/nginx/sites-enabled/yancmo.xyz" ]; then
+                sudo ln -s /etc/nginx/sites-available/yancmo.xyz /etc/nginx/sites-enabled/yancmo.xyz || true
+            fi
+        else
+            echo "⚠️  nginx config deploy/nginx/yancmo.xyz.conf not found in repo on server"
+        fi
+
+        echo "�🐳 Deploying containers..."
         cd deploy
         
         if [ "$service" = "no-bot" ]; then
@@ -96,6 +106,9 @@ deploy_to_server() {
         
         echo "📊 Checking status..."
         docker compose ps
+
+        echo "🔄 Reloading nginx to apply latest config..."
+        sudo nginx -t && sudo systemctl reload nginx || sudo systemctl restart nginx || true
         
         echo "=== Server Deployment Complete ==="
 ENDSSH
