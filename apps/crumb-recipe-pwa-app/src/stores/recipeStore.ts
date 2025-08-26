@@ -77,13 +77,26 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     }
   },
 
-  importRecipeFromUrl: async (_url) => {
+  importRecipeFromUrl: async (url) => {
     set({ loading: true, error: null });
     try {
-      // This will be implemented with the recipe import service
-      throw new Error('Recipe import not yet implemented');
+      const { RecipeImportService } = await import('../services/recipeImportService');
+      const importedData = await RecipeImportService.importFromUrl(url);
+      
+      const now = Date.now();
+      const recipe: Recipe = {
+        ...importedData,
+        id: crypto.randomUUID(),
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      await db.recipes.add(recipe);
+      const recipes = [...get().recipes, recipe];
+      set({ recipes, loading: false });
     } catch (error) {
-      set({ error: 'Failed to import recipe', loading: false });
+      console.error('Recipe import error:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to import recipe', loading: false });
     }
   }
 }));

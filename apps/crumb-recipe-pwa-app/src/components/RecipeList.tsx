@@ -1,11 +1,15 @@
 import React from 'react';
 import { useRecipeStore } from '../stores/recipeStore';
-import { useCookSessionStore } from '../stores/cookSessionStore';
 import { ChefHat, Plus, Clock, Users } from 'lucide-react';
+import type { Recipe } from '../types/recipe';
 
-export function RecipeList() {
+interface RecipeListProps {
+  onRecipeSelect: (recipe: Recipe) => void;
+  onStartCooking: (recipe: Recipe) => void;
+}
+
+export function RecipeList({ onRecipeSelect, onStartCooking }: RecipeListProps) {
   const { recipes, fetchRecipes, loading } = useRecipeStore();
-  const { startCookSession } = useCookSessionStore();
 
   // Fetch recipes on component mount
   React.useEffect(() => {
@@ -67,11 +71,14 @@ export function RecipeList() {
             </div>
 
             <div className="flex gap-2">
-              <button className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+              <button 
+                onClick={() => onRecipeSelect(recipe)}
+                className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              >
                 View
               </button>
               <button 
-                onClick={() => startCookSession(recipe.id)}
+                onClick={() => onStartCooking(recipe)}
                 className="flex-1 px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
               >
                 Cook
