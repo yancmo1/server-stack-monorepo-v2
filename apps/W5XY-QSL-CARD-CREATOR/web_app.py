@@ -1653,7 +1653,8 @@ def status():
         'template': False,
         'template_path': None,
         'template_search_paths': [],
-        'database': os.path.exists("Log4OM db.SQLite"),
+        'database': os.path.exists(DATABASE_PATH),
+        'database_path': DATABASE_PATH,
         'functions': {
             'check_poppler': 'check_poppler' in globals(),
             'generate_qsl_card': 'generate_qsl_card' in globals(),
