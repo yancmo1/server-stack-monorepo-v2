@@ -975,6 +975,29 @@ def load_hamqth_credentials():
         return False
 
 app = Flask(__name__)
+class ReverseProxied:
+    """WSGI middleware to respect reverse proxy headers.
+
+    - Uses X-Script-Name to set SCRIPT_NAME so url_for() includes the prefix
+    - Uses X-Forwarded-Proto to set wsgi.url_scheme for correct scheme
+    """
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+        if script_name:
+            environ['SCRIPT_NAME'] = script_name
+            path_info = environ.get('PATH_INFO', '')
+            if path_info.startswith(script_name):
+                environ['PATH_INFO'] = path_info[len(script_name):] or '/'
+
+        scheme = environ.get('HTTP_X_FORWARDED_PROTO', '')
+        if scheme:
+            environ['wsgi.url_scheme'] = scheme
+        return self.app(environ, start_response)
+
+app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.secret_key = os.environ.get('QSL_SECRET_KEY', 'changeme-please-set-QSL_SECRET_KEY')
 
 # Global settings
