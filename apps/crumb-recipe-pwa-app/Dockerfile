@@ -6,8 +6,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Remove package-lock to avoid version conflicts and install fresh
-RUN rm -f package-lock.json && npm install
+# Clean install with esbuild rebuild to fix version mismatch
+RUN rm -f package-lock.json && \
+    npm cache clean --force && \
+    npm install && \
+    npm rebuild esbuild
 
 # Copy all source code
 COPY . .
