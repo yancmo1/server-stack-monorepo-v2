@@ -1074,7 +1074,7 @@ def resolve_template_path(template_name: str = DEFAULT_TEMPLATE_NAME):
 # ============================================================================
 
 # Environment-driven connector config (matches qsl-auto-v2 defaults)
-CONNECTOR_BASE_URL = os.environ.get('CONNECTOR_BASE_URL', 'http://localhost:5557').rstrip('/')
+CONNECTOR_BASE_URL = os.environ.get('CONNECTOR_BASE_URL', 'https://connector.yancmo.xyz').rstrip('/')
 CONNECTOR_TOKEN = os.environ.get('CONNECTOR_TOKEN', 'please-change-me')
 
 def _connector_headers() -> Dict[str, str]:

@@ -6,7 +6,7 @@
             <h1 class="h3 mb-0">Submit Your Location</h1>
             <div class="muted">We only show general city/region</div>
         </div>
-        <a href="/clan-map/" class="btn btn-outline-light btn-sm">Back to map</a>
+        <a href="/" class="btn btn-outline-light btn-sm">Back to map</a>
     </div>
 
     <div class="row g-4">
@@ -25,7 +25,7 @@
                         {% endif %}
                     {% endwith %}
 
-                    <form method="POST" action="/clan-map/submit" class="needs-validation" novalidate>
+                    <form method="POST" action="/submit" class="needs-validation" novalidate>
                         <div class="mb-3">
                             <label class="form-label">Clash Name</label>
                             {% if available_members %}
@@ -62,12 +62,12 @@
                                             <div class="muted mb-2">{{ mini_map_data.total_located }} members are pinned</div>
                                             <div id="miniMap" style="height:300px;border-radius:12px;overflow:hidden;"></div>
                                             <div class="mt-3">
-                                                <a class="btn btn-sm btn-outline-light" href="/clan-map/">Open full map</a>
+                                                <a class="btn btn-sm btn-outline-light" href="/">Open full map</a>
                                             </div>
                                         {% elif has_snapshot %}
-                                            <img src="/clan-map/static/images/map_snapshot.png" alt="Map Snapshot" class="img-fluid rounded" />
+                                            <img src="/static/images/map_snapshot.png" alt="Map Snapshot" class="img-fluid rounded" />
                                             <div class="mt-2">
-                                                <a class="btn btn-sm btn-outline-light" href="/clan-map/">Open full map</a>
+                                                <a class="btn btn-sm btn-outline-light" href="/">Open full map</a>
                                             </div>
                                         {% else %}
                                             <div class="muted">No pins yet. Be the first!</div>
@@ -94,7 +94,7 @@
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(m);
-        fetch('/clan-map/api/players')
+        fetch('/api/players')
             .then(r=>r.json())
             .then(players=>{
                                 const toNum = (v) => {

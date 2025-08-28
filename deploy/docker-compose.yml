@@ -118,7 +118,7 @@ services:
       - FLASK_ENV=production
       # Bind GUI to legacy external port and wire to connector
       - QSL_WEB_PORT=5553
-      - CONNECTOR_BASE_URL=http://connector:5557
+      - CONNECTOR_BASE_URL=https://connector.yancmo.xyz
       - CONNECTOR_TOKEN=${CONNECTOR_TOKEN}
       # Optional explicit template path (mounted below)
       - "QSL_TEMPLATE_PATH=/app/W5XY QSL Card Python TEMPLATE.pdf"
@@ -170,11 +170,11 @@ services:
       retries: 5
       start_period: 15s
 
-  pwa-tracker:
+  tracker:
     build:
       context: ../apps/5k-tracker-pwa
       dockerfile: Dockerfile
-    container_name: pwa-tracker
+    container_name: tracker
     ports:
       - "5555:5555"
     restart: unless-stopped
@@ -193,6 +193,30 @@ services:
       - default
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5555/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  crumb:
+    build:
+      context: ../apps/crumb-recipe-pwa-app
+      dockerfile: Dockerfile
+    container_name: crumb
+    ports:
+      - "5554:3000"
+    restart: unless-stopped
+    env_file:
+      - ../shared/config/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - ../shared/ssl:/app/ssl:ro
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); const options = { host: 'localhost', port: 3000, path: '/health', timeout: 2000 }; const req = http.request(options, (res) => { if (res.statusCode === 200) process.exit(0); else process.exit(1); }); req.on('error', () => process.exit(1)); req.end();"]
       interval: 30s
       timeout: 10s
       retries: 3

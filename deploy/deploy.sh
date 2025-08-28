@@ -19,7 +19,8 @@ show_help() {
     echo ""
     echo "Services:"
     echo "  all               Deploy all services (default)"
-    echo "  tracker           Deploy only tracker"
+    echo "  tracker           Deploy only tracker (5K tracker)"
+    echo "  crumb             Deploy only crumb"
     echo "  dashboard         Deploy only dashboard"
     echo "  bot               Deploy only coc-discord-bot"
     echo "  bot-nocache       Rebuild bot without cache and restart"
@@ -29,6 +30,7 @@ show_help() {
     echo "  ./deploy.sh                           # Deploy all with auto message"
     echo "  ./deploy.sh all \"Updated dashboard\"   # Deploy all with custom message"
     echo "  ./deploy.sh tracker \"Fix login bug\"   # Deploy only tracker"
+    echo "  ./deploy.sh crumb \"Fix login bug\"     # Deploy only crumb"
     echo "  ./deploy.sh bot \"Updated bot commands\" # Deploy only coc-discord-bot"
     echo "  ./deploy.sh no-bot                   # Deploy without bot"
 }
@@ -87,7 +89,7 @@ deploy_to_server() {
         
         if [ "$service" = "no-bot" ]; then
             echo "Deploying all services except bot..."
-            docker compose up -d --build dashboard tracker clan-map qsl-card-creator cruise-price-check
+            docker compose up -d --build dashboard tracker crumb clan-map qsl-card-creator cruise-price-check
         elif [ "$service" = "bot" ]; then
             echo "Deploying coc-discord-bot only..."
             docker compose up -d --build coc-discord-bot

@@ -17,7 +17,7 @@
       "name": "5K Tracker",
       "description": "Race tracker application",
       "icon": "🏃",
-      "port": 5554,
+      "port": 5555,
       "script": "app.py", 
       "path": "/app",
       "container_name": "tracker",
@@ -25,6 +25,19 @@
       "public_path": "/tracker/",
       "health_endpoint": "/health",
       "status": "stable"
+    },
+    "crumb": {
+      "name": "Crumb",
+      "description": "Crumb application",
+      "icon": "🍞",
+      "port": 5554,
+      "script": "app.py", 
+      "path": "/app",
+      "container_name": "crumb",
+      "protocol": "http",
+      "public_path": "/crumb/",
+      "health_endpoint": "/health",
+      "status": "development"
     },
     "cruise-price-check": {
       "name": "Cruise Price Check",
@@ -40,8 +53,8 @@
       "status": "development"
     },
     "clan-map": {
-      "name": "Clan Map",
-      "description": "Clan map visualization",
+      "name": "Clash Map",
+      "description": "Clash map visualization",
       "icon": "🗺️",
       "port": 5552,
       "script": "app.py",
@@ -83,12 +96,12 @@
     "hostname": "localhost",
     "dashboard_port": 5550,
     "environment": "production",
-    "base_url": "https://yancmo.xyz"
+    "base_url": "https://dashboard.yancmo.xyz"
   },
   "monitoring": {
     "health_check_interval": 30,
     "stable_apps": ["dashboard", "tracker"],
-    "development_apps": ["cruise-price-check", "clan-map", "qsl-card-creator", "coc-discord-bot"]
+    "development_apps": ["crumb", "cruise-price-check", "clan-map", "qsl-card-creator", "coc-discord-bot"]
   },
   "security": {
     "ssl_enabled": false,

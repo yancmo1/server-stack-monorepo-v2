@@ -48,12 +48,12 @@
 
 ## Troubleshooting
 - See `docs/TROUBLESHOOTING_GUIDE.md` for common issues and solutions.
-- **Clan Map**: http://your-server-ip:5552
-- **QSL Card Creator**: http://your-server-ip:5553
+- **Clash Map**: https://clashmap.yancmo.xyz
+- **QSL Card Creator**: https://qsl.yancmo.xyz
 
 ### 5. **Monitoring (If Prometheus/Grafana already installed)**
-- **Prometheus**: http://your-server-ip:9090
-- **Grafana**: http://your-server-ip:3000
+- **Prometheus**: https://metrics.yancmo.xyz
+- **Grafana**: https://grafana.yancmo.xyz
 
 ## 🔧 **Configuration Details**
 
@@ -78,13 +78,13 @@ ssl/
 
 ### **Prometheus Targets**
 Your apps automatically expose metrics at `/metrics` endpoint:
-- Dashboard: `dashboard:5550/metrics`
-- Cruise Price Check: `cruise-price-check:5551/metrics`
-- Clan Map: `clan-map:5552/metrics`
-- QSL Card Creator: `qsl-card-creator:5553/metrics`
+- Dashboard: `dashboard.yancmo.xyz/metrics`
+- Cruise Price Check: `cruise.yancmo.xyz/metrics`
+- Clash Map: `clashmap.yancmo.xyz/metrics`
+- QSL Card Creator: `qsl.yancmo.xyz/metrics`
 
 ### **Grafana Dashboards**
-1. Add Prometheus as data source: `http://prometheus:9090`
+1. Add Prometheus as data source: `https://metrics.yancmo.xyz`
 2. Import dashboards from Grafana marketplace
 3. Monitor your Flask apps, Docker containers, and system metrics
 
@@ -105,10 +105,10 @@ docker-compose logs <service-name>
 ### **Health Checks**
 ```bash
 # Test all services
-curl http://your-server-ip:5550/health
-curl http://your-server-ip:5551/health
-curl http://your-server-ip:5552/health
-curl http://your-server-ip:5553/health
+curl https://dashboard.yancmo.xyz/health
+curl https://cruise.yancmo.xyz/health
+curl https://clashmap.yancmo.xyz/health
+curl https://qsl.yancmo.xyz/health
 ```
 
 ## 🧹 **Cleanup Old Pi Files**

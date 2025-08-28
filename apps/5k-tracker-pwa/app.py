@@ -666,13 +666,13 @@ def test_dashboard():
         <p>✅ Race table access: Working</p>
         <p>✅ Weather columns: Available</p>
         <p>📊 Found {len(recent_races)} races for admin user</p>
-        <p>🔗 <a href="/tracker/">Back to main page</a></p>
+        <p>🔗 <a href="/">Back to main page</a></p>
         """
     except Exception as e:
         return f"""
         <h1>Dashboard Test - FAILED</h1>
         <p>❌ Error: {str(e)}</p>
-        <p>🔗 <a href="/tracker/">Back to main page</a></p>
+        <p>🔗 <a href="/">Back to main page</a></p>
         """, 500
 
 @app.route('/add_race', methods=['GET', 'POST'])

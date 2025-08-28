@@ -88,8 +88,8 @@ On macOS and Ubuntu, accept the folder share:
    ```
    This creates: `qsl-auto-v2/data/Log4OM.db -> ~/Syncthing/Log4OM/Log4OM.db`
 3. Start from VS Code task: "📟 QSL v2: Start (GUI + Connector)"
-   - Connector: http://localhost:5557/
-   - GUI: http://localhost:5553/
+   - Connector: https://connector.yancmo.xyz/
+   - QSL: https://qsl.yancmo.xyz/
 
 ### macOS Alternative (env-based)
 - If you prefer not to symlink:
@@ -121,7 +121,7 @@ On macOS and Ubuntu, accept the folder share:
   ```
 - Confirm:
   ```bash
-  curl http://localhost:5557/ | jq .
+  curl https://connector.yancmo.xyz/ | jq .
   ```
 
 ---
@@ -144,7 +144,7 @@ On macOS and Ubuntu, accept the folder share:
 
 ## 7) Troubleshooting
 - Folder out of sync: check ignore patterns, permissions, and that all devices are connected
-- DB not found by connector: verify the symlink or `SOURCE_DB_PATH`, then check `curl http://localhost:5557/`
+- DB not found by connector: verify the symlink or `SOURCE_DB_PATH`, then check `curl https://connector.yancmo.xyz/`
 - Permission issues on Ubuntu: ensure the syncthing folder is owned by the user running the connector
 - Token errors: pass the correct `Authorization: Bearer <CONNECTOR_TOKEN>` header when calling protected endpoints
 
@@ -159,5 +159,5 @@ On macOS and Ubuntu, accept the folder share:
   - Env: `export SOURCE_DB_PATH="/srv/syncthing/Log4OM"`
 4. Set a strong token: `export CONNECTOR_TOKEN="<long-random-string>"`
 5. Start connector/app: `cd qsl-auto-v2 && docker compose up -d --build`
-6. Verify: `curl http://localhost:5557/ | jq .` (should report `db_exists: true`)
+6. Verify: `curl https://connector.yancmo.xyz/ | jq .` (should report `db_exists: true`)
 7. Optionally reverse proxy or firewall as needed; keep token secret.
