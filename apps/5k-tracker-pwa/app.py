@@ -125,8 +125,8 @@ class PrefixMiddleware:
         print(f"[PrefixMiddleware] AFTER: SCRIPT_NAME: {environ.get('SCRIPT_NAME', '')}, PATH_INFO: {environ.get('PATH_INFO', '')}", file=sys.stderr)
         return self.app(environ, start_response)
 
-# Apply the middleware
-app.wsgi_app = PrefixMiddleware(app.wsgi_app)
+# Apply the middleware - disabled for clean URL routing
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app)
 
 
 # --- Ensure upload directory exists ---
