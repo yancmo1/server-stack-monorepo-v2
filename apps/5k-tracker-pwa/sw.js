@@ -1,12 +1,12 @@
 // Service Worker for Race Tracker PWA - lightweight cache versioning
 const CACHE_PREFIX = 'race-tracker-v';
 // IMPORTANT: bump this value on deploy (we set headers no-cache for sw.js and manifest)
-const CACHE_VERSION = '7';
+const CACHE_VERSION = '8';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 const PRECACHE_URLS = [
-  '/tracker/manifest.json',
-  '/tracker/static/css/style.css',
-  '/tracker/'
+  '/manifest.json',
+  '/static/css/style.css',
+  '/'
 ];
 
 self.addEventListener('install', (event) => {
@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   // Navigation and HTML: network-first with offline fallback to cached shell
   if (req.mode === 'navigate' || (req.method === 'GET' && accept.includes('text/html'))) {
     event.respondWith(
-      fetch(req).catch(() => caches.match('/tracker/'))
+      fetch(req).catch(() => caches.match('/'))
     );
     return;
   }

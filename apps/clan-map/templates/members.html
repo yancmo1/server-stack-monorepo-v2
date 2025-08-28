@@ -6,7 +6,7 @@
             <h1 class="h3 mb-0">Members</h1>
             <div class="muted">{{ pinned_members|length }} located • {{ unpinned_members|length }} unknown • total {{ total_members }}</div>
         </div>
-        <a href="/clan-map/submit" class="btn btn-brand btn-sm">Add your location</a>
+        <a href="/submit" class="btn btn-brand btn-sm">Add your location</a>
     </div>
     <div class="card-clean mt-2">
         <div class="card-body pt-3 pb-4">
@@ -67,7 +67,7 @@
             {% if unpinned_members|length > 0 %}
             <div class="alert alert-dark mt-3" role="alert" style="border:1px solid rgba(255,255,255,.06)">
                 <strong>Help us complete the map!</strong> Some members still need to add a location.
-                <a href="/clan-map/submit" class="alert-link">Submit your location</a>.
+                <a href="/submit" class="alert-link">Submit your location</a>.
             </div>
             {% endif %}
         </div>
