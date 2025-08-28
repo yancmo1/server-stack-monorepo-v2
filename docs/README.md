@@ -38,8 +38,8 @@ Refer to `docs/TROUBLESHOOTING_GUIDE.md` for common issues and solutions.
 # QSL Card Creator (v2 connector + legacy GUI)
 
 - Dev start: VS Code task "📟 QSL v2: Start (GUI + Connector)"
-- Connector API: http://localhost:5557/ (Swagger at /docs)
-- GUI: http://localhost:5553/
+- Connector API: https://connector.yancmo.xyz/ (Swagger at /docs)
+- GUI: https://qsl.yancmo.xyz/
 - Syncthing integration and setup guide: see `docs/SYNCTHING_SETUP.md`
 
 # Local Development Secrets Setup

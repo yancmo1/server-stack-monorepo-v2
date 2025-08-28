@@ -106,12 +106,12 @@ API endpoints for debugging:
 This GUI can use the new qsl-auto-v2 connector for robust, read-only access to your Log4OM database and to record QSL sent status in a safe sidecar table.
 
 - Environment variables:
-  - `CONNECTOR_BASE_URL` (default `http://localhost:5557`)
+  - `CONNECTOR_BASE_URL` (default `https://connector.yancmo.xyz`)
   - `CONNECTOR_TOKEN` (default `please-change-me`)
 
 When configured, the QSOs list page will prefer fetching via the connector; updates to QSL sent are attempted via the connector first, then fall back to direct DB updates if the connector is unavailable.
 
-Connector API docs live at: `http://localhost:5557/docs`
+Connector API docs live at: `https://connector.yancmo.xyz/docs`
 
 ## Notes
 - All desktop app and test scripts are now in `backup_files/`.

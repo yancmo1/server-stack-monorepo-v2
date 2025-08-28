@@ -7,8 +7,8 @@
 ./deploy/dev.sh start
 ```
 - Starts all services locally (excludes Discord bot)
-- Dashboard: http://localhost:5550
-- Tracker: http://localhost:5554
+- Dashboard: https://dashboard.yancmo.xyz
+- Tracker: https://tracker.yancmo.xyz
 - All other apps on their respective ports
 
 ### Discord Bot Development
@@ -119,8 +119,8 @@ archive/old-scripts/
 
 ### Port Conflicts
 ```bash
-lsof -ti:5550  # Check what's using port 5550
-kill -9 $(lsof -ti:5550)  # Kill process on port 5550
+lsof -ti:5550  # Check what's using port 5550 (deprecated - use subdomain URLs)
+kill -9 $(lsof -ti:5550)  # Kill process on port 5550 (deprecated - use subdomain URLs)
 ```
 
 ### Clean Reset

@@ -22,7 +22,8 @@ check_port() {
 # Check critical ports
 echo "🔍 Checking ports..."
 check_port 5550 || exit 1  # Dashboard
-check_port 5554 || exit 1  # Tracker
+check_port 5555 || exit 1  # Tracker
+check_port 5554 || exit 1  # Crumb
 check_port 5433 || exit 1  # Database
 
 echo "✅ All ports are available"
@@ -40,15 +41,17 @@ docker compose -f docker-compose.dev.yml ps
 
 echo ""
 echo "🎯 Development URLs:"
-echo "  Dashboard:      http://localhost:5550"
-echo "  Tracker:        http://localhost:5554"
-echo "  Cruise Check:   http://localhost:5551"
-echo "  Clan Map:       http://localhost:5552"
-echo "  QSL Creator:    http://localhost:5553"
+echo "  Dashboard:      https://dashboard.yancmo.xyz"
+echo "  Tracker:        https://tracker.yancmo.xyz"
+echo "  Crumb:          https://crumb.yancmo.xyz"
+echo "  Cruise Check:   https://cruise.yancmo.xyz"
+echo "  Clash Map:      https://clashmap.yancmo.xyz"
+echo "  QSL Creator:    https://qsl.yancmo.xyz"
 echo "  Database:       localhost:5433"
 echo ""
 echo "📱 Health Check URLs:"
-echo "  Tracker Health: http://localhost:5554/health"
+echo "  Tracker Health: http://localhost:5555/health"
+echo "  Crumb Health: http://localhost:5554/health"
 echo ""
 echo "🛠️  Management Commands:"
 echo "  View logs:      docker compose -f docker-compose.dev.yml logs -f [service]"

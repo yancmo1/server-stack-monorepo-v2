@@ -1,35 +1,54 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { useRecipeStore } from './state/session';
+import Library from './pages/Library';
+import ImportRecipe from './pages/ImportRecipe';
+import RecipeDetail from './pages/RecipeDetail';
+import Settings from './pages/Settings';
+import { registerSW } from 'virtual:pwa-register';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+// Register service worker
+if ('serviceWorker' in navigator) {
+  const updateSW = registerSW({
+    onNeedRefresh() {
+      if (confirm('New content available. Reload?')) {
+        updateSW(true);
+      }
+    },
+    onOfflineReady() {
+      console.log('App ready to work offline');
+    },
+  });
 }
 
-export default App
+function App() {
+  const loadRecipes = useRecipeStore((state) => state.loadRecipes);
+
+  useEffect(() => {
+    loadRecipes();
+  }, [loadRecipes]);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Routes>
+        <Route path="/" element={<Library />} />
+        <Route path="/import" element={<ImportRecipe />} />
+        <Route path="/recipe/:id" element={<RecipeDetail />} />
+        <Route path="/settings" element={<Settings />} />
+      </Routes>
+      <Toaster 
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: 'hsl(var(--card))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+          },
+        }}
+      />
+    </div>
+  );
+}
+
+export default App;
