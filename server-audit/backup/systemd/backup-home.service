@@ -1,0 +1,17 @@
+[Unit]
+Description=Incremental Home Backup to MEGA (rclone)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=%i
+Group=%i
+Environment=RCLONE_CONFIG=/home/%i/.config/rclone/rclone.conf
+ExecStart=/bin/bash -lc '/home/%i/apps/server-stack-monorepo-v2/server-audit/backup/scripts/backup_home_incremental.sh'
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+/opt/apps/docker-compose.discord-bot.yml
+/opt/apps/docker-compose.yml
+/opt/apps/coc-discord-bot/docker-compose.yml
+/opt/apps/coc-discord-bot/docker-compose.dev.yml
+/opt/apps/5k-tracker/docker-compose.yml
+/opt/apps/clan-map/docker-compose.yml
+/home/yancmo/apps/docker-compose.discord-bot.yml
+/home/yancmo/apps/docker-compose.yml
+/home/yancmo/apps/BAKUPserver-stack-monorepo/docker-compose.discord-bot.yml
+/home/yancmo/apps/BAKUPserver-stack-monorepo/docker-compose.yml

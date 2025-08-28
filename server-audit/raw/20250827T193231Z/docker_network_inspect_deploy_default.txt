@@ -1,0 +1,109 @@
+[
+    {
+        "Name": "deploy_default",
+        "Id": "bea0b6e2e3a92b3a44602e49eadbb51679056c0a3c6f686ea5843bb78e793901",
+        "Created": "2025-08-07T11:55:10.099901359Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv4": true,
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "0d84b530d02af79ab7e59438942a4c21cba27ccbe009d4700b2b0b35ddd4b890": {
+                "Name": "tracker-db",
+                "EndpointID": "0aef3c2e9653253b7d85eae68ed66006b9f7348e256d90fce8753900271f61ee",
+                "MacAddress": "b6:f2:d3:fc:55:3c",
+                "IPv4Address": "172.18.0.5/16",
+                "IPv6Address": ""
+            },
+            "1ba752780eaa4bc60f608f0096ad2ef5e24714df031a3d66e2ca5eced18196fd": {
+                "Name": "tracker",
+                "EndpointID": "f3d0f6d918a0a5a3d1090049eb20ce0049cc27aaa6cf69598c4c788df8911876",
+                "MacAddress": "f2:5b:b6:d3:d6:ca",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "28ca8f58b78c8c5f85e77d75bd0f1db5a37f6720ca95b514ae5e430f17c7a4e4": {
+                "Name": "qsl-connector",
+                "EndpointID": "25d67808a9156c59bf5e47427f962c234bd85599b762ab157174c07c005e970e",
+                "MacAddress": "aa:b9:c4:c2:d0:67",
+                "IPv4Address": "172.18.0.6/16",
+                "IPv6Address": ""
+            },
+            "40ce615817102c15096e50d2cf8631f1d0f16f80d66153cbd86e782fdc4af12a": {
+                "Name": "dashboard",
+                "EndpointID": "98d7e9cd32edbccb2fbd1cf8c7effe57e77b9d86ff0430124184b968fab43293",
+                "MacAddress": "be:f8:0b:0a:43:5a",
+                "IPv4Address": "172.18.0.9/16",
+                "IPv6Address": ""
+            },
+            "46e5852f56d2aa8033ee5498976288b370c52aa0230d21f87d4394249ee7bc15": {
+                "Name": "pwa-tracker",
+                "EndpointID": "c9b2560b493975676f1a26bdd01210098a6dd193fbacfc72b4caea8e9a4c7ad9",
+                "MacAddress": "ea:02:ab:76:cf:b3",
+                "IPv4Address": "172.18.0.10/16",
+                "IPv6Address": ""
+            },
+            "b73ad60f0eb88ddae59652bd8a0034e88836e4ab9a764cb43a8bbc2d08f7f6fc": {
+                "Name": "clan-map",
+                "EndpointID": "da74179f72fd668632d9cc4a856d759f0fb537f5d647fb90f4a9230ee240c2f1",
+                "MacAddress": "fe:bb:0e:ed:38:ee",
+                "IPv4Address": "172.18.0.7/16",
+                "IPv6Address": ""
+            },
+            "dfd3f175d144b37358ef635dd722aec30d890b0e4cad6d312c802f692d7418d5": {
+                "Name": "cocstack-db",
+                "EndpointID": "3a2997a1df77769366c7241d56a7715010b268063cfd0d39774079d0fc425cdd",
+                "MacAddress": "7a:61:ab:e0:cb:9f",
+                "IPv4Address": "172.18.0.4/16",
+                "IPv6Address": ""
+            },
+            "e69c2ec543f61f445831f801b3a4e6112c9065fbc9b0ab5145edf7283af79f20": {
+                "Name": "cruise-price-check",
+                "EndpointID": "7b8ff1a8f85fecaf8c4be8afa472cc5f908f2e88d2dbd88acd7ee9a4aaf649ab",
+                "MacAddress": "52:52:81:d6:3b:33",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            },
+            "eb9509c8e9b46c90f7a6c1769e2fea93eb3c1eb244f5b4dd844d461f33f9a1bf": {
+                "Name": "qsl-card-creator",
+                "EndpointID": "cd6eb0d48fa7b0bbc68d06e5dc479b729434bad1b92e79ee6b88c11209e5b594",
+                "MacAddress": "c2:45:30:5b:b3:fb",
+                "IPv4Address": "172.18.0.11/16",
+                "IPv6Address": ""
+            },
+            "f9b0037c6ee20d0b5ccd96846d7ef370cfb9a60577c2d4d00839096d6d5b95a5": {
+                "Name": "deploy-coc-discord-bot-1",
+                "EndpointID": "d14cdb47dd4859f583fba63264b68259bd3e8b6881e9b3382fad884c42d8062e",
+                "MacAddress": "5e:c5:d8:88:3c:9e",
+                "IPv4Address": "172.18.0.8/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {
+            "com.docker.compose.config-hash": "7930cac6b1743c905b71ae2e3fa06e556f5869012197f2875d4a34049dd27790",
+            "com.docker.compose.network": "default",
+            "com.docker.compose.project": "deploy",
+            "com.docker.compose.version": "2.38.2"
+        }
+    }
+]

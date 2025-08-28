@@ -1,0 +1,3 @@
+syncthing   41851 yancmo   12u  IPv6 24549551      0t0  TCP *:22000 (LISTEN)
+syncthing   41851 yancmo   27u  IPv6 24546762      0t0  TCP *:8384 (LISTEN)
+code-insi 1729535 yancmo    9u  IPv4 29594028      0t0  TCP 127.0.0.1:36749 (LISTEN)

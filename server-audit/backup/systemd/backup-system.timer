@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly System Snapshot to MEGA (rclone)
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

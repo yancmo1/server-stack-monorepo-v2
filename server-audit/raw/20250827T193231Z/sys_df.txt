@@ -1,0 +1,8 @@
+Filesystem                        Type   Size  Used Avail Use% Mounted on
+tmpfs                             tmpfs  1.6G  2.6M  1.6G   1% /run
+/dev/mapper/ubuntu--vg-ubuntu--lv ext4    98G   27G   67G  29% /
+tmpfs                             tmpfs  7.8G   12M  7.8G   1% /dev/shm
+tmpfs                             tmpfs  5.0M     0  5.0M   0% /run/lock
+/dev/nvme0n1p2                    ext4   2.0G  193M  1.6G  11% /boot
+/dev/nvme0n1p1                    vfat   1.1G  6.2M  1.1G   1% /boot/efi
+tmpfs                             tmpfs  1.6G   16K  1.6G   1% /run/user/1000

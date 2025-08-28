@@ -1,0 +1,5 @@
+total 8
+drwxr-xr-x 2 root root 4096 Aug 26 01:53 .
+drwxr-xr-x 8 root root 4096 Aug 26 06:38 ..
+lrwxrwxrwx 1 root root   37 Aug 26 01:53 yancmo.xyz -> /etc/nginx/sites-available/yancmo.xyz
+lrwxrwxrwx 1 root root   42 Aug 11 14:29 yancmo.xyz.conf -> /etc/nginx/sites-available/yancmo.xyz.conf

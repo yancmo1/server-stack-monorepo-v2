@@ -1,0 +1,5 @@
+flowchart LR
+  Internet((Users)) --> RP[Reverse Proxy :443]
+  RP --> App1[App 1]
+  RP --> App2[App 2]
+  App1 --> DB[(Database)]

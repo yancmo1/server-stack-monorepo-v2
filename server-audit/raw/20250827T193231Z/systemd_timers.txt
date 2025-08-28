@@ -1,0 +1,20 @@
+NEXT                            LEFT LAST                               PASSED UNIT                           ACTIVATES
+Wed 2025-08-27 19:40:00 UTC     7min Wed 2025-08-27 19:30:00 UTC  2min 32s ago sysstat-collect.timer          sysstat-collect.service
+Wed 2025-08-27 20:55:55 UTC 1h 23min Wed 2025-08-27 19:04:56 UTC     27min ago fwupd-refresh.timer            fwupd-refresh.service
+Wed 2025-08-27 23:56:53 UTC 4h 24min Wed 2025-08-27 06:39:25 UTC       12h ago motd-news.timer                motd-news.service
+Thu 2025-08-28 00:00:00 UTC 4h 27min Wed 2025-08-27 00:00:00 UTC       19h ago dpkg-db-backup.timer           dpkg-db-backup.service
+Thu 2025-08-28 00:00:00 UTC 4h 27min Wed 2025-08-27 00:00:00 UTC       19h ago logrotate.timer                logrotate.service
+Thu 2025-08-28 00:07:00 UTC 4h 34min Wed 2025-08-27 00:07:06 UTC       19h ago sysstat-summary.timer          sysstat-summary.service
+Thu 2025-08-28 01:49:52 UTC       6h Wed 2025-08-27 12:19:49 UTC        7h ago apt-daily.timer                apt-daily.service
+Thu 2025-08-28 06:54:02 UTC      11h Wed 2025-08-27 06:54:27 UTC       12h ago apt-daily-upgrade.timer        apt-daily-upgrade.service
+Thu 2025-08-28 09:12:16 UTC      13h Wed 2025-08-27 08:13:56 UTC       11h ago man-db.timer                   man-db.service
+Thu 2025-08-28 12:59:33 UTC      17h Wed 2025-08-27 12:59:33 UTC        6h ago update-notifier-download.timer update-notifier-download.service
+Thu 2025-08-28 13:09:20 UTC      17h Wed 2025-08-27 13:09:20 UTC        6h ago systemd-tmpfiles-clean.timer   systemd-tmpfiles-clean.service
+Sun 2025-08-31 03:10:00 UTC   3 days Sun 2025-08-24 03:10:39 UTC    3 days ago e2scrub_all.timer              e2scrub_all.service
+Mon 2025-09-01 00:23:16 UTC   4 days Mon 2025-08-25 00:24:49 UTC    2 days ago fstrim.timer                   fstrim.service
+Wed 2025-09-03 08:11:17 UTC   6 days Tue 2025-08-26 06:38:47 UTC 1 day 12h ago update-notifier-motd.timer     update-notifier-motd.service
+-                                  - -                                       - apport-autoreport.timer        apport-autoreport.service
+-                                  - -                                       - snapd.snap-repair.timer        snapd.snap-repair.service
+-                                  - -                                       - ua-timer.timer                 ua-timer.service
+
+17 timers listed.

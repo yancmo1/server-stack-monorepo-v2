@@ -1,0 +1,13 @@
+2025/08/27 19:32:33 [warn] 1753973#1753973: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:1
+2025/08/27 19:32:33 [warn] 1753973#1753973: duplicate MIME type "text/html" in /etc/nginx/sites-enabled/yancmo.xyz:119
+2025/08/27 19:32:33 [warn] 1753973#1753973: duplicate MIME type "text/html" in /etc/nginx/sites-enabled/yancmo.xyz:173
+2025/08/27 19:32:33 [warn] 1753973#1753973: duplicate MIME type "text/html" in /etc/nginx/sites-enabled/yancmo.xyz.conf:155
+2025/08/27 19:32:33 [info] 1753973#1753973: Using 116KiB of shared memory for nchan in /etc/nginx/nginx.conf:61
+2025/08/27 19:32:33 [info] 1753973#1753973: Using 131072KiB of shared memory for nchan in /etc/nginx/nginx.conf:61
+2025/08/27 19:32:33 [warn] 1753973#1753973: conflicting server name "yancmo.xyz" on 0.0.0.0:80, ignored
+2025/08/27 19:32:33 [warn] 1753973#1753973: conflicting server name "www.yancmo.xyz" on 0.0.0.0:80, ignored
+2025/08/27 19:32:33 [warn] 1753973#1753973: conflicting server name "yancmo.xyz" on 0.0.0.0:443, ignored
+2025/08/27 19:32:33 [warn] 1753973#1753973: conflicting server name "www.yancmo.xyz" on 0.0.0.0:443, ignored
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+2025/08/27 19:32:33 [emerg] 1753973#1753973: open() "/run/nginx.pid" failed (13: Permission denied)
+nginx: configuration file /etc/nginx/nginx.conf test failed

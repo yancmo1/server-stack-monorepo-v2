@@ -1,0 +1,2 @@
+/etc/cron.daily/dpkg:8:/usr/libexec/dpkg/dpkg-db-backup
+/var/spool/cron/crontabs/yancmo:4:0 2 * * * bash /home/yancmo/scripts/backup_to_meganz.sh

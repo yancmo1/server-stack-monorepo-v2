@@ -1,0 +1,48 @@
+Please help me migrate all URL references from port-based to subdomain-based URLs. Here's the mapping:
+
+OLD PORT-BASED URLs → NEW SUBDOMAIN URLs:
+- http://yancmo.xyz:5550 → https://dashboard.yancmo.xyz
+- https://yancmo.xyz:5550 → https://dashboard.yancmo.xyz
+- http://136.228.117.217:5550 → https://dashboard.yancmo.xyz
+
+- http://yancmo.xyz:5551 → https://cruise.yancmo.xyz
+- https://yancmo.xyz:5551 → https://cruise.yancmo.xyz
+- http://136.228.117.217:5551 → https://cruise.yancmo.xyz
+
+- http://yancmo.xyz:5552 → https://clashmap.yancmo.xyz
+- https://yancmo.xyz:5552 → https://clashmap.yancmo.xyz
+- http://136.228.117.217:5552 → https://clashmap.yancmo.xyz
+- Any references to "clanmap" → "clashmap"
+
+- http://yancmo.xyz:5553 → https://qsl.yancmo.xyz
+- https://yancmo.xyz:5553 → https://qsl.yancmo.xyz
+- http://136.228.117.217:5553 → https://qsl.yancmo.xyz
+
+- http://yancmo.xyz:5554 → https://crumb.yancmo.xyz
+- https://yancmo.xyz:5554 → https://crumb.yancmo.xyz
+- http://136.228.117.217:5554 → https://crumb.yancmo.xyz
+
+- http://yancmo.xyz:5555 → https://tracker.yancmo.xyz
+- https://yancmo.xyz:5555 → https://tracker.yancmo.xyz
+- http://136.228.117.217:5555 → https://tracker.yancmo.xyz
+- Any references to "pwa" → "tracker"
+
+- http://yancmo.xyz:5557 → https://connector.yancmo.xyz
+- https://yancmo.xyz:5557 → https://connector.yancmo.xyz
+- http://136.228.117.217:5557 → https://connector.yancmo.xyz
+
+- http://yancmo.xyz:9090 → https://metrics.yancmo.xyz
+- https://yancmo.xyz:9090 → https://metrics.yancmo.xyz
+- http://136.228.117.217:9090 → https://metrics.yancmo.xyz
+
+- http://yancmo.xyz:3000 → https://grafana.yancmo.xyz
+- https://yancmo.xyz:3000 → https://grafana.yancmo.xyz
+- http://136.228.117.217:3000 → https://grafana.yancmo.xyz
+
+Please search through all files in this workspace and:
+1. Find all URLs matching the old format (with ports 5550, 5551, 5552, 5553, 5554, 5555, 5557, 9090, 3000)
+2. Replace them with the corresponding HTTPS subdomain URLs
+3. Update any app name references: clanmap→clashmap, pwa→tracker
+4. Show me what files were changed and provide a summary
+
+The server migration is happening soon, so these URL changes are critical for functionality.

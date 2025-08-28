@@ -1,0 +1,7 @@
+default via 192.168.50.1 dev enx00e04c030111 proto dhcp src 192.168.50.97 metric 100 
+default via 192.168.50.1 dev wlp3s0 proto dhcp src 192.168.50.96 metric 600 
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown 
+172.18.0.0/16 dev br-bea0b6e2e3a9 proto kernel scope link src 172.18.0.1 
+192.168.50.0/24 dev enx00e04c030111 proto kernel scope link src 192.168.50.97 metric 100 
+192.168.50.0/24 dev wlp3s0 proto kernel scope link src 192.168.50.96 metric 600 
+192.168.50.1 dev enx00e04c030111 proto dhcp scope link src 192.168.50.97 metric 100 

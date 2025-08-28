@@ -1,0 +1,10 @@
+46e5852f56d2;pwa-tracker;0.0.0.0:5555->5555/tcp, [::]:5555->5555/tcp;deploy-pwa-tracker
+eb9509c8e9b4;qsl-card-creator;0.0.0.0:5553->5553/tcp, [::]:5553->5553/tcp;deploy-qsl-card-creator
+dfd3f175d144;cocstack-db;5432/tcp;postgres:15
+0d84b530d02a;tracker-db;5432/tcp;postgres:15
+f9b0037c6ee2;deploy-coc-discord-bot-1;;deploy-coc-discord-bot
+e69c2ec543f6;cruise-price-check;0.0.0.0:5551->5551/tcp, [::]:5551->5551/tcp;deploy-cruise-price-check
+40ce61581710;dashboard;0.0.0.0:5550->5550/tcp, [::]:5550->5550/tcp;deploy-dashboard
+28ca8f58b78c;qsl-connector;0.0.0.0:5557->5557/tcp, [::]:5557->5557/tcp;deploy-connector
+b73ad60f0eb8;clan-map;0.0.0.0:5552->5552/tcp, [::]:5552->5552/tcp;deploy-clan-map
+1ba752780eaa;tracker;0.0.0.0:5554->5554/tcp, [::]:5554->5554/tcp, 5555/tcp;deploy-tracker

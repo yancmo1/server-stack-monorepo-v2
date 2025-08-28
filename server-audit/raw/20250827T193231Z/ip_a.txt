@@ -1,0 +1,23 @@
+1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lft forever
+1: lo    inet6 ::1/128 scope host noprefixroute \       valid_lft forever preferred_lft forever
+2: enx00e04c030111    inet 192.168.50.97/24 metric 100 brd 192.168.50.255 scope global dynamic enx00e04c030111\       valid_lft 62507sec preferred_lft 62507sec
+2: enx00e04c030111    inet6 fe80::2e0:4cff:fe03:111/64 scope link \       valid_lft forever preferred_lft forever
+3: wlp3s0    inet 192.168.50.96/24 brd 192.168.50.255 scope global dynamic noprefixroute wlp3s0\       valid_lft 64156sec preferred_lft 64156sec
+3: wlp3s0    inet6 fe80::529:88e6:6808:c420/64 scope link noprefixroute \       valid_lft forever preferred_lft forever
+5: br-bea0b6e2e3a9    inet 172.18.0.1/16 brd 172.18.255.255 scope global br-bea0b6e2e3a9\       valid_lft forever preferred_lft forever
+5: br-bea0b6e2e3a9    inet6 fe80::ece7:5fff:fe94:56f/64 scope link \       valid_lft forever preferred_lft forever
+6: docker0    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0\       valid_lft forever preferred_lft forever
+6: docker0    inet6 fe80::904e:28ff:feff:9126/64 scope link \       valid_lft forever preferred_lft forever
+7: vetha3fb247    inet6 fe80::e88f:8ff:fe91:76da/64 scope link \       valid_lft forever preferred_lft forever
+329: tailscale0    inet 100.98.189.105/32 scope global tailscale0\       valid_lft forever preferred_lft forever
+329: tailscale0    inet6 fd7a:115c:a1e0::bd01:bd6a/128 scope global \       valid_lft forever preferred_lft forever
+329: tailscale0    inet6 fe80::52b4:bf9d:d901:b7e/64 scope link stable-privacy \       valid_lft forever preferred_lft forever
+442: veth4156b21    inet6 fe80::5084:95ff:fe51:cbbf/64 scope link \       valid_lft forever preferred_lft forever
+443: vetha3d6bb2    inet6 fe80::b81b:2aff:fe8f:6bd5/64 scope link \       valid_lft forever preferred_lft forever
+444: veth7d6e4ff    inet6 fe80::ec12:6dff:feac:dfa9/64 scope link \       valid_lft forever preferred_lft forever
+445: veth047235e    inet6 fe80::5852:29ff:fed9:f76b/64 scope link \       valid_lft forever preferred_lft forever
+446: vethaee5d0b    inet6 fe80::70f5:a1ff:fee7:bdef/64 scope link \       valid_lft forever preferred_lft forever
+447: veth3b30d75    inet6 fe80::680c:d4ff:fe03:74c0/64 scope link \       valid_lft forever preferred_lft forever
+448: vetha88bff7    inet6 fe80::e0a0:70ff:fe65:e2c6/64 scope link \       valid_lft forever preferred_lft forever
+449: veth3e2bc27    inet6 fe80::340e:14ff:fe39:1394/64 scope link \       valid_lft forever preferred_lft forever
+450: vethabb5732    inet6 fe80::8c02:d0ff:fe96:be5d/64 scope link \       valid_lft forever preferred_lft forever

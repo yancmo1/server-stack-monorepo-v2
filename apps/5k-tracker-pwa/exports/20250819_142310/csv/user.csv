@@ -1,0 +1,4 @@
+id,username,email,password_hash,first_name,last_name,created_at,is_active,is_admin,reset_token,reset_token_expiry
+3,yancmo,yancmo@gmail.com,pbkdf2:sha256:600000$xrArN3t1eGy072Wl$9606eeb9e4575cfc8813484fd543d4c8a34291fc79245b054d0550fe94e7dac9,Yancy,Shepherd,2025-08-01 22:21:50.948866,t,t,,
+4,,ambeees@yahoo.com,pbkdf2:sha256:600000$AjCrPSY2oetE8xTG$8b3fb41fd7f549c65cb1073634e9851916b364619536254442e479615a4009e3,Amber,Shepherd,2025-08-04 20:07:27.252617,t,f,,
+5,test999@example.com,test999@example.com,pbkdf2:sha256:600000$Cw2mnn5jvpvcmUVb$92fe251b5f3dcee4e934286b803c6bb1e59b8358d04b46179972249f18d3eb14,Test,User,2025-08-07 23:50:45.287215,,f,,

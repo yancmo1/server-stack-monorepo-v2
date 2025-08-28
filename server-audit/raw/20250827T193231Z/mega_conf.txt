@@ -1,0 +1,4 @@
+ls: cannot access '/home/yancmo/.megaCMD': No such file or directory
+ls: cannot access '/home/yancmo/.config/MEGAcmd': No such file or directory
+ls: cannot access '/root/.megaCMD': Permission denied
+ls: cannot access '/root/.config/MEGAcmd': Permission denied

@@ -1,0 +1,13 @@
+[Unit]
+Description=Backup Retention Pruning on MEGA
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=%i
+Group=%i
+ExecStart=/bin/bash -lc '/home/%i/apps/server-stack-monorepo-v2/server-audit/backup/scripts/cleanup_retention.sh'
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,321 @@
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+yancmo   1753829  6.2  0.0   7344  3584 pts/0    S+   19:32   0:00 bash server-audit/collect_server_inventory.sh
+root      705278  1.1  0.5 1322744 94168 ?       Ssl  Aug22  99:38 /usr/sbin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+yancmo   1753523  1.1  0.0  12728  9600 pts/0    Ss   19:32   0:00 /bin/bash --init-file /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh
+pihole      1453  0.7  0.7 129620 120904 ?       S<sl Aug16 128:26 /usr/bin/pihole-FTL -f
+grafana     1419  0.3  0.4 1831692 77856 ?       Ssl  Aug16  64:44 /usr/share/grafana/bin/grafana server --config=/etc/grafana/grafana.ini --pidfile=/run/grafana/grafana-server.pid --packaging=deb cfg:default.paths.logs=/var/log/grafana cfg:default.paths.data=/var/lib/grafana cfg:default.paths.plugins=/var/lib/grafana/plugins cfg:default.paths.provisioning=/etc/grafana/provisioning
+yancmo   1562293  0.3  5.4 76724540 882112 ?     Sl   14:37   1:02 /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/node --dns-result-order=ipv4first /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+root        1456  0.3  0.5 3910376 81408 ?       Ssl  Aug16  53:09 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+yancmo   2540611  0.3  0.1 1224168 27696 ?       Ssl  Aug24  16:16 mega-cmd-server --do-not-log-to-stdout
+root      136574  0.2  0.2 197672 37484 ?        Sl   Aug26   7:20 /usr/local/bin/python dashboard.py
+root        3175  0.2  0.0   7340  3456 ?        Ss   Aug16  41:24 /bin/bash /usr/local/bin/lid-monitor.sh
+root     1807233  0.2  0.6 2295412 103592 ?      Ssl  Aug23  16:34 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+root      136067  0.2  0.2  56312 39380 ?        Ss   Aug26   5:27 /usr/local/bin/python /usr/local/bin/uvicorn main:app --host 0.0.0.0 --port 5557
+prometh+    1423  0.1  0.2 1729756 46936 ?       Ssl  Aug16  27:42 /usr/local/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus --web.console.templates=/etc/prometheus/consoles --web.console.libraries=/etc/prometheus/console_libraries
+root        1262  0.1  0.1 2542548 26720 ?       Ssl  Aug16  23:25 /usr/bin/containerd
+root         962  0.1  0.0  18796  8720 ?        Ss   Aug16  18:42 /usr/lib/systemd/systemd-logind
+yancmo     41851  0.1  0.2 1253696 39508 ?       SNl  Aug25   2:55 /usr/bin/syncthing serve --no-browser --no-restart --logflags=0
+root         102  0.1  0.0      0     0 ?        S    Aug16  17:25 [irq/9-acpi]
+root     1722385  0.0  0.0      0     0 ?        I    18:44   0:02 [kworker/6:0-events]
+root     1718103  0.0  0.0      0     0 ?        I    18:37   0:03 [kworker/3:2-events]
+root     1748853  0.0  0.0      0     0 ?        I    19:25   0:00 [kworker/5:0-events]
+root     1728577  0.0  0.0      0     0 ?        I    18:54   0:02 [kworker/4:2-events]
+root     1672228  0.0  0.0      0     0 ?        I    17:26   0:06 [kworker/1:0-events]
+yancmo   1520919  0.0  0.8 11859868 143524 ?     Sl   13:36   0:18 /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/node /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/out/server-main.js --connection-token=remotessh --accept-server-license-terms --start-server --enable-remote-auto-shutdown --socket-path=/tmp/code-insiders-4d6f65e5-0909-48f3-a486-d32539b67b51
+root           1  0.0  0.0  23292 13052 ?        Ss   Aug16  11:53 /sbin/init splash
+root     1701546  0.0  0.0      0     0 ?        I    18:12   0:03 [kworker/2:2-mm_percpu_wq]
+root     1711122  0.0  0.0      0     0 ?        I    18:26   0:02 [kworker/10:2-mm_percpu_wq]
+root     1690202  0.0  0.0      0     0 ?        I    17:54   0:04 [kworker/0:2-events]
+root     1747243  0.0  0.0      0     0 ?        I    19:22   0:00 [kworker/8:0-events]
+yancmo   1562304  0.0  0.7 1328328 120412 ?      Sl   14:37   0:12 /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/node /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/out/bootstrap-fork --type=fileWatcher
+root     1502558  0.0  0.0      0     0 ?        I    13:08   0:14 [kworker/9:0-events]
+root     1734494  0.0  0.0      0     0 ?        I    19:02   0:01 [kworker/7:0-events]
+yancmo   1729535  0.0  0.1  55732 18504 ?        Sl   18:55   0:01 /home/yancmo/.vscode-server-insiders/code-insiders-c34056c81be25f480f630b7e31b45df44d36d9cd command-shell --cli-data-dir /home/yancmo/.vscode-server-insiders/cli --parent-process-id 1729511 --on-host=127.0.0.1 --on-port
+root     1607373  0.0  0.0      0     0 ?        I    15:46   0:07 [kworker/11:0-events]
+root      135860  0.0  0.3 210684 49356 ?        Ss   Aug26   1:09 python web_interface.py
+root         690  0.0  0.0      0     0 ?        S    Aug16   7:18 [irq/98-brcmf_pcie_intr]
+root          17  0.0  0.0      0     0 ?        I    Aug16   6:43 [rcu_preempt]
+root      136759  0.0  0.4 230320 66196 ?        Ss   Aug26   1:01 python web_app.py
+root        1809  0.0  0.0 1238104 14232 ?       Sl   Aug16   5:34 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 1ba752780eaa4bc60f608f0096ad2ef5e24714df031a3d66e2ca5eced18196fd -address /run/containerd/containerd.sock
+root      136724  0.0  0.0 1238360 14768 ?       Sl   Aug26   0:47 /usr/bin/containerd-shim-runc-v2 -namespace moby -id eb9509c8e9b46c90f7a6c1769e2fea93eb3c1eb244f5b4dd844d461f33f9a1bf -address /run/containerd/containerd.sock
+root      135837  0.0  0.0 1238360 14376 ?       Sl   Aug26   0:46 /usr/bin/containerd-shim-runc-v2 -namespace moby -id e69c2ec543f61f445831f801b3a4e6112c9065fbc9b0ab5145edf7283af79f20 -address /run/containerd/containerd.sock
+root      136189  0.0  0.0 1238616 14936 ?       Sl   Aug26   0:46 /usr/bin/containerd-shim-runc-v2 -namespace moby -id b73ad60f0eb88ddae59652bd8a0034e88836e4ab9a764cb43a8bbc2d08f7f6fc -address /run/containerd/containerd.sock
+root      136044  0.0  0.0 1238424 14432 ?       Sl   Aug26   0:45 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 28ca8f58b78c8c5f85e77d75bd0f1db5a37f6720ca95b514ae5e430f17c7a4e4 -address /run/containerd/containerd.sock
+root      136090  0.0  0.0 1238360 14940 ?       Sl   Aug26   0:45 /usr/bin/containerd-shim-runc-v2 -namespace moby -id f9b0037c6ee20d0b5ccd96846d7ef370cfb9a60577c2d4d00839096d6d5b95a5 -address /run/containerd/containerd.sock
+root      136397  0.0  0.0 1238360 14100 ?       Sl   Aug26   0:45 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 46e5852f56d2aa8033ee5498976288b370c52aa0230d21f87d4394249ee7bc15 -address /run/containerd/containerd.sock
+root     1751680  0.0  0.0      0     0 ?        I    19:29   0:00 [kworker/u24:1-writeback]
+yancmo    136125  0.0  0.3 237188 56760 ?        Ssl  Aug26   0:40 python bot.py
+root     1738207  0.0  0.0      0     0 ?        I    19:08   0:00 [kworker/u24:2-events_unbound]
+yancmo   1729504  0.0  0.0  15296  7372 ?        S    18:55   0:00 sshd: yancmo@notty
+root         430  0.0  0.3 116748 54024 ?        S<s  Aug16   3:34 /usr/lib/systemd/systemd-journald
+message+     948  0.0  0.0  10360  5376 ?        Ss   Aug16   3:04 @dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+root     1694169  0.0  0.0      0     0 ?        I    18:00   0:01 [kworker/u24:0-flush-252:0]
+root     1739559  0.0  0.0      0     0 ?        I    19:10   0:00 [kworker/u24:4-events_power_efficient]
+yancmo    136221  0.0  0.1  31676 17476 ?        Ss   Aug26   0:22 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5552 --workers 2 --timeout 30 app:app
+yancmo    136422  0.0  0.0  32752 16000 ?        Ss   Aug26   0:22 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app
+yancmo      1832  0.0  0.0  28588 10112 ?        Ss   Aug16   2:26 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app
+root      136144  0.0  0.0 1238360 14392 ?       Sl   Aug26   0:22 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 40ce615817102c15096e50d2cf8631f1d0f16f80d66153cbd86e782fdc4af12a -address /run/containerd/containerd.sock
+root         978  0.0  0.0 334912 15360 ?        Ssl  Aug16   2:10 /usr/sbin/NetworkManager --no-daemon
+root      135952  0.0  0.0 1238104 14384 ?       Sl   Aug26   0:18 /usr/bin/containerd-shim-runc-v2 -namespace moby -id dfd3f175d144b37358ef635dd722aec30d890b0e4cad6d312c802f692d7418d5 -address /run/containerd/containerd.sock
+root      136006  0.0  0.0 1238360 13904 ?       Sl   Aug26   0:18 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 0d84b530d02af79ab7e59438942a4c21cba27ccbe009d4700b2b0b35ddd4b890 -address /run/containerd/containerd.sock
+root      136466  0.0  0.0 2041008 5792 ?        Sl   Aug26   0:17 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 5550 -container-ip 172.18.0.9 -container-port 5550 -use-listen-fd
+root      136841  0.0  0.0 2041520 5744 ?        Sl   Aug26   0:17 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 5553 -container-ip 172.18.0.11 -container-port 5553 -use-listen-fd
+root      135922  0.0  0.0 2041264 6092 ?        Sl   Aug26   0:17 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 5551 -container-ip 172.18.0.3 -container-port 5551 -use-listen-fd
+root      136359  0.0  0.0 2041264 5936 ?        Sl   Aug26   0:16 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 5552 -container-ip 172.18.0.7 -container-port 5552 -use-listen-fd
+root     1745784  0.0  0.0      0     0 ?        I    19:20   0:00 [kworker/u24:3-flush-259:0]
+root         604  0.0  0.0      0     0 ?        S    Aug16   1:37 [usb-storage]
+root         466  0.0  0.1 288952 26880 ?        SLsl Aug16   1:26 /sbin/multipathd -d -s
+yancmo    136483  0.0  0.3 611684 54792 ?        Sl   Aug26   0:13 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5552 --workers 2 --timeout 30 app:app
+root       50616  0.0  0.0 422272  8832 ?        Ssl  Aug21   0:49 /usr/sbin/thermald --systemd --dbus-enable --adaptive
+yancmo    136482  0.0  0.3 611784 54956 ?        Sl   Aug26   0:13 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5552 --workers 2 --timeout 30 app:app
+yancmo   1521237  0.0  0.4 1156556 73452 ?       Sl   13:36   0:01 /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/node /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/out/bootstrap-fork --type=ptyHost --logsPath /home/yancmo/.vscode-server-insiders/data/logs/20250827T133605
+root         351  0.0  0.0      0     0 ?        S    Aug16   1:12 [jbd2/dm-0-8]
+dnsmasq   136033  0.0  0.1 219652 22144 ?        Ss   Aug26   0:10 postgres
+root     1531754  0.0  0.1 2515144 19236 ?       Ssl  Aug22   0:27 /usr/lib/snapd/snapd
+root        1897  0.0  0.0 2041520 4628 ?        Sl   Aug16   1:02 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 5554 -container-ip 172.18.0.2 -container-port 5554 -use-listen-fd
+yancmo   1562478  0.0  0.5 1044724 86884 ?       Sl   14:37   0:01 /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/node /home/yancmo/.vscode-server-insiders/extensions/github.vscode-github-actions-0.27.2/dist/server-node.js --node-ipc --clientProcessId=1562293
+yancmo   1578728  0.0  0.4 1019248 65424 ?       Sl   15:01   0:00 /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/node /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/extensions/markdown-language-features/dist/serverWorkerMain --node-ipc --clientProcessId=1562293
+dnsmasq   135974  0.0  0.1 219652 21760 ?        Ss   Aug26   0:08 postgres
+root       50557  0.0  0.2 593300 35376 ?        Ssl  Aug21   0:32 /usr/libexec/fwupd/fwupd
+yancmo   1562369  0.0  0.3 1014212 58404 ?       Sl   14:37   0:00 /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/node /home/yancmo/.vscode-server-insiders/extensions/ckolkman.vscode-postgres-1.4.3/out/language/server.js --node-ipc --clientProcessId=1562293
+root          95  0.0  0.0      0     0 ?        S    Aug16   0:48 [kcompactd0]
+syslog      1040  0.0  0.0 222508  5248 ?        Ssl  Aug16   0:45 /usr/sbin/rsyslogd -n -iNONE
+postgres   50598  0.0  0.0 222832 15872 ?        Ss   Aug21   0:20 /usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/16/main -c config_file=/etc/postgresql/16/main/postgresql.conf
+polkitd      956  0.0  0.0 310200  9352 ?        Ssl  Aug16   0:24 /usr/lib/polkit-1/polkitd --no-debug
+root         964  0.0  0.0 469248  9728 ?        Ssl  Aug16   0:21 /usr/libexec/udisks2/udisksd
+systemd+     943  0.0  0.0  22128  8576 ?        Ss   Aug16   0:19 /usr/lib/systemd/systemd-networkd
+yancmo    136591  0.0  0.3  94380 55824 ?        S    Aug26   0:02 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app
+yancmo    136590  0.0  0.3  94380 55692 ?        S    Aug26   0:02 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app
+root          24  0.0  0.0      0     0 ?        S    Aug16   0:15 [ksoftirqd/1]
+dnsmasq   136406  0.0  0.0 221232  6584 ?        Ss   Aug26   0:02 postgres: autovacuum launcher 
+yancmo   3793498  0.0  0.0  20848 11648 ?        Ss   Aug25   0:02 /usr/lib/systemd/systemd --user
+dnsmasq   136322  0.0  0.0 221232  6584 ?        Ss   Aug26   0:01 postgres: autovacuum launcher 
+root         188  0.0  0.0      0     0 ?        I<   Aug16   0:11 [kworker/4:1H-kblockd]
+root          16  0.0  0.0      0     0 ?        S    Aug16   0:09 [ksoftirqd/0]
+postgres   50602  0.0  0.0 222832  2732 ?        Ss   Aug21   0:05 postgres: 16/main: walwriter 
+dnsmasq   136402  0.0  0.0 219652  8888 ?        Ss   Aug26   0:01 postgres: walwriter 
+dnsmasq   136302  0.0  0.0 219788  5944 ?        Ss   Aug26   0:01 postgres: background writer 
+postgres   50600  0.0  0.0 222988  3116 ?        Ss   Aug21   0:05 postgres: 16/main: background writer 
+yancmo      2928  0.0  0.0  90656  8700 ?        S    Aug16   0:08 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app
+yancmo      2927  0.0  0.0  90656  8192 ?        S    Aug16   0:08 /usr/local/bin/python3.11 /usr/local/bin/gunicorn --bind 0.0.0.0:5555 --workers 2 --timeout 60 app:app
+dnsmasq   136387  0.0  0.0 219788  5944 ?        Ss   Aug26   0:01 postgres: background writer 
+dnsmasq   136321  0.0  0.0 219652  8760 ?        Ss   Aug26   0:01 postgres: walwriter 
+root     1729398  0.0  0.0  14732 10112 ?        Ss   18:55   0:00 sshd: yancmo [priv]
+root         116  0.0  0.0      0     0 ?        S    Aug16   0:07 [kswapd0]
+postgres   50603  0.0  0.0 224440  5548 ?        Ss   Aug21   0:04 postgres: 16/main: autovacuum launcher 
+root         979  0.0  0.0  18016  6784 ?        Ss   Aug16   0:06 /usr/sbin/wpa_supplicant -u -s -O DIR=/run/wpa_supplicant GROUP=netdev
+root         472  0.0  0.0  29660  7752 ?        Ss   Aug16   0:06 /usr/lib/systemd/systemd-udevd
+root          18  0.0  0.0      0     0 ?        S    Aug16   0:05 [migration/0]
+root          35  0.0  0.0      0     0 ?        S    Aug16   0:05 [migration/3]
+root          29  0.0  0.0      0     0 ?        S    Aug16   0:05 [migration/2]
+root          41  0.0  0.0      0     0 ?        S    Aug16   0:05 [migration/4]
+root          47  0.0  0.0      0     0 ?        S    Aug16   0:05 [migration/5]
+root          23  0.0  0.0      0     0 ?        S    Aug16   0:05 [migration/1]
+root          53  0.0  0.0      0     0 ?        S    Aug16   0:05 [migration/6]
+root          65  0.0  0.0      0     0 ?        S    Aug16   0:04 [migration/8]
+root          83  0.0  0.0      0     0 ?        S    Aug16   0:04 [migration/11]
+root          71  0.0  0.0      0     0 ?        S    Aug16   0:04 [migration/9]
+root          77  0.0  0.0      0     0 ?        S    Aug16   0:04 [migration/10]
+systemd+     864  0.0  0.0  91020  7168 ?        Ssl  Aug16   0:04 /usr/lib/systemd/systemd-timesyncd
+root          59  0.0  0.0      0     0 ?        S    Aug16   0:04 [migration/7]
+root         239  0.0  0.0      0     0 ?        I<   Aug16   0:04 [kworker/5:1H-kblockd]
+root          30  0.0  0.0      0     0 ?        S    Aug16   0:03 [ksoftirqd/2]
+root         211  0.0  0.0      0     0 ?        I<   Aug16   0:03 [kworker/3:1H-kblockd]
+root          42  0.0  0.0      0     0 ?        S    Aug16   0:03 [ksoftirqd/4]
+root         189  0.0  0.0      0     0 ?        I<   Aug16   0:03 [kworker/2:1H-kblockd]
+root          36  0.0  0.0      0     0 ?        S    Aug16   0:03 [ksoftirqd/3]
+root          48  0.0  0.0      0     0 ?        S    Aug16   0:02 [ksoftirqd/5]
+root         213  0.0  0.0      0     0 ?        I<   Aug16   0:02 [kworker/6:1H-kblockd]
+www-data  319350  0.0  0.1 213204 17040 ?        S    Aug26   0:00 nginx: worker process
+root        1025  0.0  0.0 310996  6656 ?        Ssl  Aug16   0:02 /usr/libexec/boltd
+www-data  319344  0.0  0.1 213204 16528 ?        S    Aug26   0:00 nginx: worker process
+root          84  0.0  0.0      0     0 ?        S    Aug16   0:02 [ksoftirqd/11]
+root          78  0.0  0.0      0     0 ?        S    Aug16   0:02 [ksoftirqd/10]
+www-data  319342  0.0  0.1 213204 17040 ?        S    Aug26   0:00 nginx: worker process
+root          54  0.0  0.0      0     0 ?        S    Aug16   0:02 [ksoftirqd/6]
+root         130  0.0  0.0      0     0 ?        I<   Aug16   0:02 [kworker/7:1H-kblockd]
+root         185  0.0  0.0      0     0 ?        I<   Aug16   0:02 [kworker/1:1H-kblockd]
+www-data  319346  0.0  0.1 213204 16528 ?        S    Aug26   0:00 nginx: worker process
+root        1421  0.0  0.0   6824  2688 ?        Ss   Aug16   0:02 /usr/sbin/cron -f -P
+root          72  0.0  0.0      0     0 ?        S    Aug16   0:02 [ksoftirqd/9]
+www-data  319347  0.0  0.1 213204 16528 ?        S    Aug26   0:00 nginx: worker process
+www-data  319348  0.0  0.1 213204 16528 ?        S    Aug26   0:00 nginx: worker process
+www-data  319351  0.0  0.1 213204 17040 ?        S    Aug26   0:00 nginx: worker process
+root          66  0.0  0.0      0     0 ?        S    Aug16   0:02 [ksoftirqd/8]
+root         113  0.0  0.0      0     0 ?        I<   Aug16   0:02 [kworker/8:1H-kblockd]
+root         955  0.0  0.0  32296 13312 ?        Ss   Aug16   0:02 /usr/bin/python3 /usr/bin/networkd-dispatcher --run-startup-triggers
+root          60  0.0  0.0      0     0 ?        S    Aug16   0:02 [ksoftirqd/7]
+root         238  0.0  0.0      0     0 ?        I<   Aug16   0:02 [kworker/9:1H-kblockd]
+www-data  319341  0.0  0.1 213204 17040 ?        S    Aug26   0:00 nginx: worker process
+www-data  319349  0.0  0.1 213204 17040 ?        S    Aug26   0:00 nginx: worker process
+www-data  319345  0.0  0.1 213204 17296 ?        S    Aug26   0:00 nginx: worker process
+www-data  319352  0.0  0.1 213204 17040 ?        S    Aug26   0:00 nginx: worker process
+root         237  0.0  0.0      0     0 ?        I<   Aug16   0:02 [kworker/10:1H-kblockd]
+root         208  0.0  0.0      0     0 ?        I<   Aug16   0:02 [kworker/11:1H-kblockd]
+www-data  319343  0.0  0.1 213204 17296 ?        S    Aug26   0:00 nginx: worker process
+root         214  0.0  0.0      0     0 ?        I<   Aug16   0:01 [kworker/0:1H-kblockd]
+root      136167  0.0  0.2  48992 36636 ?        Ss   Aug26   0:00 python dashboard.py
+root           2  0.0  0.0      0     0 ?        S    Aug16   0:01 [kthreadd]
+root        1903  0.0  0.0 1745440 2816 ?        Sl   Aug16   0:01 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 5554 -container-ip 172.18.0.2 -container-port 5554 -use-listen-fd
+root      136848  0.0  0.0 1745696 4352 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 5553 -container-ip 172.18.0.11 -container-port 5553 -use-listen-fd
+root      136525  0.0  0.0 1819172 4352 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 5555 -container-ip 172.18.0.10 -container-port 5555 -use-listen-fd
+root      136532  0.0  0.0 1745440 4480 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 5555 -container-ip 172.18.0.10 -container-port 5555 -use-listen-fd
+root      136365  0.0  0.0 1745440 4352 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 5552 -container-ip 172.18.0.7 -container-port 5552 -use-listen-fd
+root      136280  0.0  0.0 1745440 4224 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 5557 -container-ip 172.18.0.6 -container-port 5557 -use-listen-fd
+root      135930  0.0  0.0 1745440 4352 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 5551 -container-ip 172.18.0.3 -container-port 5551 -use-listen-fd
+root      136474  0.0  0.0 1745440 4480 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 5550 -container-ip 172.18.0.9 -container-port 5550 -use-listen-fd
+root      136287  0.0  0.0 1671708 4480 ?        Sl   Aug26   0:00 /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 5557 -container-ip 172.18.0.6 -container-port 5557 -use-listen-fd
+tinypro+    1258  0.0  0.0 399492  2944 ?        Ss   Aug16   0:01 /usr/bin/tinyproxy -d
+root          91  0.0  0.0      0     0 ?        S    Aug16   0:01 [khungtaskd]
+yancmo     41841  0.0  0.0 1249472 3712 ?        Ssl  Aug25   0:00 /usr/bin/syncthing serve --no-browser --no-restart --logflags=0
+root        1023  0.0  0.0 392028  7680 ?        Ssl  Aug16   0:00 /usr/sbin/ModemManager
+postgres   50604  0.0  0.0 224416  4908 ?        Ss   Aug21   0:00 postgres: 16/main: logical replication launcher 
+dnsmasq   136408  0.0  0.0 221212  6200 ?        Ss   Aug26   0:00 postgres: logical replication launcher 
+dnsmasq   136323  0.0  0.0 221212  6072 ?        Ss   Aug26   0:00 postgres: logical replication launcher 
+root      319194  0.0  0.1 212784 25480 ?        S    Aug26   0:00 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+root       36009  0.0  0.0 314444  7808 ?        Ssl  Aug16   0:00 /usr/libexec/upowerd
+root     1221199  0.0  0.0  12020  6528 ?        Ss   Aug17   0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+postgres   50599  0.0  0.0 222964  3884 ?        Ss   Aug21   0:00 postgres: 16/main: checkpointer 
+dnsmasq   136386  0.0  0.0 219772  6712 ?        Ss   Aug26   0:00 postgres: checkpointer 
+dnsmasq   136301  0.0  0.0 219772  6712 ?        Ss   Aug26   0:00 postgres: checkpointer 
+root        1259  0.0  0.0 109692 13568 ?        Ssl  Aug16   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+root           3  0.0  0.0      0     0 ?        S    Aug16   0:00 [pool_workqueue_release]
+root           4  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-rcu_g]
+root           5  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-rcu_p]
+root           6  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-slub_]
+root           7  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-netns]
+root           9  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/0:0H-events_highpri]
+root          12  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-mm_pe]
+root          13  0.0  0.0      0     0 ?        I    Aug16   0:00 [rcu_tasks_kthread]
+root          14  0.0  0.0      0     0 ?        I    Aug16   0:00 [rcu_tasks_rude_kthread]
+root          15  0.0  0.0      0     0 ?        I    Aug16   0:00 [rcu_tasks_trace_kthread]
+root          19  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/0]
+root          20  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/0]
+root          21  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/1]
+root          22  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/1]
+root          26  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/1:0H-events_highpri]
+root          27  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/2]
+root          28  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/2]
+root          32  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/2:0H-events_highpri]
+root          33  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/3]
+root          34  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/3]
+root          38  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/3:0H-events_highpri]
+root          39  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/4]
+root          40  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/4]
+root          44  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/4:0H-events_highpri]
+root          45  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/5]
+root          46  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/5]
+root          50  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/5:0H-events_highpri]
+root          51  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/6]
+root          52  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/6]
+root          56  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/6:0H-events_highpri]
+root          57  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/7]
+root          58  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/7]
+root          62  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/7:0H-events_highpri]
+root          63  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/8]
+root          64  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/8]
+root          68  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/8:0H-events_highpri]
+root          69  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/9]
+root          70  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/9]
+root          74  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/9:0H-events_highpri]
+root          75  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/10]
+root          76  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/10]
+root          80  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/10:0H-events_highpri]
+root          81  0.0  0.0      0     0 ?        S    Aug16   0:00 [cpuhp/11]
+root          82  0.0  0.0      0     0 ?        S    Aug16   0:00 [idle_inject/11]
+root          86  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/11:0H-events_highpri]
+root          87  0.0  0.0      0     0 ?        S    Aug16   0:00 [kdevtmpfs]
+root          88  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-inet_]
+root          89  0.0  0.0      0     0 ?        S    Aug16   0:00 [kauditd]
+root          92  0.0  0.0      0     0 ?        S    Aug16   0:00 [oom_reaper]
+root          94  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-write]
+root          96  0.0  0.0      0     0 ?        SN   Aug16   0:00 [ksmd]
+root          98  0.0  0.0      0     0 ?        SN   Aug16   0:00 [khugepaged]
+root          99  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-kinte]
+root         100  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-kbloc]
+root         101  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-blkcg]
+root         104  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-tpm_d]
+root         105  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-ata_s]
+root         106  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-md]
+root         107  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-md_bi]
+root         108  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-edac-]
+root         109  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-devfr]
+root         111  0.0  0.0      0     0 ?        S    Aug16   0:00 [watchdogd]
+root         117  0.0  0.0      0     0 ?        S    Aug16   0:00 [ecryptfs-kthread]
+root         118  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-kthro]
+root         119  0.0  0.0      0     0 ?        S    Aug16   0:00 [irq/32-pciehp]
+root         120  0.0  0.0      0     0 ?        S    Aug16   0:00 [irq/34-pciehp]
+root         121  0.0  0.0      0     0 ?        S    Aug16   0:00 [irq/36-pciehp]
+root         122  0.0  0.0      0     0 ?        S    Aug16   0:00 [irq/38-pciehp]
+root         128  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-acpi_]
+root         129  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-mld]
+root         131  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-ipv6_]
+root         138  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-kstrp]
+root         140  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/u25:0-ttm]
+root         145  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-crypt]
+root         156  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-charg]
+root         256  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-nvme-]
+root         257  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-nvme-]
+root         258  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-nvme-]
+root         259  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-nvme-]
+root         270  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-kdmfl]
+root         304  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-raid5]
+root         352  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-ext4-]
+root         463  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-kmpat]
+root         464  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-kmpat]
+root         508  0.0  0.0      0     0 ?        S    Aug16   0:00 [psimon]
+root         596  0.0  0.0      0     0 ?        S    Aug16   0:00 [irq/96-mei_me]
+root         601  0.0  0.0      0     0 ?        S    Aug16   0:00 [scsi_eh_0]
+root         602  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-scsi_]
+root         605  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-cfg80]
+root         623  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-uas]
+root         667  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/u25:2-hci0]
+root         711  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-msgbu]
+root         714  0.0  0.0      0     0 ?        S    Aug16   0:00 [jbd2/nvme0n1p2-8]
+root         715  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-ext4-]
+root         728  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-amdgp]
+root         750  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-ttm]
+root        1063  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-amdgp]
+root        1064  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-amdgp]
+root        1065  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-amdgp]
+root        1066  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-amdgp]
+root        1067  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-amdgp]
+root        1068  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-dm_vb]
+root        1076  0.0  0.0      0     0 ?        S    Aug16   0:00 [card1-crtc0]
+root        1077  0.0  0.0      0     0 ?        S    Aug16   0:00 [card1-crtc1]
+root        1078  0.0  0.0      0     0 ?        S    Aug16   0:00 [card1-crtc2]
+root        1079  0.0  0.0      0     0 ?        S    Aug16   0:00 [card1-crtc3]
+root        1080  0.0  0.0      0     0 ?        S    Aug16   0:00 [card1-crtc4]
+root        1487  0.0  0.0   6104  1920 tty1     Ss+  Aug16   0:00 /sbin/agetty -o -p -- \u --noclear - linux
+root      112862  0.0  0.0      0     0 ?        I<   Aug16   0:00 [kworker/R-tls-s]
+root      319115  0.0  0.0      0     0 ?        S    Aug26   0:00 [psimon]
+yancmo   1520915  0.0  0.0   2800  1792 ?        S    13:36   0:00 sh /home/yancmo/.vscode-server-insiders/cli/servers/Insiders-c34056c81be25f480f630b7e31b45df44d36d9cd/server/bin/code-server-insiders --connection-token=remotessh --accept-server-license-terms --start-server --enable-remote-auto-shutdown --socket-path=/tmp/code-insiders-4d6f65e5-0909-48f3-a486-d32539b67b51
+yancmo   1729505  0.0  0.0   7472  3968 ?        Ss   18:55   0:00 -bash
+yancmo   1729511  0.0  0.0   2800  1920 ?        S    18:55   0:00 sh
+root     1741109  0.0  0.0      0     0 ?        I    19:13   0:00 [kworker/8:1-mm_percpu_wq]
+root     1742457  0.0  0.0      0     0 ?        I    19:15   0:00 [kworker/4:0-mm_percpu_wq]
+root     1744040  0.0  0.0      0     0 ?        I    19:17   0:00 [kworker/5:1-events]
+root     1746351  0.0  0.0      0     0 ?        I    19:21   0:00 [kworker/10:1-mm_percpu_wq]
+root     1746607  0.0  0.0      0     0 ?        I    19:21   0:00 [kworker/0:1-events]
+root     1746934  0.0  0.0      0     0 ?        I    19:22   0:00 [kworker/1:1-events]
+root     1747496  0.0  0.0      0     0 ?        I    19:23   0:00 [kworker/7:2-mm_percpu_wq]
+root     1747557  0.0  0.0      0     0 ?        I    19:23   0:00 [kworker/9:1-mm_percpu_wq]
+root     1748258  0.0  0.0      0     0 ?        I    19:24   0:00 [kworker/11:2-events]
+root     1748515  0.0  0.0      0     0 ?        I    19:24   0:00 [kworker/6:2-mm_percpu_wq]
+root     1748587  0.0  0.0      0     0 ?        I    19:24   0:00 [kworker/2:0-mm_percpu_wq]
+root     1749235  0.0  0.0      0     0 ?        I    19:25   0:00 [kworker/3:1-cgroup_destroy]
+root     1750918  0.0  0.0      0     0 ?        I    19:28   0:00 [kworker/4:1-mm_percpu_wq]
+root     1751055  0.0  0.0      0     0 ?        I    19:28   0:00 [kworker/7:1-events]
+root     1751106  0.0  0.0      0     0 ?        I    19:28   0:00 [kworker/1:2-mm_percpu_wq]
+root     1751459  0.0  0.0      0     0 ?        I    19:29   0:00 [kworker/0:0-events]
+root     1751820  0.0  0.0      0     0 ?        I    19:29   0:00 [kworker/9:2-cgroup_destroy]
+root     1751880  0.0  0.0      0     0 ?        I    19:29   0:00 [kworker/10:0-cgroup_destroy]
+root     1751989  0.0  0.0      0     0 ?        I    19:29   0:00 [kworker/9:3-mm_percpu_wq]
+root     1752110  0.0  0.0      0     0 ?        I    19:30   0:00 [kworker/6:1]
+root     1752381  0.0  0.0      0     0 ?        I    19:30   0:00 [kworker/8:2-mm_percpu_wq]
+yancmo   1752787  0.0  0.0   5684  1920 ?        S    19:31   0:00 sleep 180
+root     1753503  0.0  0.0      0     0 ?        I    19:32   0:00 [kworker/11:1]
+root     1753827  0.0  0.0   5684  1920 ?        S    19:32   0:00 sleep 1
+yancmo   1753854  0.0  0.0  11016  4608 pts/0    R+   19:32   0:00 ps aux --sort=-%cpu
+root     1753855  0.0  0.0  29664  4772 ?        S    19:32   0:00 (udev-worker)
+yancmo   3793499  0.0  0.0  21144  3388 ?        S    Aug25   0:00 (sd-pam)

@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily PostgreSQL Dumps to MEGA
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

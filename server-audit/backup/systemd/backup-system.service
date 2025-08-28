@@ -1,0 +1,15 @@
+[Unit]
+Description=Daily System Snapshot to MEGA (rclone)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/bin/bash -lc '/home/yancmo/apps/server-stack-monorepo-v2/server-audit/backup/scripts/backup_system_daily.sh'
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

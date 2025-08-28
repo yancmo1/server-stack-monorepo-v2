@@ -1,0 +1,47 @@
+Netid State  Recv-Q Send-Q                             Local Address:Port  Peer Address:PortProcess                                      
+udp   UNCONN 0      0                                        0.0.0.0:53         0.0.0.0:*                                                
+udp   UNCONN 0      0                  192.168.50.97%enx00e04c030111:68         0.0.0.0:*                                                
+udp   UNCONN 0      0                                        0.0.0.0:123        0.0.0.0:*                                                
+udp   UNCONN 0      0                                        0.0.0.0:41641      0.0.0.0:*                                                
+udp   UNCONN 0      0                                        0.0.0.0:53543      0.0.0.0:*    users:(("syncthing",pid=41851,fd=14))       
+udp   UNCONN 0      0                                        0.0.0.0:21027      0.0.0.0:*    users:(("syncthing",pid=41851,fd=20))       
+udp   UNCONN 0      0                                              *:22000            *:*    users:(("syncthing",pid=41851,fd=13))       
+udp   UNCONN 0      0                                           [::]:53            [::]:*                                                
+udp   UNCONN 0      0                                           [::]:123           [::]:*                                                
+udp   UNCONN 0      0              [fe80::529:88e6:6808:c420]%wlp3s0:546           [::]:*                                                
+udp   UNCONN 0      0      [fe80::2e0:4cff:fe03:111]%enx00e04c030111:546           [::]:*                                                
+udp   UNCONN 0      0                                           [::]:41641         [::]:*                                                
+udp   UNCONN 0      0                                           [::]:58636         [::]:*    users:(("syncthing",pid=41851,fd=21))       
+udp   UNCONN 0      0                                           [::]:21027         [::]:*    users:(("syncthing",pid=41851,fd=16))       
+tcp   LISTEN 0      200                                    127.0.0.1:5432       0.0.0.0:*                                                
+tcp   LISTEN 0      511                                      0.0.0.0:443        0.0.0.0:*                                                
+tcp   LISTEN 0      200                                      0.0.0.0:8443       0.0.0.0:*                                                
+tcp   LISTEN 0      511                                      0.0.0.0:80         0.0.0.0:*                                                
+tcp   LISTEN 0      32                                       0.0.0.0:53         0.0.0.0:*                                                
+tcp   LISTEN 0      4096                              100.98.189.105:53077      0.0.0.0:*                                                
+tcp   LISTEN 0      1024                                     0.0.0.0:8888       0.0.0.0:*                                                
+tcp   LISTEN 0      200                                      0.0.0.0:8080       0.0.0.0:*                                                
+tcp   LISTEN 0      4096                                     0.0.0.0:5550       0.0.0.0:*                                                
+tcp   LISTEN 0      4096                                     0.0.0.0:5551       0.0.0.0:*                                                
+tcp   LISTEN 0      4096                                     0.0.0.0:5554       0.0.0.0:*                                                
+tcp   LISTEN 0      4096                                     0.0.0.0:5555       0.0.0.0:*                                                
+tcp   LISTEN 0      4096                                     0.0.0.0:5552       0.0.0.0:*                                                
+tcp   LISTEN 0      4096                                     0.0.0.0:5553       0.0.0.0:*                                                
+tcp   LISTEN 0      4096                                     0.0.0.0:5557       0.0.0.0:*                                                
+tcp   LISTEN 0      1024                                   127.0.0.1:36749      0.0.0.0:*    users:(("code-insiders-c",pid=1729535,fd=9))
+tcp   LISTEN 0      4096                                           *:3000             *:*                                                
+tcp   LISTEN 0      200                                         [::]:8443          [::]:*                                                
+tcp   LISTEN 0      4096                                           *:8384             *:*    users:(("syncthing",pid=41851,fd=27))       
+tcp   LISTEN 0      32                                          [::]:53            [::]:*                                                
+tcp   LISTEN 0      4096                                           *:22               *:*                                                
+tcp   LISTEN 0      4096                                           *:9090             *:*                                                
+tcp   LISTEN 0      200                                         [::]:8080          [::]:*                                                
+tcp   LISTEN 0      4096                                           *:22000            *:*    users:(("syncthing",pid=41851,fd=12))       
+tcp   LISTEN 0      4096                                        [::]:5550          [::]:*                                                
+tcp   LISTEN 0      4096                                        [::]:5551          [::]:*                                                
+tcp   LISTEN 0      4096                                        [::]:5554          [::]:*                                                
+tcp   LISTEN 0      4096                                        [::]:5555          [::]:*                                                
+tcp   LISTEN 0      4096                                        [::]:5552          [::]:*                                                
+tcp   LISTEN 0      4096                                        [::]:5553          [::]:*                                                
+tcp   LISTEN 0      4096                                        [::]:5557          [::]:*                                                
+tcp   LISTEN 0      4096                 [fd7a:115c:a1e0::bd01:bd6a]:60310         [::]:*                                                
