@@ -7,7 +7,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # Clean install with esbuild rebuild to fix version mismatch
-RUN rm -f package-lock.json && \
+# Force cache bust by adding a timestamp
+RUN echo "Cache bust: $(date)" && \
+    rm -f package-lock.json && \
     npm cache clean --force && \
     npm install && \
     npm rebuild esbuild

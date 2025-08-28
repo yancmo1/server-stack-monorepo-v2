@@ -88,8 +88,8 @@ deploy_to_server() {
         cd deploy
         
         if [ "$service" = "no-bot" ]; then
-            echo "Deploying all services except bot..."
-            docker compose up -d --build dashboard tracker crumb cruise-price-check
+            echo "Deploying all services except bot and crumb (temporarily)..."
+            docker compose up -d --build dashboard tracker cruise-price-check
         elif [ "$service" = "bot" ]; then
             echo "Deploying coc-discord-bot only..."
             docker compose up -d --build coc-discord-bot
