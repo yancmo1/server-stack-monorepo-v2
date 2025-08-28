@@ -1,9 +1,9 @@
-import Dexie, { type EntityTable } from 'dexie';
+import Dexie, { type Table } from 'dexie';
 import type { Recipe, CookSession } from '../types/recipe';
 
 class CrumbDB extends Dexie {
-  recipes!: EntityTable<Recipe, 'id'>;
-  cookSessions!: EntityTable<CookSession, 'recipeId'>;
+  recipes!: Table<Recipe, string>;
+  cookSessions!: Table<CookSession, string>;
 
   constructor() {
     super('CrumbDB');
